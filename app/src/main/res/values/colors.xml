@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ime_bg">#F3F5F9</color>
+    <color name="ime_surface">#FFFFFF</color>
+    <color name="ime_key_bg">#FFFFFF</color>
+    <color name="ime_key_pressed">#E2E7F1</color>
+    <color name="ime_capsule_bg">#E6EAF3</color>
+    <color name="ime_text_primary">#161B26</color>
+    <color name="ime_text_secondary">#5A6478</color>
+    <color name="ime_accent">#2B59FF</color>
+    <color name="ime_accent_recording">#E53935</color>
+    <color name="ime_accent_cancel">#757575</color>
+    <color name="ime_waveform_idle">#B8C2D8</color>
+    <color name="ime_waveform_active">#2B59FF</color>
+    <color name="ime_waveform_speech">#00B87C</color>
+    <color name="ime_divider">#DCE1EC</color>
+    <color name="ic_launcher_bg">#1B3AE8</color>
+</resources>

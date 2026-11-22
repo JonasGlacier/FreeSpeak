@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FreeSpeak 语音输入法</string>
+    <string name="ime_service_label">FreeSpeak 离线语音输入</string>
+    <string name="ime_subtype_voice">多语言本地语音 (离线无审查)</string>
+    <string name="status_idle_hybrid">轻点开始录音 · 按住松手即转写</string>
+    <string name="status_idle_tap">轻点麦克风开始录音</string>
+    <string name="status_idle_hold">按住麦克风说话，松开立即转写</string>
+    <string name="status_recording_tap">正在聆听… 再次点击完成转写</string>
+    <string name="status_recording_hold">正在聆听… 松开转写 · 上滑取消</string>
+    <string name="status_slide_cancel">松开手指取消本次录音</string>
+    <string name="status_transcribing">本地离线转写中…</string>
+    <string name="status_no_speech">未检测到有效语音，已过滤静音</string>
+    <string name="status_need_permission">请点击右上角开启麦克风权限</string>
+    <string name="status_need_model">请点击左上角下载或导入语音小模型</string>
+</resources>
