@@ -54,7 +54,7 @@ class EngineManager(
         idleUnloadJob = null
 
         val resolvedManifest = resolveTargetManifest(modelId)
-            ?: return Result.failure(IllegalStateException("尚未安装任何离线语音模型，请先打开 FreeSpeak 下载或导入小模型"))
+            ?: return Result.failure(IllegalStateException("No offline speech model installed"))
 
         if (currentEngine?.isLoaded == true &&
             loadedModelId == resolvedManifest.id &&
@@ -83,7 +83,7 @@ class EngineManager(
                 },
                 onFailure = { err ->
                     newEngine.release()
-                    val msg = err.message ?: "模型加载失败"
+                    val msg = err.message ?: "Model load failed"
                     _status.value = EngineRuntimeStatus.Error(msg)
                     Result.failure(err)
                 }
@@ -103,13 +103,13 @@ class EngineManager(
         return mutex.withLock {
             withContext(engineDispatcher) {
                 val eng = currentEngine
-                    ?: return@withContext Result.failure(IllegalStateException("推理引擎未就绪"))
+                    ?: return@withContext Result.failure(IllegalStateException("Engine not ready"))
                 _status.value = EngineRuntimeStatus.Transcribing(manifest.name)
                 val res = eng.transcribe(pcm16k, options)
                 if (res.isSuccess) {
                     _status.value = EngineRuntimeStatus.Ready(manifest.id, manifest.name)
                 } else {
-                    _status.value = EngineRuntimeStatus.Error(res.exceptionOrNull()?.message ?: "识别出错")
+                    _status.value = EngineRuntimeStatus.Error(res.exceptionOrNull()?.message ?: "Transcription failed")
                 }
                 res
             }

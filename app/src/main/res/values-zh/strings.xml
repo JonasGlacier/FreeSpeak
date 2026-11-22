@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App & IME Identity -->
+    <string name="app_name">FreeSpeak</string>
+    <string name="ime_service_label">FreeSpeak 语音输入</string>
+    <string name="ime_subtype_voice">多语言离线语音</string>
+
+    <!-- Common -->
+    <string name="state_on">开启</string>
+    <string name="state_off">关闭</string>
+    <string name="action_back">返回</string>
+    <string name="action_next">继续</string>
+    <string name="action_skip">稍后设置</string>
+    <string name="action_done">开始使用</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_delete">删除</string>
+    <string name="action_retry">重试</string>
+    <string name="action_clear">清空</string>
+    <string name="action_download">下载</string>
+    <string name="action_use">选用</string>
+    <string name="label_in_use">使用中</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">纯粹、私密的语音输入</string>
+    <string name="onboarding_welcome_subtitle">支持多语言与中英混说，所有运算完全在手机本地完成。</string>
+    <string name="onboarding_pillar_free">免费且开源</string>
+    <string name="onboarding_pillar_free_desc">无订阅收费，开放接入任意新模型，不依赖官方更新。</string>
+    <string name="onboarding_pillar_offline">100% 离线运算</string>
+    <string name="onboarding_pillar_offline_desc">输入法进程零联网，语音数据从不离开你的手机。</string>
+    <string name="onboarding_pillar_uncensored">无审查 · 保护隐私</string>
+    <string name="onboarding_pillar_uncensored_desc">无敏感词过滤，无内容审查，不收集任何遥测日志。</string>
+
+    <string name="onboarding_perm_title">授予麦克风权限</string>
+    <string name="onboarding_perm_desc">仅用于在本地内存中采集语音并交由离线模型识别。</string>
+    <string name="onboarding_perm_grant">开启麦克风权限</string>
+    <string name="onboarding_perm_granted">已获得麦克风权限</string>
+
+    <string name="onboarding_model_title">选择语音小模型</string>
+    <string name="onboarding_model_desc">下载一款轻量离线模型，或直接导入手机中的本地模型文件。</string>
+    <string name="onboarding_import_local">从本地导入文件</string>
+
+    <string name="onboarding_ime_title">启用输入法</string>
+    <string name="onboarding_ime_desc">在系统键盘管理中开启 FreeSpeak，然后将其选为当前输入法即可。</string>
+    <string name="onboarding_enable_ime">1. 在系统设置中启用</string>
+    <string name="onboarding_ime_enabled">已在系统设置中启用</string>
+    <string name="onboarding_select_ime">2. 切换至 FreeSpeak 键盘</string>
+    <string name="onboarding_ime_selected">已切换至 FreeSpeak</string>
+
+    <!-- Settings Home (Main Screen) -->
+    <string name="settings_title">设置</string>
+    <string name="section_general">语音与识别</string>
+    <string name="section_system">引擎与系统</string>
+
+    <string name="pref_voice_model">语音识别模型</string>
+    <string name="pref_voice_model_none">未安装</string>
+
+    <string name="pref_preferred_languages">偏好语言</string>
+    <string name="pref_lang_auto_mixed">自动</string>
+
+    <string name="pref_recording_mode">录音交互模式</string>
+    <string name="mode_hybrid_short">智能混合</string>
+    <string name="mode_tap_short">点击录音</string>
+    <string name="mode_hold_short">按住说话</string>
+
+    <string name="pref_vad_filter">语音检测与静音过滤</string>
+
+    <string name="pref_download_mirror">下载源与自定义模型</string>
+
+    <string name="pref_performance">性能与内存管理</string>
+    <string name="pref_performance_summary">%1$d 线程 · %2$s</string>
+    <string name="idle_never">常驻内存</string>
+    <string name="idle_minutes">闲置 %1$d 分钟释放</string>
+
+    <string name="pref_keyboard_setup">权限与输入法状态</string>
+    <string name="setup_status_ready">已就绪</string>
+    <string name="setup_status_incomplete">待完成</string>
+
+    <string name="pref_test_input">语音输入测试</string>
+    <string name="pref_test_input_summary">点击试说</string>
+
+    <!-- Sub-screen: Recording Mode -->
+    <string name="sub_recording_desc">选择按下麦克风按钮时的录音交互方式。</string>
+    <string name="mode_hybrid_desc">短按开始或结束录音；按住说话松手立即转写（手指上滑可取消）。</string>
+    <string name="mode_tap_desc">轻点麦克风开始录音，说完再次点击完成转写。</string>
+    <string name="mode_hold_desc">按住麦克风说话，松开手指立即转写，上滑取消本次录音。</string>
+
+    <!-- Sub-screen: Preferred Languages -->
+    <string name="sub_language_desc">勾选你日常使用的语言。勾选多种语言时将自动启用多语言混输识别（如中英夹杂），并可在键盘顶栏快速切换。</string>
+    <string name="sub_language_whisper_prompt">标点与中英混输引导（Whisper）</string>
+    <string name="sub_language_whisper_prompt_desc">使用 Whisper 系列模型时自动提示输出简体标点与自然中英混排。</string>
+
+    <!-- Sub-screen: VAD -->
+    <string name="sub_vad_desc">通过本地 Silero VAD 检测人声活动，自动滤除首尾留白与过长静音以防静音幻觉并降低算力消耗；绝不切碎句子，完整保留模型原生标点。</string>
+    <string name="sub_vad_enable">开启语音检测与静音过滤</string>
+    <string name="sub_vad_sensitivity">人声检测阈值（%1$s）</string>
+    <string name="sub_vad_sensitivity_hint">数值越小对轻声越灵敏；周围环境嘈杂时可适当调高。</string>
+
+    <!-- Sub-screen: Models -->
+    <string name="sub_models_desc">所有模型均在本地离线运行。你可以随时切换或接入新模型，无需等待应用更新。</string>
+    <string name="model_size_format">%1$d MB · %2$s</string>
+    <string name="model_downloading_format">%1$s · %2$d / %3$d MB (%4$s)</string>
+    <string name="model_extracting">正在解压模型文件…</string>
+
+    <!-- Model Catalog Descriptions -->
+    <string name="model_desc_funasr_nano">FunAudioLLM 轻量多语言与方言模型，支持中英混说与自动标点，单次前向推理极快。</string>
+    <string name="model_desc_qwen3_asr">通义千问 0.6B 多模态语音小模型，中英夹杂、专业词汇及标点断句表现极佳。</string>
+    <string name="model_desc_whisper_small">均衡型 99 语种 Whisper 量化模型（基于 whisper.cpp 原生推理）。</string>
+    <string name="model_desc_sensevoice">支持中、粤、英、日、韩识别，自动恢复标点与数字格式，响应迅速。</string>
+    <string name="model_desc_whisper_tiny">仅约 32 MB 的超轻模型，适合低配设备或快速体验。</string>
+
+    <!-- Sub-screen: Download Source & Custom Models -->
+    <string name="sub_mirror_desc">切换模型下载镜像源，从手机存储离线导入模型包，或订阅外部 JSON 模型源。</string>
+    <string name="mirror_section_title">下载镜像源</string>
+    <string name="mirror_hf_mirror">HF-Mirror 镜像</string>
+    <string name="mirror_modelscope">ModelScope 魔搭</string>
+    <string name="mirror_huggingface">HuggingFace 直连</string>
+    <string name="mirror_custom">自定义镜像</string>
+    <string name="mirror_custom_url_label">自定义镜像地址前缀</string>
+
+    <string name="custom_import_section">本地导入与直链接入</string>
+    <string name="action_import_local_file">从本地存储导入模型 (.bin / .gguf / .onnx / .zip / .tar.gz)</string>
+    <string name="action_add_direct_url">通过直链 URL 添加模型</string>
+    <string name="catalog_section_title">外部 JSON 模型源订阅</string>
+    <string name="catalog_url_label">模型源 JSON URL</string>
+    <string name="action_subscribe">订阅</string>
+    <string name="action_sync_catalogs">同步已订阅模型源</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_import_title">导入本地模型</string>
+    <string name="dialog_model_name_optional">显示名称（选填）</string>
+    <string name="dialog_engine_auto">自动识别推理引擎（推荐）</string>
+    <string name="dialog_direct_url_title">直链添加模型</string>
+    <string name="dialog_model_name">模型名称</string>
+    <string name="dialog_model_url">模型或压缩包直链 URL</string>
+
+    <!-- Sub-screen: Performance -->
+    <string name="sub_perf_desc">调节推理 CPU 线程数与后台内存回收策略，兼顾识别速度与手机续航。</string>
+    <string name="perf_cpu_threads">CPU 推理线程数：%1$d</string>
+    <string name="perf_idle_unload_title">键盘收起后自动释放模型内存</string>
+    <string name="perf_idle_1m">闲置 1 分钟后</string>
+    <string name="perf_idle_5m">闲置 5 分钟后</string>
+    <string name="perf_idle_15m">闲置 15 分钟后</string>
+    <string name="perf_idle_never">常驻不自动卸载</string>
+    <string name="perf_unload_now">立即释放当前模型内存</string>
+
+    <!-- Sub-screen: Setup & Test -->
+    <string name="sub_setup_rerun_onboarding">重新打开欢迎引导</string>
+    <string name="sub_test_desc">点击下方输入框唤起键盘，直接测试离线语音输入与标点效果。</string>
+    <string name="sub_test_placeholder">点击此处唤起键盘说话…</string>
+
+    <!-- IME Panel -->
+    <string name="ime_no_model_tap">点击选择语音模型</string>
+    <string name="ime_key_space">空格</string>
+    <string name="ime_key_return">换行</string>
+    <string name="ime_key_send">发送</string>
+    <string name="ime_key_search">搜索</string>
+    <string name="ime_key_go">前往</string>
+    <string name="ime_key_next">下一项</string>
+    <string name="ime_key_done">完成</string>
+    <string name="ime_cd_settings">设置</string>
+    <string name="ime_cd_switch_ime">切换输入法</string>
+    <string name="ime_cd_mic">语音输入</string>
+    <string name="ime_cd_backspace">退格</string>
+
+    <string name="status_idle_hybrid">轻点或按住说话</string>
+    <string name="status_idle_tap">轻点开始说话</string>
+    <string name="status_idle_hold">按住麦克风说话</string>
+    <string name="status_recording_tap">正在聆听… 再次点击完成</string>
+    <string name="status_recording_hold">正在聆听… 松开完成 · 上滑取消</string>
+    <string name="status_slide_cancel">松开手指取消</string>
+    <string name="status_transcribing">离线转写中…</string>
+    <string name="status_loading_model">正在加载 %1$s…</string>
+    <string name="status_done_latency">已完成 (%1$d ms)</string>
+    <string name="status_no_speech">未检测到有效语音</string>
+    <string name="status_need_permission">需要开启麦克风权限</string>
+    <string name="status_need_model">请先下载或导入语音模型</string>
+
+    <!-- Toasts -->
+    <string name="toast_model_ready">%1$s 已就绪</string>
+    <string name="toast_model_deleted">已删除 %1$s</string>
+    <string name="toast_import_failed">导入失败：%1$s</string>
+    <string name="toast_catalog_synced">已同步 %1$d 款模型</string>
+    <string name="toast_sync_failed">同步失败：%1$s</string>
+    <string name="toast_ram_released">已释放模型内存</string>
+</resources>

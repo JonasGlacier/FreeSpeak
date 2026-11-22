@@ -68,4 +68,21 @@ class ModelManifestAndMirrorTest {
             whisperDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun `preferred languages summary and effective ASR language resolve cleanly`() {
+        val bilingual = UserSettings(
+            preferredLanguages = setOf("zh", "en"),
+            selectedLanguage = "auto",
+        )
+        assertEquals("English, 中文", bilingual.formatPreferredLanguagesSummary())
+        assertEquals("auto", bilingual.effectiveAsrLanguage)
+
+        val single = UserSettings(
+            preferredLanguages = setOf("ja"),
+            selectedLanguage = "auto",
+        )
+        assertEquals("日本語", single.formatPreferredLanguagesSummary())
+        assertEquals("ja", single.effectiveAsrLanguage)
+    }
 }

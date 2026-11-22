@@ -257,7 +257,7 @@ class QwenBpeTokenizer private constructor(
                 it.isFile && (it.name == "tokenizer.json" || it.name == "vocab.json" || it.name == "tokens.txt")
             }?.let { return loadFromFile(it) }
 
-            throw IllegalArgumentException("模型目录中未找到词表文件 (tokenizer.json / vocab.json / tokens.txt): ${modelDir.absolutePath}")
+            throw IllegalArgumentException("Vocabulary file not found (tokenizer.json / vocab.json / tokens.txt) in ${modelDir.absolutePath}")
         }
 
         fun loadFromFile(file: File): QwenBpeTokenizer {

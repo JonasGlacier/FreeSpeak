@@ -24,6 +24,7 @@ import com.freespeak.ime.FreeSpeakApplication
 import com.freespeak.ime.R
 import com.freespeak.ime.audio.AudioRecorder
 import com.freespeak.ime.data.RecordInteractionMode
+import com.freespeak.ime.data.SupportedLanguages
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.AsrInferenceOptions
 import com.freespeak.ime.engine.EngineRuntimeStatus
@@ -48,19 +49,18 @@ class FreeSpeakInputMethodService : InputMethodService() {
     private var currentSettings = UserSettings()
 
     // Views
-    private var rootContainer: View? = null
     private var btnModelSwitch: TextView? = null
     private var btnLangSwitch: TextView? = null
     private var tvStatus: TextView? = null
     private var waveformView: VoiceWaveformView? = null
     private var btnMic: ImageButton? = null
     private var btnEnter: TextView? = null
+    private var punctButtons: List<TextView> = emptyList()
 
     // Touch / Recording state
     private var isTapSessionRecording = false
     private var isHoldSessionRecording = false
     private var isSlideCancelArmed = false
-    private var touchDownTimeMs = 0L
     private var touchDownY = 0f
     private var isTranscribingNow = false
 
@@ -90,7 +90,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
         serviceScope.launch {
             app.preferencesRepository.settingsFlow.collect { settings ->
                 currentSettings = settings
-                updateToolbarLabels()
+                updateToolbarAndPunctuation()
                 if (!isTapSessionRecording && !isHoldSessionRecording && !isTranscribingNow) {
                     tvStatus?.text = defaultIdleHint(settings.interactionMode)
                 }
@@ -114,7 +114,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
 
         serviceScope.launch {
             app.modelRepository.models.collect {
-                updateToolbarLabels()
+                updateToolbarAndPunctuation()
             }
         }
     }
@@ -122,13 +122,27 @@ class FreeSpeakInputMethodService : InputMethodService() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreateInputView(): View {
         val view = layoutInflater.inflate(R.layout.ime_voice_panel, null)
-        rootContainer = view.findViewById(R.id.imeRootContainer)
         btnModelSwitch = view.findViewById(R.id.btnModelSwitch)
         btnLangSwitch = view.findViewById(R.id.btnLangSwitch)
         tvStatus = view.findViewById(R.id.tvImeStatus)
         waveformView = view.findViewById(R.id.waveformView)
         btnMic = view.findViewById(R.id.btnMic)
         btnEnter = view.findViewById(R.id.btnEnter)
+
+        punctButtons = listOfNotNull(
+            view.findViewById(R.id.btnPunct1),
+            view.findViewById(R.id.btnPunct2),
+            view.findViewById(R.id.btnPunct3),
+            view.findViewById(R.id.btnPunct4),
+            view.findViewById(R.id.btnPunct5),
+            view.findViewById(R.id.btnPunct6),
+        )
+        punctButtons.forEach { tv ->
+            tv.setOnClickListener { v ->
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                currentInputConnection?.commitText(tv.text, 1)
+            }
+        }
 
         val baseBottomPad = (10 * resources.displayMetrics.density).toInt()
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
@@ -152,15 +166,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
             openMainApp()
         }
 
-        // Quick punctuation buttons
-        bindPunctuationKey(view, R.id.btnPunctComma, "，")
-        bindPunctuationKey(view, R.id.btnPunctPeriod, "。")
-        bindPunctuationKey(view, R.id.btnPunctQuestion, "？")
-        bindPunctuationKey(view, R.id.btnPunctExclaim, "！")
-        bindPunctuationKey(view, R.id.btnPunctEnum, "、")
-        bindPunctuationKey(view, R.id.btnPunctColon, "：")
-
-        // Switch keyboard button
         view.findViewById<View>(R.id.btnSwitchIme)?.apply {
             setOnClickListener { v ->
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -172,13 +177,11 @@ class FreeSpeakInputMethodService : InputMethodService() {
             }
         }
 
-        // Space key
         view.findViewById<View>(R.id.btnSpace)?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             currentInputConnection?.commitText(" ", 1)
         }
 
-        // Auto-repeating Backspace key
         view.findViewById<View>(R.id.btnBackspace)?.setOnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -198,18 +201,16 @@ class FreeSpeakInputMethodService : InputMethodService() {
             }
         }
 
-        // Smart Enter / Action key
         btnEnter?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             performSmartEnter()
         }
 
-        // Central Microphone button (Tap + Hold + Slide-up-to-cancel)
         btnMic?.setOnTouchListener { v, event ->
             handleMicTouchEvent(v, event)
         }
 
-        updateToolbarLabels()
+        updateToolbarAndPunctuation()
         updateEnterKeyLabel(currentInputEditorInfo)
         return view
     }
@@ -217,7 +218,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         updateEnterKeyLabel(info)
-        updateToolbarLabels()
+        updateToolbarAndPunctuation()
         app.engineManager.onImeShown(
             preferredModelId = currentSettings.selectedModelId,
             numThreads = currentSettings.cpuThreads,
@@ -248,7 +249,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                touchDownTimeMs = System.currentTimeMillis()
                 touchDownY = event.rawY
                 isSlideCancelArmed = false
                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -258,9 +258,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
                         isHoldSessionRecording = true
                         startVoiceCapture(isHoldGesture = true)
                     }
-                    RecordInteractionMode.TAP_ONLY -> {
-                        // Handled cleanly on ACTION_UP
-                    }
+                    RecordInteractionMode.TAP_ONLY -> Unit
                     RecordInteractionMode.HYBRID -> {
                         if (!isTapSessionRecording) {
                             mainHandler.removeCallbacks(holdTriggerRunnable)
@@ -302,7 +300,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
                         finishCaptureAndTranscribe()
                     }
                 } else {
-                    // Short tap!
                     if (currentSettings.interactionMode == RecordInteractionMode.HOLD_ONLY) {
                         tvStatus?.setText(R.string.status_idle_hold)
                     } else if (isTapSessionRecording) {
@@ -355,7 +352,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
         if (startRes.isFailure) {
             isTapSessionRecording = false
             isHoldSessionRecording = false
-            tvStatus?.text = startRes.exceptionOrNull()?.message ?: "无法启动麦克风"
+            tvStatus?.text = startRes.exceptionOrNull()?.message.orEmpty()
             return
         }
 
@@ -390,11 +387,12 @@ class FreeSpeakInputMethodService : InputMethodService() {
                 return@launch
             }
 
+            val asrLang = currentSettings.effectiveAsrLanguage
             val transcribeResult = app.engineManager.transcribe(
                 pcm16k = audioResult.samples,
                 preferredModelId = currentSettings.selectedModelId,
                 options = AsrInferenceOptions(
-                    language = currentSettings.selectedLanguage,
+                    language = asrLang,
                     numThreads = currentSettings.cpuThreads,
                     enableStylePrompt = currentSettings.whisperStylePromptEnabled,
                 )
@@ -407,17 +405,27 @@ class FreeSpeakInputMethodService : InputMethodService() {
                 onSuccess = { res ->
                     val text = res.text.trim()
                     if (text.isNotEmpty()) {
-                        currentInputConnection?.commitText(text, 1)
-                        tvStatus?.text = "已输入 (${res.inferenceTimeMs}ms) · ${defaultIdleHint(currentSettings.interactionMode)}"
+                        val commitStr = if (shouldAppendTrailingSpace(text, asrLang)) "$text " else text
+                        currentInputConnection?.commitText(commitStr, 1)
+                        val donePrefix = getString(R.string.status_done_latency, res.inferenceTimeMs)
+                        tvStatus?.text = "$donePrefix · ${defaultIdleHint(currentSettings.interactionMode)}"
                     } else {
                         tvStatus?.setText(R.string.status_no_speech)
                     }
                 },
                 onFailure = { err ->
-                    tvStatus?.text = err.message ?: "转写失败"
+                    tvStatus?.text = err.message.orEmpty()
                 }
             )
         }
+    }
+
+    private fun shouldAppendTrailingSpace(text: String, asrLang: String): Boolean {
+        if (text.isEmpty()) return false
+        val lastChar = text.last()
+        val isAsciiEnd = lastChar.code in 0x21..0x7E
+        val hasCjk = text.any { it.code in 0x3000..0x9FFF || it.code in 0xFF00..0xFFEF }
+        return isAsciiEnd && !hasCjk && asrLang !in setOf("zh", "yue", "ja")
     }
 
     private fun resetMicVisualState() {
@@ -435,7 +443,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
         if (isTapSessionRecording || isHoldSessionRecording) return
         when (status) {
             is EngineRuntimeStatus.Loading -> {
-                tvStatus?.text = "正在加载 ${status.modelName}…"
+                tvStatus?.text = getString(R.string.status_loading_model, status.modelName)
             }
             is EngineRuntimeStatus.Error -> {
                 tvStatus?.text = status.message
@@ -445,22 +453,33 @@ class FreeSpeakInputMethodService : InputMethodService() {
                     tvStatus?.text = defaultIdleHint(currentSettings.interactionMode)
                 }
             }
-            else -> {}
+            else -> Unit
         }
     }
 
-    private fun updateToolbarLabels() {
+    private fun updateToolbarAndPunctuation() {
         val installed = app.modelRepository.listInstalledManifests()
         val activeModel = installed.find { it.id == currentSettings.selectedModelId }
             ?: installed.firstOrNull()
 
-        btnModelSwitch?.text = if (activeModel != null) {
-            "模型: ${activeModel.name.substringBefore('(').trim()}"
+        btnModelSwitch?.text = activeModel?.name ?: getString(R.string.ime_no_model_tap)
+
+        val effLang = currentSettings.effectiveAsrLanguage
+        btnLangSwitch?.text = if (effLang == "auto") {
+            getString(R.string.pref_lang_auto_mixed)
         } else {
-            "未安装模型 · 点击下载"
+            SupportedLanguages.labelFor(effLang)
         }
 
-        btnLangSwitch?.text = languageDisplayLabel(currentSettings.selectedLanguage)
+        val useCjkPunct = when (effLang) {
+            "zh", "yue", "ja" -> true
+            "auto" -> currentSettings.preferredLanguages.any { it in setOf("zh", "yue", "ja") }
+            else -> false
+        }
+        val symbols = if (useCjkPunct) CJK_PUNCTUATION else LATIN_PUNCTUATION
+        punctButtons.forEachIndexed { idx, tv ->
+            if (idx < symbols.size) tv.text = symbols[idx]
+        }
     }
 
     private fun cycleInstalledModelOrOpenApp() {
@@ -478,17 +497,17 @@ class FreeSpeakInputMethodService : InputMethodService() {
     }
 
     private fun cycleLanguage() {
-        val idx = LANGUAGE_ROTATION.indexOf(currentSettings.selectedLanguage)
-        val next = LANGUAGE_ROTATION[(idx + 1) % LANGUAGE_ROTATION.size]
+        val preferred = currentSettings.orderedPreferredLanguages
+        if (preferred.size <= 1) {
+            openMainApp()
+            return
+        }
+        val rotation = listOf("auto") + preferred
+        val cur = currentSettings.effectiveAsrLanguage
+        val idx = rotation.indexOf(cur)
+        val next = rotation[(idx + 1) % rotation.size]
         serviceScope.launch {
             app.preferencesRepository.setSelectedLanguage(next)
-        }
-    }
-
-    private fun bindPunctuationKey(root: View, viewId: Int, symbol: String) {
-        root.findViewById<View>(viewId)?.setOnClickListener { v ->
-            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            currentInputConnection?.commitText(symbol, 1)
         }
     }
 
@@ -504,14 +523,15 @@ class FreeSpeakInputMethodService : InputMethodService() {
 
     private fun updateEnterKeyLabel(info: EditorInfo?) {
         val action = extractImeAction(info)
-        btnEnter?.text = when (action) {
-            EditorInfo.IME_ACTION_SEND -> "发送"
-            EditorInfo.IME_ACTION_SEARCH -> "搜索"
-            EditorInfo.IME_ACTION_GO -> "前往"
-            EditorInfo.IME_ACTION_NEXT -> "下一项"
-            EditorInfo.IME_ACTION_DONE -> "完成"
-            else -> "换行"
+        val resId = when (action) {
+            EditorInfo.IME_ACTION_SEND -> R.string.ime_key_send
+            EditorInfo.IME_ACTION_SEARCH -> R.string.ime_key_search
+            EditorInfo.IME_ACTION_GO -> R.string.ime_key_go
+            EditorInfo.IME_ACTION_NEXT -> R.string.ime_key_next
+            EditorInfo.IME_ACTION_DONE -> R.string.ime_key_done
+            else -> R.string.ime_key_return
         }
+        btnEnter?.setText(resId)
     }
 
     private fun performSmartEnter() {
@@ -573,22 +593,11 @@ class FreeSpeakInputMethodService : InputMethodService() {
         }
     }
 
-    private fun languageDisplayLabel(code: String): String {
-        return when (code) {
-            "auto" -> "自动混输"
-            "zh" -> "中文"
-            "en" -> "English"
-            "yue" -> "粵語"
-            "ja" -> "日本語"
-            "ko" -> "한국어"
-            else -> code.uppercase()
-        }
-    }
-
     companion object {
         private const val HOLD_DETECTION_MS = 240L
         private const val BACKSPACE_INITIAL_DELAY_MS = 380L
         private const val BACKSPACE_REPEAT_INTERVAL_MS = 55L
-        private val LANGUAGE_ROTATION = listOf("auto", "zh", "en", "yue", "ja", "ko")
+        private val CJK_PUNCTUATION = listOf("，", "。", "？", "！", "、", "：")
+        private val LATIN_PUNCTUATION = listOf(",", ".", "?", "!", ";", ":")
     }
 }

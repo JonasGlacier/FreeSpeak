@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FreeSpeak</string>
+    <string name="ime_service_label">FreeSpeak 음성 입력</string>
+    <string name="ime_subtype_voice">오프라인 다국어 음성</string>
+
+    <string name="state_on">켜짐</string>
+    <string name="state_off">꺼짐</string>
+    <string name="action_back">뒤로</string>
+    <string name="action_next">계속</string>
+    <string name="action_skip">나중에</string>
+    <string name="action_done">시작하기</string>
+    <string name="action_cancel">취소</string>
+    <string name="action_delete">삭제</string>
+    <string name="action_retry">재시도</string>
+    <string name="action_clear">지우기</string>
+    <string name="action_download">다운로드</string>
+    <string name="action_use">선택</string>
+    <string name="label_in_use">사용 중</string>
+
+    <string name="onboarding_welcome_title">안전한 오프라인 음성 입력</string>
+    <string name="onboarding_welcome_subtitle">다국어 음성 인식이 기기 내부에서만 처리됩니다.</string>
+    <string name="onboarding_pillar_free">무료 및 오픈소스</string>
+    <string name="onboarding_pillar_free_desc">구독료 없이 새로운 모델을 직접 추가할 수 있습니다.</string>
+    <string name="onboarding_pillar_offline">100% 로컬 연산</string>
+    <string name="onboarding_pillar_offline_desc">음성 데이터가 절대 외부 서버로 전송되지 않습니다.</string>
+    <string name="onboarding_pillar_uncensored">무검열 · 개인정보 보호</string>
+    <string name="onboarding_pillar_uncensored_desc">단어 필터링이나 로그 수집이 없습니다.</string>
+
+    <string name="onboarding_perm_title">마이크 권한</string>
+    <string name="onboarding_perm_desc">기기 내 음성 인식을 위해 마이크 접근 권한이 필요합니다.</string>
+    <string name="onboarding_perm_grant">마이크 권한 허용</string>
+    <string name="onboarding_perm_granted">마이크 권한이 허용됨</string>
+
+    <string name="onboarding_model_title">소형 모델 선택</string>
+    <string name="onboarding_model_desc">경량 모델을 다운로드하거나 로컬 파일을 가져오세요.</string>
+    <string name="onboarding_import_local">로컬 파일 가져오기</string>
+
+    <string name="onboarding_ime_title">키보드 활성화</string>
+    <string name="onboarding_ime_desc">시스템 설정에서 FreeSpeak을 켜고 기본 입력기로 선택하세요.</string>
+    <string name="onboarding_enable_ime">1. 시스템 설정에서 켜기</string>
+    <string name="onboarding_ime_enabled">시스템 설정에서 활성화됨</string>
+    <string name="onboarding_select_ime">2. FreeSpeak 키보드로 전환</string>
+    <string name="onboarding_ime_selected">FreeSpeak 사용 중</string>
+
+    <string name="settings_title">설정</string>
+    <string name="section_general">음성 및 인식</string>
+    <string name="section_system">엔진 및 설정</string>
+
+    <string name="pref_voice_model">음성 인식 모델</string>
+    <string name="pref_voice_model_none">설치 안 됨</string>
+
+    <string name="pref_preferred_languages">선호 언어</string>
+    <string name="pref_lang_auto_mixed">자동</string>
+
+    <string name="pref_recording_mode">녹음 방식</string>
+    <string name="mode_hybrid_short">스마트 하이브리드</string>
+    <string name="mode_tap_short">탭하여 녹음</string>
+    <string name="mode_hold_short">길게 눌러 말하기</string>
+
+    <string name="pref_vad_filter">음성 감지 및 무음 필터</string>
+    <string name="pref_download_mirror">다운로드 소스 및 사용자 모델</string>
+    <string name="pref_performance">성능 및 메모리</string>
+    <string name="pref_performance_summary">%1$d 스레드 · %2$s</string>
+    <string name="idle_never">메모리 유지</string>
+    <string name="idle_minutes">%1$d분 후 해제</string>
+
+    <string name="pref_keyboard_setup">권한 및 키보드 상태</string>
+    <string name="setup_status_ready">준비됨</string>
+    <string name="setup_status_incomplete">설정 필요</string>
+
+    <string name="pref_test_input">음성 입력 테스트</string>
+    <string name="pref_test_input_summary">테스트하기</string>
+
+    <string name="ime_no_model_tap">탭하여 모델 선택</string>
+    <string name="ime_key_space">공백</string>
+    <string name="ime_key_return">줄바꿈</string>
+    <string name="ime_key_send">전송</string>
+    <string name="ime_key_search">검색</string>
+    <string name="ime_key_go">이동</string>
+    <string name="ime_key_next">다음</string>
+    <string name="ime_key_done">완료</string>
+
+    <string name="status_idle_hybrid">탭하거나 길게 눌러 말하기</string>
+    <string name="status_idle_tap">탭하여 말하기</string>
+    <string name="status_idle_hold">길게 눌러 말하기</string>
+    <string name="status_recording_tap">듣는 중… 탭하여 완료</string>
+    <string name="status_recording_hold">듣는 중… 떼면 완료 · 위로 밀어 취소</string>
+    <string name="status_slide_cancel">손을 떼어 취소</string>
+    <string name="status_transcribing">오프라인 변환 중…</string>
+    <string name="status_loading_model">%1$s 불러오는 중…</string>
+    <string name="status_done_latency">완료 (%1$d ms)</string>
+    <string name="status_no_speech">음성이 감지되지 않음</string>
+    <string name="status_need_permission">마이크 권한 필요</string>
+    <string name="status_need_model">먼저 모델을 다운로드하세요</string>
+</resources>

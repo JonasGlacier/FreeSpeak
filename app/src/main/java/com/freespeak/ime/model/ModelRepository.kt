@@ -222,7 +222,7 @@ class ModelRepository(private val context: Context) {
         val manifest = ModelManifest(
             id = id,
             name = name.trim(),
-            description = "自定义直链接入模型 ($fileName)",
+            description = "Custom URL ($fileName)",
             engineType = engineType,
             files = listOf(
                 ModelFileEntry(
@@ -321,7 +321,7 @@ class ModelRepository(private val context: Context) {
             } catch (e: Exception) {
                 updateTransientState(
                     manifest.id,
-                    ModelInstallState.Error(e.message ?: "下载失败，请切换镜像源重试")
+                    ModelInstallState.Error(e.message ?: "Download failed")
                 )
             } finally {
                 activeJobs.remove(manifest.id)
@@ -373,7 +373,7 @@ class ModelRepository(private val context: Context) {
 
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
-                    ?: error("无法读取所选本地文件")
+                    ?: error("Cannot open selected file")
                 inputStream.use { stream ->
                     if (isArchiveFileName(fileName)) {
                         extractArchiveStream(stream, fileName, destDir)
@@ -446,7 +446,7 @@ class ModelRepository(private val context: Context) {
                 if (partFile.exists()) partFile.delete()
             }
 
-            val body = response.body ?: throw IllegalStateException("服务器返回空内容")
+            val body = response.body ?: throw IllegalStateException("Empty server response")
             val contentLen = body.contentLength()
             val totalFileBytes = if (contentLen > 0L) existingBytes + contentLen else 0L
 
@@ -483,7 +483,7 @@ class ModelRepository(private val context: Context) {
 
         if (!expectedSha256.isNullOrBlank() && !verifySha256(partFile, expectedSha256)) {
             partFile.delete()
-            throw IllegalStateException("文件 SHA-256 校验未通过: ${destFile.name}")
+            throw IllegalStateException("SHA-256 checksum mismatch: ${destFile.name}")
         }
 
         if (destFile.exists()) destFile.delete()
@@ -503,7 +503,7 @@ class ModelRepository(private val context: Context) {
             lower.endsWith(".tar.bz2") || lower.endsWith(".tbz2") ->
                 TarArchiveInputStream(BZip2CompressorInputStream(buffered))
             lower.endsWith(".tar") -> TarArchiveInputStream(buffered)
-            else -> throw IllegalArgumentException("不支持的压缩包格式: $fileName")
+            else -> throw IllegalArgumentException("Unsupported archive format: $fileName")
         }
 
         val canonicalTarget = targetDir.canonicalPath + File.separator
@@ -513,7 +513,7 @@ class ModelRepository(private val context: Context) {
                 val outFile = File(targetDir, entry.name)
                 val canonicalOut = outFile.canonicalPath
                 if (!canonicalOut.startsWith(canonicalTarget)) {
-                    throw SecurityException("压缩包路径越界已被拦截: ${entry.name}")
+                    throw SecurityException("Blocked unsafe archive entry: ${entry.name}")
                 }
                 if (entry.isDirectory) {
                     outFile.mkdirs()

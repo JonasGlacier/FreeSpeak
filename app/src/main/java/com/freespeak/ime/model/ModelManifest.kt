@@ -135,7 +135,7 @@ object ModelManifestCodec {
             return ModelManifest(
                 id = fallbackId,
                 name = fallbackName,
-                description = "本地导入的 Qwen3-ASR 多语言语音识别模型",
+                description = "Imported Qwen3-ASR model",
                 engineType = EngineType.QWEN3_ASR,
                 sizeBytes = totalBytes,
                 quantization = if (relPaths.any { it.contains("int8") }) "INT8" else "FP32/FP16",
@@ -162,7 +162,7 @@ object ModelManifestCodec {
             return ModelManifest(
                 id = fallbackId,
                 name = fallbackName,
-                description = "本地导入的 ONNX 语音识别模型",
+                description = "Imported ONNX ASR model",
                 engineType = EngineType.FUN_ASR_ONNX,
                 sizeBytes = totalBytes,
                 quantization = if (relPaths.any { it.contains("int8") }) "INT8" else "FP32",
@@ -181,12 +181,12 @@ object ModelManifestCodec {
         // 3. Default: Whisper GGML / GGUF (.bin / .gguf)
         val ggmlBin = relPaths.firstOrNull {
             it.endsWith(".bin", ignoreCase = true) || it.endsWith(".gguf", ignoreCase = true)
-        } ?: throw IllegalArgumentException("未在导入目录中识别到受支持的模型权重 (.bin / .gguf / .onnx)")
+        } ?: throw IllegalArgumentException("No supported model weights (.bin / .gguf / .onnx) found")
 
         return ModelManifest(
             id = fallbackId,
             name = fallbackName,
-            description = "本地导入的 Whisper GGML/GGUF 模型",
+            description = "Imported Whisper GGML/GGUF model",
             engineType = EngineType.WHISPER_CPP,
             sizeBytes = totalBytes,
             quantization = ggmlBin.substringAfterLast('-', "GGML").substringBefore('.').uppercase(),

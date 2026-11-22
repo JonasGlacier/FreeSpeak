@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FreeSpeak</string>
+    <string name="ime_service_label">FreeSpeak 音声入力</string>
+    <string name="ime_subtype_voice">オフライン多言語音声</string>
+
+    <string name="state_on">ON</string>
+    <string name="state_off">OFF</string>
+    <string name="action_back">戻る</string>
+    <string name="action_next">次へ</string>
+    <string name="action_skip">あとで設定</string>
+    <string name="action_done">はじめる</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="action_delete">削除</string>
+    <string name="action_retry">再試行</string>
+    <string name="action_clear">クリア</string>
+    <string name="action_download">ダウンロード</string>
+    <string name="action_use">選択</string>
+    <string name="label_in_use">使用中</string>
+
+    <string name="onboarding_welcome_title">プライバシー重視の音声入力</string>
+    <string name="onboarding_welcome_subtitle">多言語対応・句読点付きの音声認識をすべて端末内で実行します。</string>
+    <string name="onboarding_pillar_free">無料・オープンソース</string>
+    <string name="onboarding_pillar_free_desc">課金不要。新しいモデルも自由に追加できます。</string>
+    <string name="onboarding_pillar_offline">100% ローカル処理</string>
+    <string name="onboarding_pillar_offline_desc">音声データは端末外に送信されません。</string>
+    <string name="onboarding_pillar_uncensored">検閲なし・ログ収集なし</string>
+    <string name="onboarding_pillar_uncensored_desc">フィルタリングやテレメトリ送信は一切行いません。</string>
+
+    <string name="onboarding_perm_title">マイクの権限</string>
+    <string name="onboarding_perm_desc">端末内で音声を認識するためにマイク権限が必要です。</string>
+    <string name="onboarding_perm_grant">マイクを許可</string>
+    <string name="onboarding_perm_granted">マイク権限が許可されています</string>
+
+    <string name="onboarding_model_title">モデルの選択</string>
+    <string name="onboarding_model_desc">軽量モデルをダウンロードするか、端末内のモデルを読み込みます。</string>
+    <string name="onboarding_import_local">ローカルファイルを読み込む</string>
+
+    <string name="onboarding_ime_title">キーボードの有効化</string>
+    <string name="onboarding_ime_desc">システム設定で FreeSpeak を有効にし、入力方法として選択します。</string>
+    <string name="onboarding_enable_ime">1. システム設定で有効にする</string>
+    <string name="onboarding_ime_enabled">有効化済み</string>
+    <string name="onboarding_select_ime">2. FreeSpeak に切り替える</string>
+    <string name="onboarding_ime_selected">FreeSpeak が選択されています</string>
+
+    <string name="settings_title">設定</string>
+    <string name="section_general">音声と認識</string>
+    <string name="section_system">エンジンとセットアップ</string>
+
+    <string name="pref_voice_model">音声認識モデル</string>
+    <string name="pref_voice_model_none">未インストール</string>
+
+    <string name="pref_preferred_languages">優先言語</string>
+    <string name="pref_lang_auto_mixed">自動</string>
+
+    <string name="pref_recording_mode">録音操作モード</string>
+    <string name="mode_hybrid_short">スマートハイブリッド</string>
+    <string name="mode_tap_short">タップで録音</string>
+    <string name="mode_hold_short">長押しで話す</string>
+
+    <string name="pref_vad_filter">音声検出と無音フィルタ</string>
+    <string name="pref_download_mirror">ダウンロード元とカスタムモデル</string>
+    <string name="pref_performance">パフォーマンスとメモリ</string>
+    <string name="pref_performance_summary">%1$d スレッド · %2$s</string>
+    <string name="idle_never">常駐</string>
+    <string name="idle_minutes">%1$d 分で解放</string>
+
+    <string name="pref_keyboard_setup">権限とキーボードの状態</string>
+    <string name="setup_status_ready">準備完了</string>
+    <string name="setup_status_incomplete">未完了</string>
+
+    <string name="pref_test_input">音声入力テスト</string>
+    <string name="pref_test_input_summary">試してみる</string>
+
+    <string name="ime_no_model_tap">タップしてモデルを選択</string>
+    <string name="ime_key_space">空白</string>
+    <string name="ime_key_return">改行</string>
+    <string name="ime_key_send">送信</string>
+    <string name="ime_key_search">検索</string>
+    <string name="ime_key_go">移動</string>
+    <string name="ime_key_next">次へ</string>
+    <string name="ime_key_done">完了</string>
+
+    <string name="status_idle_hybrid">タップまたは長押しで話す</string>
+    <string name="status_idle_tap">タップして話す</string>
+    <string name="status_idle_hold">長押しして話す</string>
+    <string name="status_recording_tap">聞き取り中… タップで完了</string>
+    <string name="status_recording_hold">聞き取り中… 離して完了 · 上にスライドで中止</string>
+    <string name="status_slide_cancel">指を離してキャンセル</string>
+    <string name="status_transcribing">オフライン変換中…</string>
+    <string name="status_loading_model">%1$s を読み込み中…</string>
+    <string name="status_done_latency">完了 (%1$d ms)</string>
+    <string name="status_no_speech">音声が検出されませんでした</string>
+    <string name="status_need_permission">マイク権限が必要です</string>
+    <string name="status_need_model">モデルをダウンロードしてください</string>
+</resources>

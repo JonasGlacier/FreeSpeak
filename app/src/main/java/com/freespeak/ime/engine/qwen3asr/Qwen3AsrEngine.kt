@@ -46,7 +46,7 @@ class Qwen3AsrEngine : AsrEngine {
     ): Result<Unit> = runCatching {
         release()
         if (!AudioDspNative.ensureLoaded()) {
-            error("无法加载 libfreespeak_dsp.so 原生特征库")
+            error("Failed to load libfreespeak_dsp.so")
         }
         Qwen3AsrNative.ensureLoaded()
 
@@ -55,11 +55,11 @@ class Qwen3AsrEngine : AsrEngine {
         val cfg = manifest.runtimeConfig
 
         val convFile = resolveFile(modelDir, cfg.convFrontendFile, listOf("conv_frontend.onnx"))
-            ?: error("缺少 Qwen3-ASR 前端文件 conv_frontend.onnx")
+            ?: error("Missing conv_frontend.onnx")
         val encFile = resolveFile(modelDir, cfg.encoderFile, listOf("encoder.int8.onnx", "encoder.onnx"))
-            ?: error("缺少 Qwen3-ASR 编码器文件 encoder.int8.onnx / encoder.onnx")
+            ?: error("Missing encoder.int8.onnx / encoder.onnx")
         val decFile = resolveFile(modelDir, cfg.decoderFile, listOf("decoder.int8.onnx", "decoder.onnx"))
-            ?: error("缺少 Qwen3-ASR 解码器文件 decoder.int8.onnx / decoder.onnx")
+            ?: error("Missing decoder.int8.onnx / decoder.onnx")
 
         val tok = QwenBpeTokenizer.loadFromDirectory(modelDir, cfg.vocabFile)
         val opts = OrtSession.SessionOptions().apply {
@@ -80,11 +80,11 @@ class Qwen3AsrEngine : AsrEngine {
 
         if (cacheKeys.isEmpty()) {
             cSess.close(); eSess.close(); dSess.close()
-            error("解码器缺少 cache_key_* KV 缓存输入节点")
+            error("Decoder missing cache_key_* inputs")
         }
 
         val firstCacheShape = (dSess.inputInfo[cacheKeys[0]]?.info as? TensorInfo)?.shape
-            ?: error("无法解析解码器 KV 缓存维度")
+            ?: error("Invalid decoder KV cache shape")
 
         numLayers = cacheKeys.size
         maxTotalLen = if (firstCacheShape.size >= 4 && firstCacheShape[1] > 0) firstCacheShape[1].toInt() else 1024
@@ -102,11 +102,11 @@ class Qwen3AsrEngine : AsrEngine {
         pcm16k: FloatArray,
         options: AsrInferenceOptions,
     ): Result<AsrTranscriptionResult> = runCatching {
-        val env = ortEnv ?: error("ORT 未初始化")
-        val cSess = convSession ?: error("ConvFrontend 未加载")
-        val eSess = encoderSession ?: error("Encoder 未加载")
-        val dSess = decoderSession ?: error("Decoder 未加载")
-        val tok = tokenizer ?: error("Tokenizer 未加载")
+        val env = ortEnv ?: error("ORT uninitialized")
+        val cSess = convSession ?: error("ConvFrontend not loaded")
+        val eSess = encoderSession ?: error("Encoder not loaded")
+        val dSess = decoderSession ?: error("Decoder not loaded")
+        val tok = tokenizer ?: error("Tokenizer not loaded")
 
         if (pcm16k.isEmpty()) return@runCatching AsrTranscriptionResult("")
         val startMs = System.currentTimeMillis()

@@ -3,8 +3,8 @@
     android:settingsActivity="com.freespeak.ime.ui.MainActivity"
     android:supportsSwitchingToNextInputMethod="true">
     <subtype
-        android:imeSubtypeLocale="zh_CN"
         android:imeSubtypeMode="voice"
         android:isAuxiliary="false"
-        android:label="@string/ime_subtype_voice" />
+        android:label="@string/ime_subtype_voice"
+        android:overridesImplicitlyEnabledSubtype="true" />
 </input-method>

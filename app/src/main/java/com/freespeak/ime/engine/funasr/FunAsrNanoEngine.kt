@@ -53,7 +53,7 @@ class FunAsrNanoEngine : AsrEngine {
     ): Result<Unit> = runCatching {
         release()
         if (!AudioDspNative.ensureLoaded()) {
-            error("无法加载 libfreespeak_dsp.so 音频特征库")
+            error("Failed to load libfreespeak_dsp.so")
         }
         Qwen3AsrNative.ensureLoaded()
 
@@ -90,7 +90,7 @@ class FunAsrNanoEngine : AsrEngine {
         } else {
             isLlmTripleGraph = false
             val modelFile = resolvePrimaryOnnx(modelDir, manifest)
-                ?: error("未找到 ONNX 模型权重文件: ${modelDir.absolutePath}")
+                ?: error("ONNX model file not found in ${modelDir.absolutePath}")
             val opts = createSessionOptions(numThreads)
             val sess = env.createSession(modelFile.absolutePath, opts)
 
@@ -111,7 +111,7 @@ class FunAsrNanoEngine : AsrEngine {
         pcm16k: FloatArray,
         options: AsrInferenceOptions,
     ): Result<AsrTranscriptionResult> = runCatching {
-        if (!isLoaded) error("Fun-ASR 模型尚未加载")
+        if (!isLoaded) error("Fun-ASR model is not loaded")
         if (pcm16k.isEmpty()) return@runCatching AsrTranscriptionResult("")
 
         val startMs = System.currentTimeMillis()
@@ -130,9 +130,9 @@ class FunAsrNanoEngine : AsrEngine {
     }
 
     private fun transcribeSingleCtc(pcm16k: FloatArray, language: String): String {
-        val env = ortEnv ?: error("ORT 环境未初始化")
-        val sess = primarySession ?: error("ONNX Session 未初始化")
-        val tok = tokenizer ?: error("Tokenizer 未初始化")
+        val env = ortEnv ?: error("ORT environment uninitialized")
+        val sess = primarySession ?: error("ONNX session uninitialized")
+        val tok = tokenizer ?: error("Tokenizer uninitialized")
 
         val numMels = manifest?.runtimeConfig?.numMels ?: 80
         val featDim = numMels * maxOf(1, lfrM)
@@ -207,11 +207,11 @@ class FunAsrNanoEngine : AsrEngine {
     }
 
     private fun transcribeTripleLlm(pcm16k: FloatArray): String {
-        val env = ortEnv ?: error("ORT 环境未初始化")
-        val encSess = encoderSession ?: error("Encoder Session 未初始化")
-        val embSess = embeddingSession ?: error("Embedding Session 未初始化")
-        val decSess = llmSession ?: error("LLM Session 未初始化")
-        val tok = tokenizer ?: error("Tokenizer 未初始化")
+        val env = ortEnv ?: error("ORT environment uninitialized")
+        val encSess = encoderSession ?: error("Encoder session uninitialized")
+        val embSess = embeddingSession ?: error("Embedding session uninitialized")
+        val decSess = llmSession ?: error("LLM session uninitialized")
+        val tok = tokenizer ?: error("Tokenizer uninitialized")
 
         val featDim = 80 * maxOf(1, lfrM)
         val features = AudioDspNative.extractKaldiFbankLfrCmvn(

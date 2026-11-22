@@ -59,7 +59,7 @@ class AudioRecorder(context: Context) {
             AudioFormat.ENCODING_PCM_16BIT
         )
         if (minBufBytes <= 0) {
-            return Result.failure(IllegalStateException("设备不支持 16kHz 单声道录音 ($minBufBytes)"))
+            return Result.failure(IllegalStateException("16kHz mono audio capture unsupported ($minBufBytes)"))
         }
 
         val bufferSizeInBytes = maxOf(minBufBytes * 2, READ_SAMPLES * 2 * 4)
@@ -77,7 +77,7 @@ class AudioRecorder(context: Context) {
 
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             recorder.release()
-            return Result.failure(IllegalStateException("麦克风初始化失败，请检查录音权限"))
+            return Result.failure(IllegalStateException("Microphone initialization failed"))
         }
 
         val filter = VadSilenceFilter(

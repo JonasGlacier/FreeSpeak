@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.freespeak.ime.FreeSpeakApplication
+import com.freespeak.ime.R
 import com.freespeak.ime.data.MirrorSource
 import com.freespeak.ime.data.RecordInteractionMode
 import com.freespeak.ime.data.UserSettings
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -31,7 +33,10 @@ data class SystemImeStatus(
     val hasMicPermission: Boolean = false,
     val isImeEnabled: Boolean = false,
     val isImeSelected: Boolean = false,
-)
+) {
+    val isFullyReady: Boolean
+        get() = hasMicPermission && isImeEnabled && isImeSelected
+}
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -40,11 +45,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val modelRepo = app.modelRepository
     private val engineMgr = app.engineManager
 
-    val settings: StateFlow<UserSettings> = prefs.settingsFlow.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = UserSettings(),
-    )
+    val settingsState: StateFlow<UserSettings?> = prefs.settingsFlow
+        .map<UserSettings, UserSettings?> { it }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null,
+        )
 
     val models: StateFlow<List<ManagedModelItem>> = modelRepo.models
 
@@ -94,17 +101,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         modelRepo.refreshLocalInventory()
     }
 
+    fun completeOnboarding() {
+        viewModelScope.launch {
+            prefs.setOnboardingCompleted(true)
+        }
+    }
+
+    fun reopenOnboarding() {
+        viewModelScope.launch {
+            prefs.setOnboardingCompleted(false)
+        }
+    }
+
     fun downloadModel(manifest: ModelManifest) {
+        val currentSettings = settingsState.value ?: UserSettings()
         modelRepo.startDownload(
             manifest = manifest,
-            settings = settings.value,
+            settings = currentSettings,
             onInstalled = { installed ->
                 viewModelScope.launch {
-                    val cur = settings.value.selectedModelId
+                    val cur = settingsState.value?.selectedModelId.orEmpty()
                     if (cur.isBlank() || modelRepo.findInstalledManifest(cur) == null) {
                         prefs.setSelectedModelId(installed.id)
                     }
-                    _toastMessage.value = "模型「${installed.name}」已就绪"
+                    _toastMessage.value = app.getString(R.string.toast_model_ready, installed.name)
                 }
             }
         )
@@ -117,21 +137,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun selectActiveModel(modelId: String) {
         viewModelScope.launch {
             prefs.setSelectedModelId(modelId)
-            _toastMessage.value = "已切换默认语音模型"
         }
     }
 
     fun deleteModel(manifest: ModelManifest) {
         viewModelScope.launch {
-            if (settings.value.selectedModelId == manifest.id) {
+            val curId = settingsState.value?.selectedModelId.orEmpty()
+            if (curId == manifest.id) {
                 engineMgr.unloadNow()
             }
             modelRepo.deleteModel(manifest.id)
             val remaining = modelRepo.listInstalledManifests()
-            if (settings.value.selectedModelId == manifest.id) {
+            if (curId == manifest.id) {
                 prefs.setSelectedModelId(remaining.firstOrNull()?.id ?: "")
             }
-            _toastMessage.value = "已删除 ${manifest.name}"
+            _toastMessage.value = app.getString(R.string.toast_model_deleted, manifest.name)
         }
     }
 
@@ -140,10 +160,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             modelRepo.importLocalModelUri(uri, customName, engineType).fold(
                 onSuccess = { imported ->
                     prefs.setSelectedModelId(imported.id)
-                    _toastMessage.value = "成功导入本地模型：${imported.name}"
+                    _toastMessage.value = app.getString(R.string.toast_model_ready, imported.name)
                 },
                 onFailure = { err ->
-                    _toastMessage.value = "导入失败：${err.message}"
+                    _toastMessage.value = app.getString(
+                        R.string.toast_import_failed,
+                        err.message ?: ""
+                    )
                 }
             )
         }
@@ -157,10 +180,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addCatalogSubscription(url: String) {
         viewModelScope.launch {
             prefs.addCustomCatalogUrl(url)
-            val updatedUrls = settings.value.customCatalogUrls + url.trim()
-            modelRepo.syncExternalCatalogs(updatedUrls).fold(
-                onSuccess = { count -> _toastMessage.value = "已同步外部模型源（共 $count 款模型）" },
-                onFailure = { err -> _toastMessage.value = "同步模型源失败：${err.message}" }
+            val curUrls = settingsState.value?.customCatalogUrls.orEmpty() + url.trim()
+            modelRepo.syncExternalCatalogs(curUrls).fold(
+                onSuccess = { count ->
+                    _toastMessage.value = app.getString(R.string.toast_catalog_synced, count)
+                },
+                onFailure = { err ->
+                    _toastMessage.value = app.getString(R.string.toast_sync_failed, err.message ?: "")
+                }
             )
         }
     }
@@ -168,23 +195,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun removeCatalogSubscription(url: String) {
         viewModelScope.launch {
             prefs.removeCustomCatalogUrl(url)
-            val updatedUrls = settings.value.customCatalogUrls - url
+            val updatedUrls = settingsState.value?.customCatalogUrls.orEmpty() - url
             modelRepo.syncExternalCatalogs(updatedUrls)
         }
     }
 
     fun syncCatalogsNow() {
         viewModelScope.launch {
-            val urls = settings.value.customCatalogUrls
-            if (urls.isEmpty()) {
-                _toastMessage.value = "尚未添加自定义模型源地址"
-                return@launch
-            }
+            val urls = settingsState.value?.customCatalogUrls.orEmpty()
+            if (urls.isEmpty()) return@launch
             modelRepo.syncExternalCatalogs(urls).fold(
-                onSuccess = { count -> _toastMessage.value = "刷新成功，共加载 $count 款社区模型" },
-                onFailure = { err -> _toastMessage.value = "刷新失败：${err.message}" }
+                onSuccess = { count ->
+                    _toastMessage.value = app.getString(R.string.toast_catalog_synced, count)
+                },
+                onFailure = { err ->
+                    _toastMessage.value = app.getString(R.string.toast_sync_failed, err.message ?: "")
+                }
             )
         }
+    }
+
+    fun togglePreferredLanguage(langCode: String) {
+        viewModelScope.launch { prefs.togglePreferredLanguage(langCode) }
     }
 
     fun setMirrorSource(source: MirrorSource) {
@@ -197,10 +229,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setInteractionMode(mode: RecordInteractionMode) {
         viewModelScope.launch { prefs.setInteractionMode(mode) }
-    }
-
-    fun setLanguage(lang: String) {
-        viewModelScope.launch { prefs.setSelectedLanguage(lang) }
     }
 
     fun setVadEnabled(enabled: Boolean) {
@@ -226,10 +254,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun unloadMemoryNow() {
         viewModelScope.launch {
             engineMgr.unloadNow()
-            _toastMessage.value = "已释放本地语音模型占用的内存"
+            _toastMessage.value = app.getString(R.string.toast_ram_released)
         }
     }
-
-    val hasAnyInstalledModel: Boolean
-        get() = models.value.any { it.state is ModelInstallState.Installed }
 }

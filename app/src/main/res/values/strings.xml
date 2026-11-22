@@ -1,16 +1,185 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">FreeSpeak 语音输入法</string>
-    <string name="ime_service_label">FreeSpeak 离线语音输入</string>
-    <string name="ime_subtype_voice">多语言本地语音 (离线无审查)</string>
-    <string name="status_idle_hybrid">轻点开始录音 · 按住松手即转写</string>
-    <string name="status_idle_tap">轻点麦克风开始录音</string>
-    <string name="status_idle_hold">按住麦克风说话，松开立即转写</string>
-    <string name="status_recording_tap">正在聆听… 再次点击完成转写</string>
-    <string name="status_recording_hold">正在聆听… 松开转写 · 上滑取消</string>
-    <string name="status_slide_cancel">松开手指取消本次录音</string>
-    <string name="status_transcribing">本地离线转写中…</string>
-    <string name="status_no_speech">未检测到有效语音，已过滤静音</string>
-    <string name="status_need_permission">请点击右上角开启麦克风权限</string>
-    <string name="status_need_model">请点击左上角下载或导入语音小模型</string>
+    <!-- App & IME Identity -->
+    <string name="app_name">FreeSpeak</string>
+    <string name="ime_service_label">FreeSpeak Voice Input</string>
+    <string name="ime_subtype_voice">Offline Multilingual Voice</string>
+
+    <!-- Common -->
+    <string name="state_on">ON</string>
+    <string name="state_off">OFF</string>
+    <string name="action_back">Back</string>
+    <string name="action_next">Continue</string>
+    <string name="action_skip">Skip for now</string>
+    <string name="action_done">Get Started</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_download">Download</string>
+    <string name="action_use">Select</string>
+    <string name="label_in_use">Active</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Private Voice Input</string>
+    <string name="onboarding_welcome_subtitle">Speak naturally in multiple languages, processed entirely on your phone.</string>
+    <string name="onboarding_pillar_free">Free &amp; Open Source</string>
+    <string name="onboarding_pillar_free_desc">No subscriptions, no paywalls, no vendor lock-in.</string>
+    <string name="onboarding_pillar_offline">100% Offline Inference</string>
+    <string name="onboarding_pillar_offline_desc">Voice never leaves your device. Zero network requests while typing.</string>
+    <string name="onboarding_pillar_uncensored">Uncensored &amp; Raw</string>
+    <string name="onboarding_pillar_uncensored_desc">No word filtering, no content moderation, no telemetry.</string>
+
+    <string name="onboarding_perm_title">Microphone Access</string>
+    <string name="onboarding_perm_desc">Required to capture speech locally in memory for on-device transcription.</string>
+    <string name="onboarding_perm_grant">Allow Microphone</string>
+    <string name="onboarding_perm_granted">Microphone permission granted</string>
+
+    <string name="onboarding_model_title">Choose a Small Model</string>
+    <string name="onboarding_model_desc">Download a compact model or import one from local storage. You can change or add models anytime.</string>
+    <string name="onboarding_import_local">Import Local File</string>
+
+    <string name="onboarding_ime_title">Enable Keyboard</string>
+    <string name="onboarding_ime_desc">Turn on FreeSpeak in system keyboard settings, then select it as your input method.</string>
+    <string name="onboarding_enable_ime">1. Enable in System Settings</string>
+    <string name="onboarding_ime_enabled">Enabled in System Settings</string>
+    <string name="onboarding_select_ime">2. Select FreeSpeak Keyboard</string>
+    <string name="onboarding_ime_selected">FreeSpeak is active</string>
+
+    <!-- Settings Home (Main Screen) -->
+    <string name="settings_title">Settings</string>
+    <string name="section_general">Voice &amp; Recognition</string>
+    <string name="section_system">Engine &amp; Setup</string>
+
+    <string name="pref_voice_model">Voice Model</string>
+    <string name="pref_voice_model_none">None installed</string>
+
+    <string name="pref_preferred_languages">Preferred Languages</string>
+    <string name="pref_lang_auto_mixed">Auto</string>
+
+    <string name="pref_recording_mode">Recording Mode</string>
+    <string name="mode_hybrid_short">Smart Hybrid</string>
+    <string name="mode_tap_short">Tap to Record</string>
+    <string name="mode_hold_short">Hold to Talk</string>
+
+    <string name="pref_vad_filter">Voice Detection &amp; Silence Filter</string>
+
+    <string name="pref_download_mirror">Download Source &amp; Custom Models</string>
+
+    <string name="pref_performance">Performance &amp; Memory</string>
+    <string name="pref_performance_summary">%1$d threads · %2$s</string>
+    <string name="idle_never">Keep in RAM</string>
+    <string name="idle_minutes">%1$d min idle unload</string>
+
+    <string name="pref_keyboard_setup">Permissions &amp; Keyboard Status</string>
+    <string name="setup_status_ready">Ready</string>
+    <string name="setup_status_incomplete">Setup needed</string>
+
+    <string name="pref_test_input">Test Voice Input</string>
+    <string name="pref_test_input_summary">Try dictation</string>
+
+    <!-- Sub-screen: Recording Mode -->
+    <string name="sub_recording_desc">Choose how the microphone button responds when you dictate.</string>
+    <string name="mode_hybrid_desc">Tap once to start or stop; press and hold to talk and release to transcribe immediately (slide up to cancel).</string>
+    <string name="mode_tap_desc">Tap the microphone to start listening, and tap again when finished.</string>
+    <string name="mode_hold_desc">Hold down the microphone while speaking, release to transcribe immediately, or slide up to cancel.</string>
+
+    <!-- Sub-screen: Preferred Languages -->
+    <string name="sub_language_desc">Select the languages you speak. Selecting multiple languages enables automatic mixed-language recognition (code-switching) and quick cycling on the keyboard.</string>
+    <string name="sub_language_whisper_prompt">Punctuation &amp; Mixed-Script Hint (Whisper)</string>
+    <string name="sub_language_whisper_prompt_desc">Guides Whisper models to output full punctuation and clean mixed-language text.</string>
+
+    <!-- Sub-screen: VAD -->
+    <string name="sub_vad_desc">Uses on-device Silero VAD to detect voice activity and trim leading, trailing, and long silent gaps. Sentences are never split into fragments, preserving natural model punctuation.</string>
+    <string name="sub_vad_enable">Enable Voice Detection &amp; Silence Filter</string>
+    <string name="sub_vad_sensitivity">Detection Threshold (%1$s)</string>
+    <string name="sub_vad_sensitivity_hint">Lower values pick up softer speech; higher values ignore louder background noise.</string>
+
+    <!-- Sub-screen: Models -->
+    <string name="sub_models_desc">Models run locally on your device. Switch models anytime or import new weights without updating the app.</string>
+    <string name="model_size_format">%1$d MB · %2$s</string>
+    <string name="model_downloading_format">%1$s · %2$d / %3$d MB (%4$s)</string>
+    <string name="model_extracting">Extracting model files…</string>
+
+    <!-- Model Catalog Descriptions -->
+    <string name="model_desc_funasr_nano">Compact multilingual &amp; dialect model by FunAudioLLM. Fast single-pass inference with built-in punctuation and code-switching.</string>
+    <string name="model_desc_qwen3_asr">Flagship 0.6B multimodal speech model. Superior accuracy on mixed languages, technical terms, and natural punctuation.</string>
+    <string name="model_desc_whisper_small">Balanced 99-language Whisper model running on whisper.cpp ARMv8 FP16.</string>
+    <string name="model_desc_sensevoice">Fast multilingual recognition (Chinese, Cantonese, English, Japanese, Korean) with punctuation &amp; ITN.</string>
+    <string name="model_desc_whisper_tiny">Ultra-light 32 MB model for low-memory devices or quick testing.</string>
+
+    <!-- Sub-screen: Download Source & Custom Models -->
+    <string name="sub_mirror_desc">Configure model download mirrors, import offline archives, or subscribe to community JSON model feeds.</string>
+    <string name="mirror_section_title">Download Mirror</string>
+    <string name="mirror_hf_mirror">HF-Mirror</string>
+    <string name="mirror_modelscope">ModelScope</string>
+    <string name="mirror_huggingface">HuggingFace Direct</string>
+    <string name="mirror_custom">Custom Mirror</string>
+    <string name="mirror_custom_url_label">Custom Mirror Base URL</string>
+
+    <string name="custom_import_section">Import &amp; Custom Sources</string>
+    <string name="action_import_local_file">Import Model from Device (.bin / .gguf / .onnx / .zip / .tar.gz)</string>
+    <string name="action_add_direct_url">Add Model via Direct URL</string>
+    <string name="catalog_section_title">External JSON Catalogs</string>
+    <string name="catalog_url_label">Catalog JSON URL</string>
+    <string name="action_subscribe">Add</string>
+    <string name="action_sync_catalogs">Sync Subscribed Catalogs</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_import_title">Import Local Model</string>
+    <string name="dialog_model_name_optional">Display Name (optional)</string>
+    <string name="dialog_engine_auto">Auto-detect Engine (Recommended)</string>
+    <string name="dialog_direct_url_title">Add Direct URL Model</string>
+    <string name="dialog_model_name">Model Name</string>
+    <string name="dialog_model_url">Model or Archive URL</string>
+
+    <!-- Sub-screen: Performance -->
+    <string name="sub_perf_desc">Tune CPU threads and background memory release to keep your phone cool and responsive.</string>
+    <string name="perf_cpu_threads">CPU Threads: %1$d</string>
+    <string name="perf_idle_unload_title">Auto-Unload Model When Keyboard Hidden</string>
+    <string name="perf_idle_1m">After 1 minute</string>
+    <string name="perf_idle_5m">After 5 minutes</string>
+    <string name="perf_idle_15m">After 15 minutes</string>
+    <string name="perf_idle_never">Never unload automatically</string>
+    <string name="perf_unload_now">Unload Active Model from RAM Now</string>
+
+    <!-- Sub-screen: Setup & Test -->
+    <string name="sub_setup_rerun_onboarding">Run Welcome Guide Again</string>
+    <string name="sub_test_desc">Tap the text box below to bring up your keyboard and test offline voice dictation.</string>
+    <string name="sub_test_placeholder">Tap here and speak…</string>
+
+    <!-- IME Panel -->
+    <string name="ime_no_model_tap">Tap to select a model</string>
+    <string name="ime_key_space">Space</string>
+    <string name="ime_key_return">Return</string>
+    <string name="ime_key_send">Send</string>
+    <string name="ime_key_search">Search</string>
+    <string name="ime_key_go">Go</string>
+    <string name="ime_key_next">Next</string>
+    <string name="ime_key_done">Done</string>
+    <string name="ime_cd_settings">Settings</string>
+    <string name="ime_cd_switch_ime">Switch input method</string>
+    <string name="ime_cd_mic">Voice input</string>
+    <string name="ime_cd_backspace">Backspace</string>
+
+    <string name="status_idle_hybrid">Tap or hold to speak</string>
+    <string name="status_idle_tap">Tap to speak</string>
+    <string name="status_idle_hold">Hold to speak</string>
+    <string name="status_recording_tap">Listening… Tap to finish</string>
+    <string name="status_recording_hold">Listening… Release to finish · Slide up to cancel</string>
+    <string name="status_slide_cancel">Release to cancel</string>
+    <string name="status_transcribing">Transcribing offline…</string>
+    <string name="status_loading_model">Loading %1$s…</string>
+    <string name="status_done_latency">Done (%1$d ms)</string>
+    <string name="status_no_speech">No speech detected</string>
+    <string name="status_need_permission">Microphone permission needed</string>
+    <string name="status_need_model">Download or import a model first</string>
+
+    <!-- Toasts -->
+    <string name="toast_model_ready">%1$s is ready</string>
+    <string name="toast_model_deleted">Deleted %1$s</string>
+    <string name="toast_import_failed">Import failed: %1$s</string>
+    <string name="toast_catalog_synced">Synced %1$d models</string>
+    <string name="toast_sync_failed">Sync failed: %1$s</string>
+    <string name="toast_ram_released">Model unloaded from RAM</string>
 </resources>

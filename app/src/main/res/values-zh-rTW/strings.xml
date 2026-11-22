@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FreeSpeak</string>
+    <string name="ime_service_label">FreeSpeak 語音輸入</string>
+    <string name="ime_subtype_voice">多語言離線語音</string>
+
+    <string name="state_on">開啟</string>
+    <string name="state_off">關閉</string>
+    <string name="action_back">返回</string>
+    <string name="action_next">繼續</string>
+    <string name="action_skip">稍後設定</string>
+    <string name="action_done">開始使用</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_delete">刪除</string>
+    <string name="action_retry">重試</string>
+    <string name="action_clear">清除</string>
+    <string name="action_download">下載</string>
+    <string name="action_use">選用</string>
+    <string name="label_in_use">使用中</string>
+
+    <string name="onboarding_welcome_title">純粹、私密的語音輸入</string>
+    <string name="onboarding_welcome_subtitle">支援多語言與中英混說，所有運算完全在手機本機完成。</string>
+    <string name="onboarding_pillar_free">免費且開源</string>
+    <string name="onboarding_pillar_free_desc">無訂閱收費，開放接入任意新模型，不依賴應用程式更新。</string>
+    <string name="onboarding_pillar_offline">100% 離線運算</string>
+    <string name="onboarding_pillar_offline_desc">輸入法零聯網運行，語音資料從不離開你的手機。</string>
+    <string name="onboarding_pillar_uncensored">無審查 · 保護隱私</string>
+    <string name="onboarding_pillar_uncensored_desc">無字詞過濾，無內容審查，不收集任何遙測紀錄。</string>
+
+    <string name="onboarding_perm_title">授予麥克風權限</string>
+    <string name="onboarding_perm_desc">僅用於在本機記憶體中擷取語音並交由離線模型辨識。</string>
+    <string name="onboarding_perm_grant">開啟麥克風權限</string>
+    <string name="onboarding_perm_granted">已取得麥克風權限</string>
+
+    <string name="onboarding_model_title">選擇語音小模型</string>
+    <string name="onboarding_model_desc">下載一款輕量離線模型，或直接匯入手機中的本機模型檔案。</string>
+    <string name="onboarding_import_local">從本機匯入檔案</string>
+
+    <string name="onboarding_ime_title">啟用輸入法</string>
+    <string name="onboarding_ime_desc">在系統鍵盤設定中開啟 FreeSpeak，並將其選為目前輸入法即可。</string>
+    <string name="onboarding_enable_ime">1. 在系統設定中啟用</string>
+    <string name="onboarding_ime_enabled">已在系統設定中啟用</string>
+    <string name="onboarding_select_ime">2. 切換至 FreeSpeak 鍵盤</string>
+    <string name="onboarding_ime_selected">已切換至 FreeSpeak</string>
+
+    <string name="settings_title">設定</string>
+    <string name="section_general">語音與辨識</string>
+    <string name="section_system">引擎與系統</string>
+
+    <string name="pref_voice_model">語音辨識模型</string>
+    <string name="pref_voice_model_none">未安裝</string>
+
+    <string name="pref_preferred_languages">偏好語言</string>
+    <string name="pref_lang_auto_mixed">自動</string>
+
+    <string name="pref_recording_mode">錄音互動模式</string>
+    <string name="mode_hybrid_short">智慧混合</string>
+    <string name="mode_tap_short">點擊錄音</string>
+    <string name="mode_hold_short">按住說話</string>
+
+    <string name="pref_vad_filter">語音偵測與靜音過濾</string>
+    <string name="pref_download_mirror">下載來源與自訂模型</string>
+    <string name="pref_performance">效能與記憶體管理</string>
+    <string name="pref_performance_summary">%1$d 執行緒 · %2$s</string>
+    <string name="idle_never">常駐記憶體</string>
+    <string name="idle_minutes">閒置 %1$d 分鐘釋放</string>
+
+    <string name="pref_keyboard_setup">權限與輸入法狀態</string>
+    <string name="setup_status_ready">已就緒</string>
+    <string name="setup_status_incomplete">待完成</string>
+
+    <string name="pref_test_input">語音輸入測試</string>
+    <string name="pref_test_input_summary">點擊試說</string>
+
+    <string name="sub_recording_desc">選擇按下麥克風按鈕時的錄音互動方式。</string>
+    <string name="mode_hybrid_desc">短按開始或結束錄音；按住說話放開立即轉寫（上滑可取消）。</string>
+    <string name="mode_tap_desc">輕點麥克風開始錄音，說完再次點擊完成轉寫。</string>
+    <string name="mode_hold_desc">按住麥克風說話，放開手指立即轉寫，上滑取消本次錄音。</string>
+
+    <string name="sub_language_desc">勾選日常使用的語言。勾選多種語言時將自動啟用多語言混輸辨識，並可在鍵盤頂欄快速切換。</string>
+    <string name="sub_language_whisper_prompt">標點與中英混輸引導（Whisper）</string>
+    <string name="sub_language_whisper_prompt_desc">使用 Whisper 模型時自動提示輸出標點符號與中英混排。</string>
+
+    <string name="sub_vad_desc">透過本機 Silero VAD 偵測人聲活動，自動濾除首尾留白與過長靜音；絕不切碎句子，保留模型原生標點。</string>
+    <string name="sub_vad_enable">開啟語音偵測與靜音過濾</string>
+    <string name="sub_vad_sensitivity">人聲偵測門檻（%1$s）</string>
+    <string name="sub_vad_sensitivity_hint">數值越小對輕聲越靈敏；環境吵雜時可調高。</string>
+
+    <string name="sub_models_desc">所有模型均在本機離線執行，可隨時切換或匯入新模型。</string>
+    <string name="model_size_format">%1$d MB · %2$s</string>
+    <string name="model_downloading_format">%1$s · %2$d / %3$d MB (%4$s)</string>
+    <string name="model_extracting">正在解壓縮模型檔案…</string>
+
+    <string name="model_desc_funasr_nano">FunAudioLLM 輕量多語言與方言模型，支援中英混說與自動標點，推論極快。</string>
+    <string name="model_desc_qwen3_asr">Qwen3 0.6B 多模態語音小模型，中英夾雜、專業術語及標點表現極佳。</string>
+    <string name="model_desc_whisper_small">均衡型 99 語種 Whisper 量化模型（whisper.cpp 原生推論）。</string>
+    <string name="model_desc_sensevoice">支援中、粵、英、日、韓辨識與自動標點，反應迅速。</string>
+    <string name="model_desc_whisper_tiny">僅約 32 MB 的超輕模型，適合低階裝置或快速體驗。</string>
+
+    <string name="sub_mirror_desc">切換下載鏡像來源、從本機匯入模型壓縮檔，或訂閱社群 JSON 模型清單。</string>
+    <string name="mirror_section_title">下載鏡像來源</string>
+    <string name="mirror_hf_mirror">HF-Mirror 鏡像</string>
+    <string name="mirror_modelscope">ModelScope</string>
+    <string name="mirror_huggingface">HuggingFace 直連</string>
+    <string name="mirror_custom">自訂鏡像</string>
+    <string name="mirror_custom_url_label">自訂鏡像網址前綴</string>
+
+    <string name="custom_import_section">本機匯入與直連新增</string>
+    <string name="action_import_local_file">從本機儲存空間匯入模型 (.bin / .gguf / .onnx / .zip / .tar.gz)</string>
+    <string name="action_add_direct_url">透過直連 URL 新增模型</string>
+    <string name="catalog_section_title">外部 JSON 模型來源訂閱</string>
+    <string name="catalog_url_label">模型來源 JSON URL</string>
+    <string name="action_subscribe">訂閱</string>
+    <string name="action_sync_catalogs">同步已訂閱模型來源</string>
+
+    <string name="dialog_import_title">匯入本機模型</string>
+    <string name="dialog_model_name_optional">顯示名稱（選填）</string>
+    <string name="dialog_engine_auto">自動識別推論引擎（推薦）</string>
+    <string name="dialog_direct_url_title">直連新增模型</string>
+    <string name="dialog_model_name">模型名稱</string>
+    <string name="dialog_model_url">模型或壓縮檔 URL</string>
+
+    <string name="sub_perf_desc">調整推論執行緒數與背景記憶體回收策略。</string>
+    <string name="perf_cpu_threads">CPU 執行緒數：%1$d</string>
+    <string name="perf_idle_unload_title">鍵盤收起後自動釋放模型記憶體</string>
+    <string name="perf_idle_1m">閒置 1 分鐘後</string>
+    <string name="perf_idle_5m">閒置 5 分鐘後</string>
+    <string name="perf_idle_15m">閒置 15 分鐘後</string>
+    <string name="perf_idle_never">常駐不自動卸載</string>
+    <string name="perf_unload_now">立即釋放目前模型記憶體</string>
+
+    <string name="sub_setup_rerun_onboarding">重新打開歡迎引導</string>
+    <string name="sub_test_desc">點擊下方輸入框喚起鍵盤，直接測試離線語音輸入效果。</string>
+    <string name="sub_test_placeholder">點擊此處喚起鍵盤說話…</string>
+
+    <string name="ime_no_model_tap">點擊選擇語音模型</string>
+    <string name="ime_key_space">空白</string>
+    <string name="ime_key_return">換行</string>
+    <string name="ime_key_send">傳送</string>
+    <string name="ime_key_search">搜尋</string>
+    <string name="ime_key_go">前往</string>
+    <string name="ime_key_next">下一項</string>
+    <string name="ime_key_done">完成</string>
+    <string name="ime_cd_settings">設定</string>
+    <string name="ime_cd_switch_ime">切換輸入法</string>
+    <string name="ime_cd_mic">語音輸入</string>
+    <string name="ime_cd_backspace">退格</string>
+
+    <string name="status_idle_hybrid">輕點或按住說話</string>
+    <string name="status_idle_tap">輕點開始說話</string>
+    <string name="status_idle_hold">按住麥克風說話</string>
+    <string name="status_recording_tap">正在聆聽… 再次點擊完成</string>
+    <string name="status_recording_hold">正在聆聽… 放開完成 · 上滑取消</string>
+    <string name="status_slide_cancel">放開手指取消</string>
+    <string name="status_transcribing">離線轉寫中…</string>
+    <string name="status_loading_model">正在載入 %1$s…</string>
+    <string name="status_done_latency">已完成 (%1$d ms)</string>
+    <string name="status_no_speech">未偵測到有效語音</string>
+    <string name="status_need_permission">需要開啟麥克風權限</string>
+    <string name="status_need_model">請先下載或匯入語音模型</string>
+
+    <string name="toast_model_ready">%1$s 已就緒</string>
+    <string name="toast_model_deleted">已刪除 %1$s</string>
+    <string name="toast_import_failed">匯入失敗：%1$s</string>
+    <string name="toast_catalog_synced">已同步 %1$d 款模型</string>
+    <string name="toast_sync_failed">同步失敗：%1$s</string>
+    <string name="toast_ram_released">已釋放模型記憶體</string>
+</resources>

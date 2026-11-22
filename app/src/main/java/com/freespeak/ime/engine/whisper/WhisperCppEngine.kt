@@ -25,15 +25,15 @@ class WhisperCppEngine : AsrEngine {
     ): Result<Unit> = runCatching {
         release()
         if (!WhisperNative.ensureLoaded()) {
-            error("无法加载 libfreespeak_whisper.so 原生推理库")
+            error("Failed to load libfreespeak_whisper.so")
         }
 
         val weightFile = resolveWeightFile(modelDir, manifest)
-            ?: error("模型目录中未找到 .bin / .gguf 权重文件: ${modelDir.absolutePath}")
+            ?: error("No .bin or .gguf weight file found in ${modelDir.absolutePath}")
 
         val ptr = WhisperNative.initContext(weightFile.absolutePath)
         if (ptr == 0L) {
-            error("whisper.cpp 加载模型失败: ${weightFile.name}")
+            error("Failed to initialize Whisper model: ${weightFile.name}")
         }
         contextPtr = ptr
         loadedManifest = manifest
@@ -44,7 +44,7 @@ class WhisperCppEngine : AsrEngine {
         options: AsrInferenceOptions,
     ): Result<AsrTranscriptionResult> = runCatching {
         val ptr = contextPtr
-        if (ptr == 0L) error("Whisper 模型尚未加载")
+        if (ptr == 0L) error("Whisper model is not loaded")
         if (pcm16k.isEmpty()) return@runCatching AsrTranscriptionResult("")
 
         val startMs = System.currentTimeMillis()
@@ -84,7 +84,9 @@ class WhisperCppEngine : AsrEngine {
     private fun resolvePrompt(language: String, manifest: ModelManifest?): String? {
         val custom = manifest?.runtimeConfig?.initialPrompt?.takeIf { it.isNotBlank() }
         return when (language.lowercase()) {
-            "auto", "zh", "yue" -> custom ?: "以下是普通话与 English 混合的句子，包含标点符号。"
+            "zh", "yue" -> custom ?: "以下是普通话与 English 混合的句子，包含标点符号。"
+            "en" -> "Hello, this is a properly punctuated sentence."
+            "auto" -> custom
             else -> null
         }
     }
