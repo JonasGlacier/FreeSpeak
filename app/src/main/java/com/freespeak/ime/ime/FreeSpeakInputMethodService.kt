@@ -28,6 +28,7 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnAttach
 import androidx.core.widget.ImageViewCompat
 import com.freespeak.ime.FreeSpeakApplication
 import com.freespeak.ime.R
@@ -183,12 +184,31 @@ class FreeSpeakInputMethodService : InputMethodService() {
             }
         }
 
-        val baseBottomPad = (10 * resources.displayMetrics.density).toInt()
+        val baseBottomPad = view.paddingBottom
+        val canvasHeight = view.findViewById<View>(R.id.panelCanvas).layoutParams.height
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
-            val navBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, baseBottomPad + navBottom)
+            // Navigation bar visibility can change during the IME show animation. Reserve its
+            // full space even in those intermediate frames, rather than shrinking the panel.
+            val navBottom = insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars()).bottom
+            val bottomPadding = baseBottomPad + navBottom
+            val panelHeight = canvasHeight + v.paddingTop + bottomPadding
+            val lp = v.layoutParams
+            if (v.paddingBottom != bottomPadding || lp.height != panelHeight) {
+                v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, bottomPadding)
+                lp.height = panelHeight
+                v.layoutParams = lp
+                // Insets may arrive during an existing layout pass. Ask the IME frame to
+                // measure again on the next turn so the bottom row cannot remain clipped.
+                v.post {
+                    if (v === imeRoot && v.isAttachedToWindow) {
+                        v.requestLayout()
+                        v.parent?.requestLayout()
+                    }
+                }
+            }
             insets
         }
+        view.doOnAttach { ViewCompat.requestApplyInsets(it) }
 
         btnUndo?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -358,6 +378,17 @@ class FreeSpeakInputMethodService : InputMethodService() {
     override fun onWindowShown() {
         super.onWindowShown()
         applyNavBarIconTint()
+        // The input view is reused across editors and IME switches; refresh after the window
+        // is visible so we do not retain the previous window's inset/measurement state.
+        imeRoot?.let { root ->
+            root.post {
+                if (root === imeRoot && root.isAttachedToWindow) {
+                    ViewCompat.requestApplyInsets(root)
+                    root.requestLayout()
+                    root.parent?.requestLayout()
+                }
+            }
+        }
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {

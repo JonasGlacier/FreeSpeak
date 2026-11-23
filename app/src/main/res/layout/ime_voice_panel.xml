@@ -7,7 +7,7 @@
     android:paddingStart="12dp"
     android:paddingTop="6dp"
     android:paddingEnd="12dp"
-    android:paddingBottom="4dp">
+    android:paddingBottom="10dp">
 
     <!-- Fixed-height design canvas (all positions are dp from the top) -->
     <FrameLayout
