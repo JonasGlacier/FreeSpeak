@@ -24,7 +24,7 @@ import com.freespeak.ime.FreeSpeakApplication
 import com.freespeak.ime.R
 import com.freespeak.ime.audio.AudioRecorder
 import com.freespeak.ime.data.RecordInteractionMode
-import com.freespeak.ime.data.SupportedLanguages
+import com.freespeak.ime.model.canTranslateToEnglish
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.AsrInferenceOptions
 import com.freespeak.ime.engine.EngineRuntimeStatus
@@ -50,7 +50,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
 
     // Views
     private var btnModelSwitch: TextView? = null
-    private var btnLangSwitch: TextView? = null
+    private var lastTextUsesCjk: Boolean? = null
     private var tvStatus: TextView? = null
     private var waveformView: VoiceWaveformView? = null
     private var btnMic: ImageButton? = null
@@ -123,7 +123,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
     override fun onCreateInputView(): View {
         val view = layoutInflater.inflate(R.layout.ime_voice_panel, null)
         btnModelSwitch = view.findViewById(R.id.btnModelSwitch)
-        btnLangSwitch = view.findViewById(R.id.btnLangSwitch)
         tvStatus = view.findViewById(R.id.tvImeStatus)
         waveformView = view.findViewById(R.id.waveformView)
         btnMic = view.findViewById(R.id.btnMic)
@@ -154,11 +153,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
         btnModelSwitch?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             cycleInstalledModelOrOpenApp()
-        }
-
-        btnLangSwitch?.setOnClickListener { v ->
-            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            cycleLanguage()
         }
 
         view.findViewById<View>(R.id.btnOpenSettings)?.setOnClickListener { v ->
@@ -387,14 +381,17 @@ class FreeSpeakInputMethodService : InputMethodService() {
                 return@launch
             }
 
-            val asrLang = currentSettings.effectiveAsrLanguage
+            val settingsSnapshot = currentSettings
+            val asrLang = settingsSnapshot.spokenLanguageHint
             val transcribeResult = app.engineManager.transcribe(
                 pcm16k = audioResult.samples,
-                preferredModelId = currentSettings.selectedModelId,
+                preferredModelId = settingsSnapshot.selectedModelId,
                 options = AsrInferenceOptions(
                     language = asrLang,
-                    numThreads = currentSettings.cpuThreads,
-                    enableStylePrompt = currentSettings.whisperStylePromptEnabled,
+                    numThreads = settingsSnapshot.cpuThreads,
+                    enableStylePrompt = settingsSnapshot.whisperStylePromptEnabled,
+                    translateToEnglish = settingsSnapshot.translateToEnglish,
+                    chineseOutputMode = settingsSnapshot.chineseOutputMode,
                 )
             )
 
@@ -405,6 +402,8 @@ class FreeSpeakInputMethodService : InputMethodService() {
                 onSuccess = { res ->
                     val text = res.text.trim()
                     if (text.isNotEmpty()) {
+                        lastTextUsesCjk = text.any { it in '\u3000'..'\u9FFF' }
+                        updateToolbarAndPunctuation()
                         val commitStr = if (shouldAppendTrailingSpace(text, asrLang)) "$text " else text
                         currentInputConnection?.commitText(commitStr, 1)
                         val donePrefix = getString(R.string.status_done_latency, res.inferenceTimeMs)
@@ -462,20 +461,12 @@ class FreeSpeakInputMethodService : InputMethodService() {
         val activeModel = installed.find { it.id == currentSettings.selectedModelId }
             ?: installed.firstOrNull()
 
-        btnModelSwitch?.text = activeModel?.name ?: getString(R.string.ime_no_model_tap)
+        val translating = activeModel?.canTranslateToEnglish == true && currentSettings.translateToEnglish
+        btnModelSwitch?.text = activeModel?.let { it.name + if (translating) " · →EN" else "" }
+            ?: getString(R.string.ime_no_model_tap)
 
-        val effLang = currentSettings.effectiveAsrLanguage
-        btnLangSwitch?.text = if (effLang == "auto") {
-            getString(R.string.pref_lang_auto_mixed)
-        } else {
-            SupportedLanguages.labelFor(effLang)
-        }
-
-        val useCjkPunct = when (effLang) {
-            "zh", "yue", "ja" -> true
-            "auto" -> currentSettings.preferredLanguages.any { it in setOf("zh", "yue", "ja") }
-            else -> false
-        }
+        val useCjkPunct = !translating && (lastTextUsesCjk
+            ?: (resources.configuration.locales[0].language in setOf("zh", "ja")))
         val symbols = if (useCjkPunct) CJK_PUNCTUATION else LATIN_PUNCTUATION
         punctButtons.forEachIndexed { idx, tv ->
             if (idx < symbols.size) tv.text = symbols[idx]
@@ -493,21 +484,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
         serviceScope.launch {
             app.preferencesRepository.setSelectedModelId(next.id)
             app.engineManager.ensureModelLoaded(next.id, currentSettings.cpuThreads)
-        }
-    }
-
-    private fun cycleLanguage() {
-        val preferred = currentSettings.orderedPreferredLanguages
-        if (preferred.size <= 1) {
-            openMainApp()
-            return
-        }
-        val rotation = listOf("auto") + preferred
-        val cur = currentSettings.effectiveAsrLanguage
-        val idx = rotation.indexOf(cur)
-        val next = rotation[(idx + 1) % rotation.size]
-        serviceScope.launch {
-            app.preferencesRepository.setSelectedLanguage(next)
         }
     }
 

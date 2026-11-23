@@ -93,4 +93,20 @@ class Qwen3AsrAndTokenizerTest {
             dir.deleteRecursively()
         }
     }
+
+    @Test
+    fun `streaming vocab_json parser handles JSON escapes and high token IDs without DOM`() {
+        val dir = Files.createTempDirectory("qwen_esc").toFile()
+        try {
+            dir.resolve("vocab.json").writeText(
+                """{"\"": 1, "\\": 2, "\u0120world": 151935}"""
+            )
+            val tok = QwenBpeTokenizer.loadFromDirectory(dir)
+            assertEquals(1, tok.tokenToId("\""))
+            assertEquals(2, tok.tokenToId("\\"))
+            assertEquals("\"\\ world", tok.decode(intArrayOf(1, 2, 151935)))
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
 }

@@ -54,7 +54,7 @@
     <string name="pref_voice_model">Voice Model</string>
     <string name="pref_voice_model_none">None installed</string>
 
-    <string name="pref_preferred_languages">Preferred Languages</string>
+    <string name="pref_preferred_languages">Spoken language hint</string>
     <string name="pref_lang_auto_mixed">Auto</string>
 
     <string name="pref_recording_mode">Recording Mode</string>

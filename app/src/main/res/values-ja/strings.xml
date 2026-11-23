@@ -50,7 +50,7 @@
     <string name="pref_voice_model">音声認識モデル</string>
     <string name="pref_voice_model_none">未インストール</string>
 
-    <string name="pref_preferred_languages">優先言語</string>
+    <string name="pref_preferred_languages">話す言語のヒント</string>
     <string name="pref_lang_auto_mixed">自動</string>
 
     <string name="pref_recording_mode">録音操作モード</string>

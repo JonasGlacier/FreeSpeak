@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="language_builtin_auto">自動（モデル内蔵）</string>
+    <string name="language_auto">自動検出（推奨）</string>
+    <string name="language_hint_description">通常は多言語を自動検出します。ヒントは話す言語を指定するもので、翻訳先ではありません。短い発話や方言を誤認識する場合に使用してください。</string>
+    <string name="language_builtin_description">このモデルは言語を自動検出し、手動指定に対応していません。</string>
+    <string name="translate_english_title">音声を英語に翻訳</string>
+    <string name="translate_english_description">多言語版 Whisper の翻訳タスクを使用します。言語ヒントは入力音声の言語を指します。</string>
+    <string name="chinese_output_title">中国語の字体</string>
+    <string name="chinese_system">システムに従う</string>
+    <string name="chinese_simplified">简体中文</string>
+    <string name="chinese_traditional">繁體中文（通用）</string>
+    <string name="chinese_taiwan">繁體中文（台灣用語）</string>
+    <string name="chinese_hong_kong">繁體中文（香港字形）</string>
+    <string name="chinese_original">モデルの出力を保持</string>
+    <string name="chinese_output_description">OpenCC 辞書でオフライン変換します。台湾モードは地域語彙も変換し、香港モードは字体を調整します。TW は台湾、HK/MO は香港、Hant は繁体字、それ以外は簡体字です。英訳と日本語認識時は変換しません。固有名詞などは修正が必要な場合があります。</string>
+</resources>

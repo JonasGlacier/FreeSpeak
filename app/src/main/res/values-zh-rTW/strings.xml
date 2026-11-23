@@ -50,7 +50,7 @@
     <string name="pref_voice_model">語音辨識模型</string>
     <string name="pref_voice_model_none">未安裝</string>
 
-    <string name="pref_preferred_languages">偏好語言</string>
+    <string name="pref_preferred_languages">說話語種提示</string>
     <string name="pref_lang_auto_mixed">自動</string>
 
     <string name="pref_recording_mode">錄音互動模式</string>

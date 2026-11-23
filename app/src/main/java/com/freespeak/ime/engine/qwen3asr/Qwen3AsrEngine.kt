@@ -13,12 +13,21 @@ import com.freespeak.ime.engine.AsrTranscriptionResult
 import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ModelManifest
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.nio.LongBuffer
 
 /**
- * Native ONNX multimodal inference engine for `Qwen3-ASR-0.6B`
+ * Memory-optimized ONNX multimodal inference engine for `Qwen3-ASR-0.6B`
  * (`conv_frontend.onnx` + `encoder[.int8].onnx` + `decoder[.int8].onnx` + `vocab.json`).
+ *
+ * Key mobile memory optimizations:
+ * 1. KV caches live 100% off-heap in DirectByteBuffers (0 bytes on Android's Dalvik/ART heap)
+ *    and are wrapped once into zero-copy OnnxTensors per transcription.
+ * 2. Dynamic KV cache capacity sized tightly to `promptLen + maxNewTokens` instead of fixed 1024.
+ * 3. Prefill over `promptIds[0 until S0 - 1]` requests ONLY `key_delta_*` / `value_delta_*`
+ *    (skipping the 151,936-vocab `lm_head` MatMul and avoiding multi-megabyte prefill logits!).
  */
 class Qwen3AsrEngine : AsrEngine {
 
@@ -32,7 +41,7 @@ class Qwen3AsrEngine : AsrEngine {
     private var manifest: ModelManifest? = null
 
     private var numLayers: Int = 0
-    private var maxTotalLen: Int = 1024
+    private var modelFixedMaxLen: Int = -1
     private var kvHeads: Int = 0
     private var headDim: Int = 0
 
@@ -67,13 +76,13 @@ class Qwen3AsrEngine : AsrEngine {
             setInterOpNumThreads(1)
             setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
             setMemoryPatternOptimization(false)
+            setCPUArenaAllocator(false)
         }
 
         val cSess = env.createSession(convFile.absolutePath, opts)
         val eSess = env.createSession(encFile.absolutePath, opts)
         val dSess = env.createSession(decFile.absolutePath, opts)
 
-        // Inspect KV cache shape from decoder inputs: cache_key_0 .. cache_key_{L-1} -> [1, maxLen, kvHeads, headDim]
         val cacheKeys = dSess.inputInfo.keys
             .filter { it.startsWith("cache_key_") }
             .sortedBy { it.substringAfterLast('_').toIntOrNull() ?: 0 }
@@ -87,7 +96,11 @@ class Qwen3AsrEngine : AsrEngine {
             ?: error("Invalid decoder KV cache shape")
 
         numLayers = cacheKeys.size
-        maxTotalLen = if (firstCacheShape.size >= 4 && firstCacheShape[1] > 0) firstCacheShape[1].toInt() else 1024
+        modelFixedMaxLen = if (firstCacheShape.size >= 4 && firstCacheShape[1] > 0) {
+            firstCacheShape[1].toInt()
+        } else {
+            -1 // Dynamic axis ("max_total_len")
+        }
         kvHeads = firstCacheShape[2].toInt()
         headDim = firstCacheShape[3].toInt()
 
@@ -112,7 +125,6 @@ class Qwen3AsrEngine : AsrEngine {
         val startMs = System.currentTimeMillis()
 
         val numMels = manifest?.runtimeConfig?.numMels ?: 128
-        // [numMels, numFrames] channel-first from C++ Slaney Mel extractor
         val melChannelFirst = AudioDspNative.extractWhisperMelSpectrogram(
             pcm16k = pcm16k,
             numMels = numMels,
@@ -121,19 +133,19 @@ class Qwen3AsrEngine : AsrEngine {
         val numFrames = melChannelFirst.size / numMels
         if (numFrames <= 0) return@runCatching AsrTranscriptionResult("")
 
-        // Transpose [numMels, numFrames] -> [1, numFrames, numMels] for conv_frontend.onnx
-        val melTimeFirst = FloatArray(numFrames * numMels)
-        for (m in 0 until numMels) {
-            val srcBase = m * numFrames
-            for (t in 0 until numFrames) {
-                melTimeFirst[t * numMels + m] = melChannelFirst[srcBase + t]
+        // Transpose [numMels, numFrames] directly into off-heap DirectFloatBuffer [1, numFrames, numMels]
+        val melDirect = allocateDirectFloats(numFrames * numMels)
+        for (t in 0 until numFrames) {
+            for (m in 0 until numMels) {
+                melDirect.put(melChannelFirst[m * numFrames + t])
             }
         }
+        melDirect.rewind()
 
         // Step 1: Run conv_frontend.onnx
-        val (convOutFlat, aConv, convDim) = OnnxTensor.createTensor(
+        val (convDirect, aConv, convDim) = OnnxTensor.createTensor(
             env,
-            FloatBuffer.wrap(melTimeFirst),
+            melDirect,
             longArrayOf(1L, numFrames.toLong(), numMels.toLong())
         ).use { melTensor ->
             cSess.run(mapOf("input_features" to melTensor)).use { res ->
@@ -141,9 +153,10 @@ class Qwen3AsrEngine : AsrEngine {
                 val sh = out.info.shape
                 val tConv = sh[1].toInt()
                 val dConv = sh[2].toInt()
-                val arr = FloatArray(tConv * dConv)
-                out.floatBuffer.apply { rewind(); get(arr) }
-                Triple(arr, tConv, dConv)
+                val buf = allocateDirectFloats(tConv * dConv)
+                buf.put(out.floatBuffer)
+                buf.rewind()
+                Triple(buf, tConv, dConv)
             }
         }
 
@@ -153,15 +166,15 @@ class Qwen3AsrEngine : AsrEngine {
 
         val mask2d = Array(1) { BooleanArray(aConv) { pos -> pos < audioTokensLen } }
 
-        // Step 3: Run encoder.int8.onnx -> audio_features [1, aConv, hiddenSize], slice first A tokens
+        // Step 3: Run encoder -> slice first A audio feature tokens into DirectFloatBuffer
         val convTensor = OnnxTensor.createTensor(
             env,
-            FloatBuffer.wrap(convOutFlat),
+            convDirect,
             longArrayOf(1L, aConv.toLong(), convDim.toLong())
         )
         val maskTensor = OnnxTensor.createTensor(env, mask2d)
 
-        val (audioFeaturesFlat, hiddenSize) = try {
+        val (audioFeatDirect, actualA, hiddenSize) = try {
             eSess.run(
                 mapOf(
                     "input_features" to convTensor,
@@ -172,130 +185,143 @@ class Qwen3AsrEngine : AsrEngine {
                 val sh = af.info.shape
                 val h = sh[2].toInt()
                 val validA = minOf(audioTokensLen, sh[1].toInt())
-                val sliced = FloatArray(validA * h)
-                val fb = af.floatBuffer
-                fb.rewind()
-                fb.get(sliced, 0, validA * h)
-                sliced to h
+                val srcFb = af.floatBuffer
+                srcFb.limit(validA * h)
+                srcFb.position(0)
+                val dstDirect = allocateDirectFloats(validA * h)
+                dstDirect.put(srcFb)
+                dstDirect.rewind()
+                Triple(dstDirect, validA, h)
             }
         } finally {
             convTensor.close()
             maskTensor.close()
         }
 
-        val actualA = audioFeaturesFlat.size / hiddenSize
         val promptIds = buildQwen3AsrPromptIds(tok, actualA, options.language)
-        val maxNew = (manifest?.runtimeConfig?.maxNewTokens ?: 128)
-            .coerceAtMost((maxTotalLen - promptIds.size - 1).coerceAtLeast(1))
+        if (promptIds.isEmpty()) return@runCatching AsrTranscriptionResult("")
 
-        // Step 4: Initialize KV caches [numLayers * 2] of shape [1, maxTotalLen, kvHeads, headDim]
+        val configuredMaxNew = manifest?.runtimeConfig?.maxNewTokens ?: 128
+        // Dynamic speech-proportional cap: ~6 tokens per audio token + margin, capped at configuredMaxNew
+        val adaptiveMaxNew = (actualA * 4 + 24).coerceIn(32, configuredMaxNew)
+
+        val runtimeMaxLen = if (modelFixedMaxLen > 0) {
+            modelFixedMaxLen
+        } else {
+            (promptIds.size + adaptiveMaxNew + 8).coerceAtMost(1024)
+        }
+
+        val maxNew = adaptiveMaxNew.coerceAtMost((runtimeMaxLen - promptIds.size - 1).coerceAtLeast(1))
+
+        // Step 4: Allocate KV caches 100% off-heap in DirectByteBuffers & wrap ONCE into OnnxTensors
         val stridePerPos = kvHeads * headDim
-        val singleCacheSize = maxTotalLen * stridePerPos
-        val keyCaches = Array(numLayers) { FloatArray(singleCacheSize) }
-        val valCaches = Array(numLayers) { FloatArray(singleCacheSize) }
+        val singleCacheFloats = runtimeMaxLen * stridePerPos
+        val cacheShape = longArrayOf(1L, runtimeMaxLen.toLong(), kvHeads.toLong(), headDim.toLong())
+
+        val keyBuffers = Array(numLayers) { allocateDirectFloats(singleCacheFloats) }
+        val valBuffers = Array(numLayers) { allocateDirectFloats(singleCacheFloats) }
+
+        val persistentTensors = ArrayList<OnnxTensor>(numLayers * 2 + 2)
+        val baseFeed = HashMap<String, OnnxTensor>(numLayers * 2 + 4)
 
         val eosId = tok.tokenToId("<|im_end|>") ?: 151645
         val eotId = tok.tokenToId("<|endoftext|>") ?: 151643
-        val decOutNames = dSess.outputNames
-
-        val audioFeatTensor = OnnxTensor.createTensor(
-            env,
-            FloatBuffer.wrap(audioFeaturesFlat),
-            longArrayOf(1L, actualA.toLong(), hiddenSize.toLong())
-        )
+        val allDecOutputs = dSess.outputNames
+        val kvDeltaOnlyOutputs = allDecOutputs.filterTo(LinkedHashSet()) { it != "logits" }
 
         val generatedIds = ArrayList<Int>(maxNew)
+
         try {
+            val audioFeatTensor = OnnxTensor.createTensor(
+                env,
+                audioFeatDirect,
+                longArrayOf(1L, actualA.toLong(), hiddenSize.toLong())
+            ).also { persistentTensors.add(it) }
+            baseFeed["audio_features"] = audioFeatTensor
+
+            // Dummy 1-element audio_features tensor used after audio tokens have already been injected
+            val dummyAudioTensor = OnnxTensor.createTensor(
+                env,
+                allocateDirectFloats(hiddenSize),
+                longArrayOf(1L, 1L, hiddenSize.toLong())
+            ).also { persistentTensors.add(it) }
+
+            for (layer in 0 until numLayers) {
+                val kt = OnnxTensor.createTensor(env, keyBuffers[layer], cacheShape)
+                    .also { persistentTensors.add(it) }
+                val vt = OnnxTensor.createTensor(env, valBuffers[layer], cacheShape)
+                    .also { persistentTensors.add(it) }
+                baseFeed["cache_key_$layer"] = kt
+                baseFeed["cache_value_$layer"] = vt
+            }
+
             var curLen = 0
-            var stepIds = promptIds
+
+            // Step 4A: KV-Only Prefill on promptIds[0 until promptIds.size - 1]
+            // Contains ALL <|audio_pad|> slots; skips `lm_head` completely to save 60-200 MB RAM!
+            if (promptIds.size > 1 && kvDeltaOnlyOutputs.isNotEmpty()) {
+                val prefillLen = promptIds.size - 1
+                val prefillIds = promptIds.copyOfRange(0, prefillLen)
+                runDecoderStep(
+                    env = env,
+                    dSess = dSess,
+                    baseFeed = baseFeed,
+                    audioTensorForStep = audioFeatTensor,
+                    stepIds = prefillIds,
+                    curLen = 0,
+                    stridePerPos = stridePerPos,
+                    keyBuffers = keyBuffers,
+                    valBuffers = valBuffers,
+                    requestedOutputs = kvDeltaOnlyOutputs,
+                    reusableLogits = null,
+                )
+                curLen = prefillLen
+            }
+
+            // Step 4B: Single-token autoregressive decode starting from the final prompt token
+            var currentTokenId = promptIds.last()
+            var reusableLogits: FloatArray? = null
 
             for (step in 0 until maxNew) {
-                val sLen = stepIds.size
-                if (curLen + sLen > maxTotalLen) break
+                if (curLen + 1 > runtimeMaxLen) break
 
-                val attnMask = LongArray(sLen) { 1L }
-                val cachePos = LongArray(sLen) { (curLen + it).toLong() }
+                // If promptIds had length 1 (edge case), use real audioFeatTensor on step 0; otherwise dummy
+                val stepAudioTensor = if (curLen == 0) audioFeatTensor else dummyAudioTensor
 
-                val createdStepTensors = ArrayList<OnnxTensor>(numLayers * 2 + 3)
-                val nextToken = try {
-                    val feed = HashMap<String, OnnxTensor>(numLayers * 2 + 4)
-                    val idTensor = OnnxTensor.createTensor(
-                        env,
-                        LongBuffer.wrap(stepIds),
-                        longArrayOf(1L, sLen.toLong())
-                    ).also { createdStepTensors.add(it) }
-                    val attnTensor = OnnxTensor.createTensor(
-                        env,
-                        LongBuffer.wrap(attnMask),
-                        longArrayOf(1L, sLen.toLong())
-                    ).also { createdStepTensors.add(it) }
-                    val posTensor = OnnxTensor.createTensor(
-                        env,
-                        LongBuffer.wrap(cachePos),
-                        longArrayOf(sLen.toLong())
-                    ).also { createdStepTensors.add(it) }
+                val logits = runDecoderStep(
+                    env = env,
+                    dSess = dSess,
+                    baseFeed = baseFeed,
+                    audioTensorForStep = stepAudioTensor,
+                    stepIds = longArrayOf(currentTokenId),
+                    curLen = curLen,
+                    stridePerPos = stridePerPos,
+                    keyBuffers = keyBuffers,
+                    valBuffers = valBuffers,
+                    requestedOutputs = allDecOutputs,
+                    reusableLogits = reusableLogits,
+                ) ?: break
 
-                    feed["input_ids"] = idTensor
-                    feed["audio_features"] = audioFeatTensor
-                    feed["attention_mask"] = attnTensor
-                    feed["cache_position"] = posTensor
+                reusableLogits = logits
+                curLen += 1
 
-                    val cacheShape = longArrayOf(1L, maxTotalLen.toLong(), kvHeads.toLong(), headDim.toLong())
-                    for (layer in 0 until numLayers) {
-                        val kt = OnnxTensor.createTensor(env, FloatBuffer.wrap(keyCaches[layer]), cacheShape)
-                            .also { createdStepTensors.add(it) }
-                        val vt = OnnxTensor.createTensor(env, FloatBuffer.wrap(valCaches[layer]), cacheShape)
-                            .also { createdStepTensors.add(it) }
-                        feed["cache_key_$layer"] = kt
-                        feed["cache_value_$layer"] = vt
-                    }
+                val nextToken = Qwen3AsrNative.selectNextTokenGreedy(
+                    logitsArr = logits,
+                    logitsOffset = 0,
+                    vocabSize = logits.size,
+                    generatedTokens = generatedIds.toIntArray(),
+                    suppressTokens = if (step == 0) intArrayOf(eosId, eotId) else null,
+                    repetitionPenalty = 1.05f,
+                )
 
-                    dSess.run(feed, decOutNames).use { outs ->
-                        // Update KV cache deltas in-place for positions [curLen .. curLen + sLen)
-                        val dstOffset = curLen * stridePerPos
-                        val deltaFloats = sLen * stridePerPos
-                        for (layer in 0 until numLayers) {
-                            val kd = outs.get("key_delta_$layer").orElse(null) as? OnnxTensor
-                            val vd = outs.get("value_delta_$layer").orElse(null) as? OnnxTensor
-                            kd?.floatBuffer?.apply {
-                                rewind()
-                                get(keyCaches[layer], dstOffset, deltaFloats)
-                            }
-                            vd?.floatBuffer?.apply {
-                                rewind()
-                                get(valCaches[layer], dstOffset, deltaFloats)
-                            }
-                        }
-
-                        val logitsTensor = outs.get("logits").get() as OnnxTensor
-                        val vocab = logitsTensor.info.shape.last().toInt()
-                        val lastTokenLogits = FloatArray(vocab)
-                        val fb = logitsTensor.floatBuffer
-                        fb.position((sLen - 1) * vocab)
-                        fb.get(lastTokenLogits, 0, vocab)
-
-                        Qwen3AsrNative.selectNextTokenGreedy(
-                            logitsArr = lastTokenLogits,
-                            logitsOffset = 0,
-                            vocabSize = vocab,
-                            generatedTokens = generatedIds.toIntArray(),
-                            suppressTokens = if (step == 0) intArrayOf(eosId, eotId) else null,
-                            repetitionPenalty = 1.05f,
-                        )
-                    }
-                } finally {
-                    createdStepTensors.forEach { runCatching { it.close() } }
-                }
-
-                curLen += sLen
                 if (nextToken < 0 || nextToken == eosId || nextToken == eotId) {
                     break
                 }
                 generatedIds.add(nextToken)
-                stepIds = longArrayOf(nextToken.toLong())
+                currentTokenId = nextToken.toLong()
             }
         } finally {
-            audioFeatTensor.close()
+            persistentTensors.forEach { runCatching { it.close() } }
         }
 
         val decodedText = tok.decode(generatedIds.toIntArray(), skipSpecialTokens = true)
@@ -308,6 +334,87 @@ class Qwen3AsrEngine : AsrEngine {
         )
     }
 
+    private fun runDecoderStep(
+        env: OrtEnvironment,
+        dSess: OrtSession,
+        baseFeed: HashMap<String, OnnxTensor>,
+        audioTensorForStep: OnnxTensor,
+        stepIds: LongArray,
+        curLen: Int,
+        stridePerPos: Int,
+        keyBuffers: Array<FloatBuffer>,
+        valBuffers: Array<FloatBuffer>,
+        requestedOutputs: Set<String>,
+        reusableLogits: FloatArray?,
+    ): FloatArray? {
+        val sLen = stepIds.size
+        val attnMask = LongArray(sLen) { 1L }
+        val cachePos = LongArray(sLen) { (curLen + it).toLong() }
+
+        val idTensor = OnnxTensor.createTensor(
+            env,
+            LongBuffer.wrap(stepIds),
+            longArrayOf(1L, sLen.toLong())
+        )
+        val attnTensor = OnnxTensor.createTensor(
+            env,
+            LongBuffer.wrap(attnMask),
+            longArrayOf(1L, sLen.toLong())
+        )
+        val posTensor = OnnxTensor.createTensor(
+            env,
+            LongBuffer.wrap(cachePos),
+            longArrayOf(sLen.toLong())
+        )
+
+        return try {
+            baseFeed["input_ids"] = idTensor
+            baseFeed["audio_features"] = audioTensorForStep
+            baseFeed["attention_mask"] = attnTensor
+            baseFeed["cache_position"] = posTensor
+
+            dSess.run(baseFeed, requestedOutputs).use { outs ->
+                val dstOffset = curLen * stridePerPos
+                for (layer in 0 until numLayers) {
+                    val kd = outs.get("key_delta_$layer").orElse(null) as? OnnxTensor
+                    val vd = outs.get("value_delta_$layer").orElse(null) as? OnnxTensor
+                    if (kd != null) {
+                        val src = kd.floatBuffer
+                        val dst = keyBuffers[layer].duplicate()
+                        dst.position(dstOffset)
+                        dst.put(src)
+                    }
+                    if (vd != null) {
+                        val src = vd.floatBuffer
+                        val dst = valBuffers[layer].duplicate()
+                        dst.position(dstOffset)
+                        dst.put(src)
+                    }
+                }
+
+                if ("logits" !in requestedOutputs) {
+                    return null
+                }
+
+                val logitsTensor = outs.get("logits").get() as OnnxTensor
+                val vocab = logitsTensor.info.shape.last().toInt()
+                val outLogits = if (reusableLogits != null && reusableLogits.size == vocab) {
+                    reusableLogits
+                } else {
+                    FloatArray(vocab)
+                }
+                val fb = logitsTensor.floatBuffer
+                fb.position((sLen - 1) * vocab)
+                fb.get(outLogits, 0, vocab)
+                outLogits
+            }
+        } finally {
+            idTensor.close()
+            attnTensor.close()
+            posTensor.close()
+        }
+    }
+
     override fun release() {
         runCatching { convSession?.close() }
         runCatching { encoderSession?.close() }
@@ -317,6 +424,13 @@ class Qwen3AsrEngine : AsrEngine {
         decoderSession = null
         tokenizer = null
         manifest = null
+    }
+
+    private fun allocateDirectFloats(count: Int): FloatBuffer {
+        return ByteBuffer
+            .allocateDirect(maxOf(1, count) * 4)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
     }
 
     private fun buildQwen3AsrPromptIds(
@@ -354,14 +468,11 @@ class Qwen3AsrEngine : AsrEngine {
             "de" -> "German"
             "es" -> "Spanish"
             "ru" -> "Russian"
-            else -> null // "auto" lets Qwen3-ASR detect language & code-switching freely
+            else -> null
         }
     }
 
     companion object {
-        /**
-         * Exact port of Qwen3-ASR `_feat_to_audio_tokens_len_np` using Python floor-division semantics.
-         */
         internal fun featToAudioTokensLen(featLen: Int, chunkSize: Int = 100): Int {
             if (featLen <= 0) return 0
             fun convOut3xStride2(n: Int): Int {

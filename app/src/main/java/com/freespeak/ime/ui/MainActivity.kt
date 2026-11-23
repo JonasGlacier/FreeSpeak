@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -88,6 +87,8 @@ import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ManagedModelItem
 import com.freespeak.ime.model.ModelInstallState
 import com.freespeak.ime.model.ModelManifest
+import com.freespeak.ime.model.canHintLanguage
+import com.freespeak.ime.text.ChineseOutputMode
 import com.freespeak.ime.ui.theme.FreeSpeakTheme
 import kotlin.math.roundToInt
 
@@ -95,6 +96,7 @@ enum class SettingsSubPage {
     HOME,
     VOICE_MODEL,
     PREFERRED_LANGUAGES,
+    CHINESE_OUTPUT,
     RECORDING_MODE,
     VAD_FILTER,
     DOWNLOAD_MIRROR,
@@ -229,11 +231,20 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                     onOpenMirrorSettings = { currentSubPage = SettingsSubPage.DOWNLOAD_MIRROR },
                 )
 
-                SettingsSubPage.PREFERRED_LANGUAGES -> PreferredLanguagesSubScreen(
+                SettingsSubPage.PREFERRED_LANGUAGES -> LanguageSettingsScreen(
                     settings = settings,
+                    model = models.firstOrNull { it.manifest.id == settings.selectedModelId && it.state is ModelInstallState.Installed }?.manifest
+                        ?: models.firstOrNull { it.state is ModelInstallState.Installed }?.manifest,
                     onBack = { currentSubPage = SettingsSubPage.HOME },
-                    onToggleLanguage = viewModel::togglePreferredLanguage,
+                    onHintChange = viewModel::setSpokenLanguageHint,
+                    onTranslationChange = viewModel::setTranslateToEnglish,
                     onWhisperPromptChange = viewModel::setWhisperPromptEnabled,
+                )
+
+                SettingsSubPage.CHINESE_OUTPUT -> ChineseOutputScreen(
+                    settings.chineseOutputMode,
+                    onBack = { currentSubPage = SettingsSubPage.HOME },
+                    onSelect = viewModel::setChineseOutputMode,
                 )
 
                 SettingsSubPage.RECORDING_MODE -> RecordingModeSubScreen(
@@ -362,8 +373,19 @@ private fun SettingsHomeListScreen(
 
             SettingsRowItem(
                 title = stringResource(R.string.pref_preferred_languages),
-                value = settings.formatPreferredLanguagesSummary(),
+                value = when {
+                    activeModel?.manifest?.canHintLanguage != true -> stringResource(R.string.language_builtin_auto)
+                    settings.spokenLanguageHint == "auto" -> stringResource(R.string.pref_lang_auto_mixed)
+                    else -> SupportedLanguages.labelFor(settings.spokenLanguageHint)
+                },
                 onClick = { onNavigate(SettingsSubPage.PREFERRED_LANGUAGES) },
+            )
+            SettingsDivider()
+
+            SettingsRowItem(
+                title = stringResource(R.string.chinese_output_title),
+                value = stringResource(settings.chineseOutputMode.titleRes()),
+                onClick = { onNavigate(SettingsSubPage.CHINESE_OUTPUT) },
             )
             SettingsDivider()
 
@@ -479,7 +501,7 @@ private fun SettingsDivider() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SubPageScaffold(
+internal fun SubPageScaffold(
     title: String,
     onBack: () -> Unit,
     content: @Composable (PaddingValues) -> Unit,
@@ -557,85 +579,6 @@ private fun VoiceModelSubScreen(
                     onDelete = { onDelete(item.manifest) },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            }
-        }
-    }
-}
-
-@Composable
-private fun PreferredLanguagesSubScreen(
-    settings: UserSettings,
-    onBack: () -> Unit,
-    onToggleLanguage: (String) -> Unit,
-    onWhisperPromptChange: (Boolean) -> Unit,
-) {
-    SubPageScaffold(
-        title = stringResource(R.string.pref_preferred_languages),
-        onBack = onBack
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.sub_language_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(16.dp))
-
-            SupportedLanguages.all.forEach { lang ->
-                val checked = lang.code in settings.preferredLanguages
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onToggleLanguage(lang.code) }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = lang.nativeLabel,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Checkbox(
-                        checked = checked,
-                        onCheckedChange = null
-                    )
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onWhisperPromptChange(!settings.whisperStylePromptEnabled) }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.sub_language_whisper_prompt),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = stringResource(R.string.sub_language_whisper_prompt_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Switch(
-                    checked = settings.whisperStylePromptEnabled,
-                    onCheckedChange = onWhisperPromptChange
-                )
             }
         }
     }

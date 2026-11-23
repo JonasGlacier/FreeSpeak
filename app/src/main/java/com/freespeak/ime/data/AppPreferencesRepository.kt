@@ -15,6 +15,7 @@ import com.freespeak.ime.R
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Locale
+import com.freespeak.ime.text.ChineseOutputMode
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "freespeak_prefs")
 
@@ -87,6 +88,9 @@ data class UserSettings(
     val customMirrorUrl: String = "https://hf-mirror.com",
     val customCatalogUrls: Set<String> = emptySet(),
     val whisperStylePromptEnabled: Boolean = true,
+    val spokenLanguageHint: String = "auto",
+    val translateToEnglish: Boolean = false,
+    val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
 ) {
     /**
      * Ordered list of user's preferred languages following [SupportedLanguages.all] order.
@@ -177,6 +181,11 @@ class AppPreferencesRepository(private val context: Context) {
             customMirrorUrl = prefs[KEY_CUSTOM_MIRROR_URL] ?: "https://hf-mirror.com",
             customCatalogUrls = prefs[KEY_CUSTOM_CATALOG_URLS] ?: emptySet(),
             whisperStylePromptEnabled = prefs[KEY_WHISPER_PROMPT_ENABLED] ?: true,
+            // Do not migrate the old forced language: default back to genuine auto-detection.
+            spokenLanguageHint = prefs[KEY_SPOKEN_LANGUAGE_HINT] ?: "auto",
+            translateToEnglish = prefs[KEY_TRANSLATE_ENGLISH] ?: false,
+            chineseOutputMode = ChineseOutputMode.entries.find { it.name == prefs[KEY_CHINESE_OUTPUT] }
+                ?: ChineseOutputMode.SYSTEM,
         )
     }
 
@@ -254,8 +263,23 @@ class AppPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[KEY_WHISPER_PROMPT_ENABLED] = enabled }
     }
 
+    suspend fun setSpokenLanguageHint(language: String) {
+        context.dataStore.edit { it[KEY_SPOKEN_LANGUAGE_HINT] = language }
+    }
+
+    suspend fun setTranslateToEnglish(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_TRANSLATE_ENGLISH] = enabled }
+    }
+
+    suspend fun setChineseOutputMode(mode: ChineseOutputMode) {
+        context.dataStore.edit { it[KEY_CHINESE_OUTPUT] = mode.name }
+    }
+
     companion object {
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        private val KEY_SPOKEN_LANGUAGE_HINT = stringPreferencesKey("spoken_language_hint")
+        private val KEY_TRANSLATE_ENGLISH = booleanPreferencesKey("translate_english")
+        private val KEY_CHINESE_OUTPUT = stringPreferencesKey("chinese_output_mode")
         private val KEY_SELECTED_MODEL_ID = stringPreferencesKey("selected_model_id")
         private val KEY_PREFERRED_LANGUAGES = stringSetPreferencesKey("preferred_languages")
         private val KEY_SELECTED_LANGUAGE = stringPreferencesKey("selected_language")

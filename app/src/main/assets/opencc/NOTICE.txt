@@ -1,0 +1,8 @@
+OpenCC dictionary data, version 1.1.9
+Source: https://github.com/BYVoid/OpenCC/tree/ver.1.1.9/data/dictionary
+Copyright OpenCC contributors. Licensed under Apache License 2.0 (LICENSE.txt).
+
+FreeSpeak bundles the unmodified UTF-8 source dictionaries and applies them with
+a Kotlin longest-prefix dictionary adapter. This is not the upstream OpenCC
+C++ MMSEG implementation; ambiguous segmentation may differ. Hong Kong mode
+uses HKVariants (glyph standards), not Taiwan vocabulary substitutions.

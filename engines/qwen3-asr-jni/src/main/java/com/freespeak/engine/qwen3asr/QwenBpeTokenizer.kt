@@ -2,13 +2,16 @@ package com.freespeak.engine.qwen3asr
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
+import java.io.InputStreamReader
+import java.io.Reader
 import java.util.Base64
 
 enum class TokenDecodeMode {
@@ -18,30 +21,37 @@ enum class TokenDecodeMode {
 }
 
 /**
- * Universal offline tokenizer supporting:
- * 1. HuggingFace `tokenizer.json` / `vocab.json` + `tokenizer_config.json` (Qwen2 / Qwen3 Byte-Level BPE)
- * 2. Base64-encoded UTF-8 byte `tokens.txt` (used by Fun-ASR-Nano CTC ONNX)
- * 3. SentencePiece / char `tokens.txt` (used by SenseVoice-Small / Paraformer)
+ * Memory-efficient offline tokenizer using a flat `Array<String?>` table (avoiding boxed Integer
+ * HashMap & JsonObject DOM bloat on 152k-token Qwen vocabularies).
  */
 class QwenBpeTokenizer private constructor(
-    private val idToToken: Map<Int, String>,
-    private val tokenToId: Map<String, Int>,
+    private val idToToken: Array<String?>,
     private val specialIds: Set<Int>,
     private val specialTokenStrings: List<String>,
     val mode: TokenDecodeMode,
 ) {
-    val vocabSize: Int get() = idToToken.size
+    // Lazily populated only when prompt encoding or token lookup is requested
+    private val tokenToIdMap: Map<String, Int> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        val map = HashMap<String, Int>(idToToken.size * 4 / 3 + 16)
+        for (i in idToToken.indices) {
+            val tok = idToToken[i]
+            if (tok != null) {
+                map[tok] = i
+            }
+        }
+        map
+    }
 
-    fun tokenToId(token: String): Int? = tokenToId[token]
+    val vocabSize: Int
+        get() = idToToken.count { it != null }
+
+    fun tokenToId(token: String): Int? = tokenToIdMap[token]
 
     fun isSpecialToken(id: Int): Boolean = id in specialIds
 
-    /**
-     * Encodes prompt strings (including special tokens like `<|im_start|>`, `<|audio_pad|>`, `<asr_text>`)
-     * into token IDs using special-token splitting + greedy longest-prefix Byte-Level BPE matching.
-     */
     fun encode(text: String): IntArray {
         if (text.isEmpty()) return IntArray(0)
+        val lookup = tokenToIdMap
         val out = ArrayList<Int>(text.length)
         var idx = 0
         while (idx < text.length) {
@@ -53,12 +63,11 @@ class QwenBpeTokenizer private constructor(
                 }
             }
             if (matchedSpecial != null) {
-                tokenToId[matchedSpecial]?.let { out.add(it) }
+                lookup[matchedSpecial]?.let { out.add(it) }
                 idx += matchedSpecial.length
                 continue
             }
 
-            // Find next special token boundary
             var nextSpecialPos = text.length
             for (sp in specialTokenStrings) {
                 if (sp.isEmpty()) continue
@@ -69,13 +78,17 @@ class QwenBpeTokenizer private constructor(
             }
 
             val chunk = text.substring(idx, nextSpecialPos)
-            encodePlainChunk(chunk, out)
+            encodePlainChunk(chunk, lookup, out)
             idx = nextSpecialPos
         }
         return out.toIntArray()
     }
 
-    private fun encodePlainChunk(chunk: String, out: MutableList<Int>) {
+    private fun encodePlainChunk(
+        chunk: String,
+        lookup: Map<String, Int>,
+        out: MutableList<Int>,
+    ) {
         if (chunk.isEmpty()) return
         if (mode == TokenDecodeMode.BYTE_LEVEL_BPE) {
             val utf8 = chunk.toByteArray(Charsets.UTF_8)
@@ -91,7 +104,7 @@ class QwenBpeTokenizer private constructor(
                 var foundId: Int? = null
                 while (end > i) {
                     val cand = s.substring(i, end)
-                    val tid = tokenToId[cand]
+                    val tid = lookup[cand]
                     if (tid != null) {
                         foundId = tid
                         break
@@ -112,7 +125,7 @@ class QwenBpeTokenizer private constructor(
                 var foundId: Int? = null
                 while (end > i) {
                     val cand = chunk.substring(i, end)
-                    val tid = tokenToId[cand]
+                    val tid = lookup[cand]
                     if (tid != null) {
                         foundId = tid
                         break
@@ -137,6 +150,7 @@ class QwenBpeTokenizer private constructor(
                 val byteBuffer = ByteArrayOutputStream(tokenIds.size * 3)
                 val b64Decoder = Base64.getDecoder()
                 for (id in tokenIds) {
+                    if (id < 0 || id >= idToToken.size) continue
                     if (skipSpecialTokens && id in specialIds) continue
                     val piece = idToToken[id] ?: continue
                     if (skipSpecialTokens && isBracketSpecial(piece)) continue
@@ -153,6 +167,7 @@ class QwenBpeTokenizer private constructor(
             TokenDecodeMode.BYTE_LEVEL_BPE -> {
                 val byteBuffer = ByteArrayOutputStream(tokenIds.size * 3)
                 for (id in tokenIds) {
+                    if (id < 0 || id >= idToToken.size) continue
                     if (skipSpecialTokens && id in specialIds) continue
                     val piece = idToToken[id] ?: continue
                     if (skipSpecialTokens && isBracketSpecial(piece)) continue
@@ -171,6 +186,7 @@ class QwenBpeTokenizer private constructor(
             TokenDecodeMode.SENTENCEPIECE -> {
                 val sb = StringBuilder()
                 for (id in tokenIds) {
+                    if (id < 0 || id >= idToToken.size) continue
                     if (skipSpecialTokens && id in specialIds) continue
                     val piece = idToToken[id] ?: continue
                     if (skipSpecialTokens && isBracketSpecial(piece)) continue
@@ -235,104 +251,72 @@ class QwenBpeTokenizer private constructor(
         }
 
         fun loadFromDirectory(modelDir: File, explicitVocabFile: String? = null): QwenBpeTokenizer {
+            // Prefer vocab.json over 11MB tokenizer.json when both exist to minimize memory footprint
             if (!explicitVocabFile.isNullOrBlank()) {
                 val f = File(modelDir, explicitVocabFile)
                 if (f.exists()) return loadFromFile(f)
             }
             val relativeCandidates = listOf(
-                "tokenizer.json",
                 "vocab.json",
-                "tokens.txt",
-                "tokenizer/tokenizer.json",
                 "tokenizer/vocab.json",
-                "Qwen3-0.6B/tokenizer.json",
                 "Qwen3-0.6B/vocab.json",
+                "tokens.txt",
+                "tokenizer.json",
+                "tokenizer/tokenizer.json",
+                "Qwen3-0.6B/tokenizer.json",
             )
             for (rel in relativeCandidates) {
                 val f = File(modelDir, rel)
                 if (f.exists()) return loadFromFile(f)
             }
-            // Fallback shallow search in subdirectories
             modelDir.walkTopDown().maxDepth(3).firstOrNull {
-                it.isFile && (it.name == "tokenizer.json" || it.name == "vocab.json" || it.name == "tokens.txt")
+                it.isFile && (it.name == "vocab.json" || it.name == "tokens.txt" || it.name == "tokenizer.json")
             }?.let { return loadFromFile(it) }
 
-            throw IllegalArgumentException("Vocabulary file not found (tokenizer.json / vocab.json / tokens.txt) in ${modelDir.absolutePath}")
+            throw IllegalArgumentException(
+                "Vocabulary file not found (tokenizer.json / vocab.json / tokens.txt) in ${modelDir.absolutePath}"
+            )
         }
 
         fun loadFromFile(file: File): QwenBpeTokenizer {
             return when {
-                file.name.endsWith("tokenizer.json", ignoreCase = true) -> parseTokenizerJson(file.readText())
-                file.name.endsWith("vocab.json", ignoreCase = true) -> parseVocabJson(file)
-                else -> parseTokensTxt(file.readLines())
+                file.name.endsWith("vocab.json", ignoreCase = true) -> parseVocabJsonStreaming(file)
+                file.name.endsWith("tokenizer.json", ignoreCase = true) -> parseTokenizerJson(file)
+                else -> parseTokensTxtStreaming(file)
             }
         }
 
-        internal fun parseTokenizerJson(content: String): QwenBpeTokenizer {
-            val root = jsonParser.parseToJsonElement(content).jsonObject
-            val idToToken = HashMap<Int, String>(160_000)
-            val tokenToId = HashMap<String, Int>(160_000)
+        private fun ensureCapacity(arr: Array<String?>, requiredIndex: Int): Array<String?> {
+            if (requiredIndex < arr.size) return arr
+            var newCap = maxOf(arr.size * 2, requiredIndex + 1024)
+            if (newCap < 160_000 && requiredIndex > 32_000) newCap = 160_000
+            return arr.copyOf(newCap)
+        }
+
+        /**
+         * Zero-DOM streaming parser for `vocab.json` (`{"token": id, ...}`) + sibling `tokenizer_config.json`.
+         */
+        internal fun parseVocabJsonStreaming(vocabFile: File): QwenBpeTokenizer {
+            var table = arrayOfNulls<String>(152_128)
             val specialIds = HashSet<Int>()
             val specialStrings = ArrayList<String>()
+            var maxId = -1
 
-            val modelObj = root["model"]?.jsonObject
-            val vocabObj = modelObj?.get("vocab")?.jsonObject
-            if (vocabObj != null) {
-                for ((token, idElem) in vocabObj) {
-                    val id = idElem.jsonPrimitive.intOrNull ?: continue
-                    idToToken[id] = token
-                    tokenToId[token] = id
-                }
-            }
-
-            val addedTokens = root["added_tokens"]
-            if (addedTokens is JsonArray) {
-                for (elem in addedTokens) {
-                    val obj = elem.jsonObject
-                    val id = obj["id"]?.jsonPrimitive?.intOrNull ?: continue
-                    val tok = obj["content"]?.jsonPrimitive?.content ?: continue
-                    val special = obj["special"]?.jsonPrimitive?.booleanOrNull ?: false
-                    idToToken[id] = tok
-                    tokenToId[tok] = id
-                    if (special || (tok.startsWith("<") && tok.endsWith(">"))) {
-                        specialStrings.add(tok)
-                    }
-                    if (special || (tok.startsWith("<|") && tok.endsWith("|>"))) {
-                        specialIds.add(id)
+            BufferedReader(InputStreamReader(FileInputStream(vocabFile), Charsets.UTF_8), 32 * 1024).use { reader ->
+                parseFlatJsonStringIntPairs(reader) { token, id ->
+                    if (id >= 0) {
+                        table = ensureCapacity(table, id)
+                        table[id] = token
+                        if (id > maxId) maxId = id
+                        if (token.startsWith("<|") && token.endsWith("|>")) {
+                            specialIds.add(id)
+                            specialStrings.add(token)
+                        }
                     }
                 }
             }
 
-            specialStrings.sortByDescending { it.length }
-            val isByteLevel = idToToken.values.any { it.contains('\u0120') || it.contains('\u010A') } ||
-                modelObj?.get("type")?.jsonPrimitive?.content.equals("BPE", ignoreCase = true)
-
-            return QwenBpeTokenizer(
-                idToToken = idToToken,
-                tokenToId = tokenToId,
-                specialIds = specialIds,
-                specialTokenStrings = specialStrings,
-                mode = if (isByteLevel) TokenDecodeMode.BYTE_LEVEL_BPE else TokenDecodeMode.SENTENCEPIECE,
-            )
-        }
-
-        internal fun parseVocabJson(vocabFile: File): QwenBpeTokenizer {
-            val root: JsonObject = jsonParser.parseToJsonElement(vocabFile.readText()).jsonObject
-            val idToToken = HashMap<Int, String>(root.size + 256)
-            val tokenToId = HashMap<String, Int>(root.size + 256)
-            val specialIds = HashSet<Int>()
-            val specialStrings = ArrayList<String>()
-
-            for ((token, idElem) in root) {
-                val id = idElem.jsonPrimitive.intOrNull ?: continue
-                idToToken[id] = token
-                tokenToId[token] = id
-                if (token.startsWith("<|") && token.endsWith("|>")) {
-                    specialIds.add(id)
-                    specialStrings.add(token)
-                }
-            }
-
+            // Merge small ~12KB tokenizer_config.json for added special tokens (<|im_start|>, <|audio_pad|>, <asr_text>, etc.)
             val configFile = File(vocabFile.parentFile, "tokenizer_config.json")
             if (configFile.exists()) {
                 runCatching {
@@ -344,8 +328,9 @@ class QwenBpeTokenizer private constructor(
                             val entryObj = entry.jsonObject
                             val content = entryObj["content"]?.jsonPrimitive?.content ?: continue
                             val special = entryObj["special"]?.jsonPrimitive?.booleanOrNull ?: false
-                            idToToken[id] = content
-                            tokenToId[content] = id
+                            table = ensureCapacity(table, id)
+                            table[id] = content
+                            if (id > maxId) maxId = id
                             specialStrings.add(content)
                             if (special) specialIds.add(id)
                         }
@@ -353,53 +338,212 @@ class QwenBpeTokenizer private constructor(
                 }
             }
 
+            val trimmed = if (maxId >= 0 && maxId + 1 < table.size) table.copyOf(maxId + 1) else table
             val distinctSpecials = specialStrings.distinct().sortedByDescending { it.length }
             return QwenBpeTokenizer(
-                idToToken = idToToken,
-                tokenToId = tokenToId,
+                idToToken = trimmed,
                 specialIds = specialIds,
                 specialTokenStrings = distinctSpecials,
                 mode = TokenDecodeMode.BYTE_LEVEL_BPE,
             )
         }
 
-        internal fun parseTokensTxt(lines: List<String>): QwenBpeTokenizer {
-            val idToToken = HashMap<Int, String>(lines.size)
-            val tokenToId = HashMap<String, Int>(lines.size)
+        internal fun parseTokenizerJson(file: File): QwenBpeTokenizer {
+            // Check if sibling vocab.json exists first (much smaller than 11MB tokenizer.json)
+            val siblingVocab = File(file.parentFile, "vocab.json")
+            if (siblingVocab.exists()) {
+                return parseVocabJsonStreaming(siblingVocab)
+            }
+
+            val root = jsonParser.parseToJsonElement(file.readText()).jsonObject
+            var table = arrayOfNulls<String>(152_128)
             val specialIds = HashSet<Int>()
             val specialStrings = ArrayList<String>()
+            var maxId = -1
 
-            lines.forEachIndexed { lineIdx, rawLine ->
-                val line = rawLine.trimEnd('\r', '\n')
-                if (line.isEmpty()) return@forEachIndexed
-                val lastSpace = line.lastIndexOf(' ')
-                val (token, id) = if (lastSpace > 0 && line.substring(lastSpace + 1).toIntOrNull() != null) {
-                    line.substring(0, lastSpace) to line.substring(lastSpace + 1).toInt()
-                } else {
-                    line to lineIdx
-                }
-                idToToken[id] = token
-                tokenToId[token] = id
-                if ((token.startsWith("<|") && token.endsWith("|>")) ||
-                    token == "<blank>" || token == "<unk>" || token == "<s>" || token == "</s>"
-                ) {
-                    specialIds.add(id)
-                    specialStrings.add(token)
+            val modelObj = root["model"]?.jsonObject
+            val vocabObj = modelObj?.get("vocab")?.jsonObject
+            if (vocabObj != null) {
+                for ((token, idElem) in vocabObj) {
+                    val id = idElem.jsonPrimitive.intOrNull ?: continue
+                    if (id >= 0) {
+                        table = ensureCapacity(table, id)
+                        table[id] = token
+                        if (id > maxId) maxId = id
+                    }
                 }
             }
 
+            val addedTokens = root["added_tokens"]
+            if (addedTokens is JsonArray) {
+                for (elem in addedTokens) {
+                    val obj = elem.jsonObject
+                    val id = obj["id"]?.jsonPrimitive?.intOrNull ?: continue
+                    val tok = obj["content"]?.jsonPrimitive?.content ?: continue
+                    val special = obj["special"]?.jsonPrimitive?.booleanOrNull ?: false
+                    if (id >= 0) {
+                        table = ensureCapacity(table, id)
+                        table[id] = tok
+                        if (id > maxId) maxId = id
+                        if (special || (tok.startsWith("<") && tok.endsWith(">"))) {
+                            specialStrings.add(tok)
+                        }
+                        if (special || (tok.startsWith("<|") && tok.endsWith("|>"))) {
+                            specialIds.add(id)
+                        }
+                    }
+                }
+            }
+
+            val trimmed = if (maxId >= 0 && maxId + 1 < table.size) table.copyOf(maxId + 1) else table
+            val isByteLevel = trimmed.any { it != null && (it.contains('\u0120') || it.contains('\u010A')) } ||
+                modelObj?.get("type")?.jsonPrimitive?.content.equals("BPE", ignoreCase = true)
+
+            return QwenBpeTokenizer(
+                idToToken = trimmed,
+                specialIds = specialIds,
+                specialTokenStrings = specialStrings.distinct().sortedByDescending { it.length },
+                mode = if (isByteLevel) TokenDecodeMode.BYTE_LEVEL_BPE else TokenDecodeMode.SENTENCEPIECE,
+            )
+        }
+
+        internal fun parseTokensTxtStreaming(file: File): QwenBpeTokenizer {
+            var table = arrayOfNulls<String>(65_536)
+            val specialIds = HashSet<Int>()
+            val specialStrings = ArrayList<String>()
+            var maxId = -1
+
+            BufferedReader(InputStreamReader(FileInputStream(file), Charsets.UTF_8), 32 * 1024).use { reader ->
+                var lineIdx = 0
+                while (true) {
+                    val rawLine = reader.readLine() ?: break
+                    val line = rawLine.trimEnd('\r', '\n')
+                    if (line.isNotEmpty()) {
+                        val lastSpace = line.lastIndexOf(' ')
+                        val (token, id) = if (lastSpace > 0 && line.substring(lastSpace + 1).toIntOrNull() != null) {
+                            line.substring(0, lastSpace) to line.substring(lastSpace + 1).toInt()
+                        } else {
+                            line to lineIdx
+                        }
+                        if (id >= 0) {
+                            table = ensureCapacity(table, id)
+                            table[id] = token
+                            if (id > maxId) maxId = id
+                            if ((token.startsWith("<|") && token.endsWith("|>")) ||
+                                token == "<blank>" || token == "<unk>" || token == "<s>" || token == "</s>"
+                            ) {
+                                specialIds.add(id)
+                                specialStrings.add(token)
+                            }
+                        }
+                    }
+                    lineIdx++
+                }
+            }
+
+            val trimmed = if (maxId >= 0 && maxId + 1 < table.size) table.copyOf(maxId + 1) else table
             val mode = when {
-                idToToken[0] == "IQ==" && idToToken[1] == "Ig==" -> TokenDecodeMode.BASE64_BYTES
-                idToToken.values.any { it.contains('\u0120') } -> TokenDecodeMode.BYTE_LEVEL_BPE
+                trimmed.size > 1 && trimmed[0] == "IQ==" && trimmed[1] == "Ig==" -> TokenDecodeMode.BASE64_BYTES
+                trimmed.any { it != null && it.contains('\u0120') } -> TokenDecodeMode.BYTE_LEVEL_BPE
                 else -> TokenDecodeMode.SENTENCEPIECE
             }
             return QwenBpeTokenizer(
-                idToToken = idToToken,
-                tokenToId = tokenToId,
+                idToToken = trimmed,
                 specialIds = specialIds,
                 specialTokenStrings = specialStrings.sortedByDescending { it.length },
                 mode = mode,
             )
+        }
+
+        /**
+         * Minimal, zero-DOM streaming scanner for flat JSON maps `{"strKey": intVal, ...}`.
+         */
+        internal fun parseFlatJsonStringIntPairs(
+            reader: Reader,
+            onEntry: (key: String, value: Int) -> Unit,
+        ) {
+            val sb = StringBuilder(32)
+            var ch = reader.read()
+
+            fun skipWhitespace() {
+                while (ch != -1 && (ch == ' '.code || ch == '\n'.code || ch == '\r'.code || ch == '\t'.code)) {
+                    ch = reader.read()
+                }
+            }
+
+            fun readJsonString(): String {
+                sb.setLength(0)
+                // Assume opening '"' already matched; advance past '"'
+                ch = reader.read()
+                while (ch != -1 && ch != '"'.code) {
+                    if (ch == '\\'.code) {
+                        val esc = reader.read()
+                        if (esc == -1) break
+                        when (esc.toChar()) {
+                            '"' -> sb.append('"')
+                            '\\' -> sb.append('\\')
+                            '/' -> sb.append('/')
+                            'b' -> sb.append('\b')
+                            'f' -> sb.append('\u000C')
+                            'n' -> sb.append('\n')
+                            'r' -> sb.append('\r')
+                            't' -> sb.append('\t')
+                            'u' -> {
+                                var code = 0
+                                repeat(4) {
+                                    val hexCh = reader.read()
+                                    val digit = Character.digit(hexCh, 16)
+                                    if (digit >= 0) code = (code shl 4) or digit
+                                }
+                                sb.append(code.toChar())
+                            }
+                            else -> sb.append(esc.toChar())
+                        }
+                    } else {
+                        sb.append(ch.toChar())
+                    }
+                    ch = reader.read()
+                }
+                // Advance past closing '"'
+                ch = reader.read()
+                return sb.toString()
+            }
+
+            skipWhitespace()
+            if (ch == '{'.code) ch = reader.read()
+
+            while (ch != -1) {
+                skipWhitespace()
+                if (ch == '}'.code || ch == -1) break
+                if (ch == ','.code) {
+                    ch = reader.read()
+                    skipWhitespace()
+                }
+                if (ch != '"'.code) {
+                    ch = reader.read()
+                    continue
+                }
+                val key = readJsonString()
+                skipWhitespace()
+                if (ch == ':'.code) ch = reader.read()
+                skipWhitespace()
+
+                var sign = 1
+                if (ch == '-'.code) {
+                    sign = -1
+                    ch = reader.read()
+                }
+                var num = 0
+                var hasDigits = false
+                while (ch in '0'.code..'9'.code) {
+                    hasDigits = true
+                    num = num * 10 + (ch - '0'.code)
+                    ch = reader.read()
+                }
+                if (hasDigits) {
+                    onEntry(key, num * sign)
+                }
+            }
         }
     }
 }

@@ -55,7 +55,17 @@ data class ModelManifest(
     val files: List<ModelFileEntry> = emptyList(),
     val runtimeConfig: ModelRuntimeConfig = ModelRuntimeConfig(),
     val sourceTag: String = "builtin",
+    // Nullable hints preserve compatibility with existing downloaded model.json files.
+    val supportsLanguageHint: Boolean? = null,
+    val supportsTranslateToEnglish: Boolean? = null,
 )
+
+val ModelManifest.canHintLanguage: Boolean
+    get() = supportsLanguageHint ?: (engineType != EngineType.FUN_ASR_ONNX || id == "sense-voice-small-int8")
+
+val ModelManifest.canTranslateToEnglish: Boolean
+    get() = engineType == EngineType.WHISPER_CPP && (supportsTranslateToEnglish ?: true) &&
+        !Regex("\\.en(?:[-.]|$)", RegexOption.IGNORE_CASE).containsMatchIn(runtimeConfig.primaryModelFile.orEmpty())
 
 @Serializable
 data class ExternalModelCatalog(

@@ -6,6 +6,7 @@ import com.freespeak.ime.engine.whisper.WhisperCppEngine
 import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ModelManifest
 import com.freespeak.ime.model.ModelRepository
+import com.freespeak.ime.text.OpenCcConverter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,6 +34,7 @@ sealed interface EngineRuntimeStatus {
  */
 class EngineManager(
     private val modelRepository: ModelRepository,
+    private val chineseConverter: OpenCcConverter,
 ) {
     private val engineDispatcher = Dispatchers.Default.limitedParallelism(1)
     private val managerScope = CoroutineScope(SupervisorJob() + engineDispatcher)
@@ -69,6 +71,7 @@ class EngineManager(
             currentEngine?.release()
             currentEngine = null
             loadedModelId = null
+            System.gc()
 
             val newEngine = createEngine(resolvedManifest.engineType)
             val modelDir = modelRepository.getModelDirectory(resolvedManifest.id)
@@ -105,7 +108,14 @@ class EngineManager(
                 val eng = currentEngine
                     ?: return@withContext Result.failure(IllegalStateException("Engine not ready"))
                 _status.value = EngineRuntimeStatus.Transcribing(manifest.name)
-                val res = eng.transcribe(pcm16k, options)
+                val effectiveOptions = options.forModel(manifest)
+                val res = eng.transcribe(pcm16k, effectiveOptions).mapCatching { result ->
+                    result.copy(text = chineseConverter.convert(
+                        result.text, effectiveOptions.chineseOutputMode,
+                        result.detectedLanguage ?: effectiveOptions.language,
+                        effectiveOptions.translateToEnglish,
+                    ))
+                }
                 if (res.isSuccess) {
                     _status.value = EngineRuntimeStatus.Ready(manifest.id, manifest.name)
                 } else {

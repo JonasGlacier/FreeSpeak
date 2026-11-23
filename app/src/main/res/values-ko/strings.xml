@@ -50,7 +50,7 @@
     <string name="pref_voice_model">음성 인식 모델</string>
     <string name="pref_voice_model_none">설치 안 됨</string>
 
-    <string name="pref_preferred_languages">선호 언어</string>
+    <string name="pref_preferred_languages">음성 언어 힌트</string>
     <string name="pref_lang_auto_mixed">자동</string>
 
     <string name="pref_recording_mode">녹음 방식</string>

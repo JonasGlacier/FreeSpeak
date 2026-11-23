@@ -7,6 +7,7 @@ import com.freespeak.ime.engine.AsrTranscriptionResult
 import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ModelManifest
 import java.io.File
+import com.freespeak.ime.text.ChineseOutputMode
 
 class WhisperCppEngine : AsrEngine {
 
@@ -48,7 +49,10 @@ class WhisperCppEngine : AsrEngine {
         if (pcm16k.isEmpty()) return@runCatching AsrTranscriptionResult("")
 
         val startMs = System.currentTimeMillis()
-        val prompt = if (options.enableStylePrompt) {
+        require(!options.translateToEnglish || WhisperNative.isMultilingual(ptr)) {
+            "English-only Whisper models cannot translate speech. Select a multilingual Whisper model."
+        }
+        val prompt = if (options.enableStylePrompt && !options.translateToEnglish) {
             resolvePrompt(options.language, loadedManifest)
         } else {
             null
@@ -59,8 +63,10 @@ class WhisperCppEngine : AsrEngine {
             pcm16k = pcm16k,
             numThreads = options.numThreads.coerceIn(1, 8),
             language = options.language.ifBlank { "auto" },
-            initialPrompt = prompt,
-            translateToEnglish = false,
+            initialPrompt = if (options.enableStylePrompt && !options.translateToEnglish && options.chineseOutputMode.resolved().isTraditional && options.language in listOf("zh", "yue")) {
+                "這是一段包含標點符號的中文語音，也可以包含 English 單詞。"
+            } else prompt,
+            translateToEnglish = options.translateToEnglish,
         )
         val detectedLang = WhisperNative.getDetectedLanguage(ptr).ifBlank { null }
         val elapsed = System.currentTimeMillis() - startMs

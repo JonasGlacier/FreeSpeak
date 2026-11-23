@@ -4,6 +4,7 @@ import android.app.Application
 import com.freespeak.ime.data.AppPreferencesRepository
 import com.freespeak.ime.engine.EngineManager
 import com.freespeak.ime.model.ModelRepository
+import com.freespeak.ime.text.OpenCcConverter
 
 class FreeSpeakApplication : Application() {
 
@@ -20,6 +21,8 @@ class FreeSpeakApplication : Application() {
         super.onCreate()
         preferencesRepository = AppPreferencesRepository(this)
         modelRepository = ModelRepository(this)
-        engineManager = EngineManager(modelRepository)
+        engineManager = EngineManager(modelRepository, OpenCcConverter { name ->
+            assets.open("opencc/$name").reader(Charsets.UTF_8)
+        })
     }
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="language_builtin_auto">自動（模型內置）</string>
+    <string name="language_auto">自動偵測（建議）</string>
+    <string name="language_hint_description">預設自動辨識多語言。此處提示正在說的語言，並非翻譯目標；僅在短句或方言辨識不準時指定。</string>
+    <string name="language_builtin_description">此模型內置自動多語言辨識，不提供手動語種參數。</string>
+    <string name="translate_english_title">語音譯為英文</string>
+    <string name="translate_english_description">僅適用於多語言 Whisper，使用模型原生翻譯任務。語種提示仍指正在說的語言。</string>
+    <string name="chinese_output_title">中文簡繁輸出</string>
+    <string name="chinese_system">跟隨系統</string>
+    <string name="chinese_simplified">简体中文</string>
+    <string name="chinese_traditional">繁體中文（通用）</string>
+    <string name="chinese_taiwan">繁體中文（台灣用語）</string>
+    <string name="chinese_hong_kong">繁體中文（香港字形）</string>
+    <string name="chinese_original">保留模型原文</string>
+    <string name="chinese_output_description">輸入前使用 OpenCC 詞典離線轉換。台灣模式含慣用詞轉換，香港模式調整字形。跟隨系統時，TW 使用台灣模式，HK/MO 使用香港模式，Hant 使用通用繁體，其餘使用簡體。英文翻譯和辨識為日文時跳過轉換。歧義詞及專名可能需修正。</string>
+</resources>

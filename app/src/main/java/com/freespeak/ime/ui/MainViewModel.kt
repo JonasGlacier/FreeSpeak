@@ -20,6 +20,7 @@ import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ManagedModelItem
 import com.freespeak.ime.model.ModelInstallState
 import com.freespeak.ime.model.ModelManifest
+import com.freespeak.ime.text.ChineseOutputMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -217,6 +218,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun togglePreferredLanguage(langCode: String) {
         viewModelScope.launch { prefs.togglePreferredLanguage(langCode) }
+    }
+
+    fun setSpokenLanguageHint(code: String) {
+        viewModelScope.launch { prefs.setSpokenLanguageHint(code) }
+    }
+
+    fun setTranslateToEnglish(enabled: Boolean) {
+        viewModelScope.launch { prefs.setTranslateToEnglish(enabled) }
+    }
+
+    fun setChineseOutputMode(mode: ChineseOutputMode) {
+        viewModelScope.launch { prefs.setChineseOutputMode(mode) }
     }
 
     fun setMirrorSource(source: MirrorSource) {

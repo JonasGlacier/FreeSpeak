@@ -18,6 +18,8 @@ object BuiltinModelCatalog {
     val models: List<ModelManifest> = listOf(
         ModelManifest(
             id = "fun-asr-nano-int8",
+            supportsLanguageHint = false,
+            supportsTranslateToEnglish = false,
             name = "Fun-ASR-Nano",
             description = "Compact multilingual & dialect model by FunAudioLLM with built-in punctuation and code-switching.",
             engineType = EngineType.FUN_ASR_ONNX,
@@ -48,6 +50,8 @@ object BuiltinModelCatalog {
         ),
         ModelManifest(
             id = "qwen3-asr-0.6b-int8",
+            supportsLanguageHint = true,
+            supportsTranslateToEnglish = false,
             name = "Qwen3-ASR-0.6B",
             description = "Flagship 0.6B multimodal speech model with strong mixed-language and natural punctuation accuracy.",
             engineType = EngineType.QWEN3_ASR,
@@ -92,6 +96,8 @@ object BuiltinModelCatalog {
         ),
         ModelManifest(
             id = "whisper-small-q5_1",
+            supportsLanguageHint = true,
+            supportsTranslateToEnglish = true,
             name = "Whisper Small",
             description = "Balanced 99-language Whisper model running on whisper.cpp.",
             engineType = EngineType.WHISPER_CPP,
@@ -112,6 +118,8 @@ object BuiltinModelCatalog {
         ),
         ModelManifest(
             id = "sense-voice-small-int8",
+            supportsLanguageHint = true,
+            supportsTranslateToEnglish = false,
             name = "SenseVoice-Small",
             description = "Fast multilingual model (Chinese, Cantonese, English, Japanese, Korean) with punctuation & ITN.",
             engineType = EngineType.FUN_ASR_ONNX,
@@ -142,6 +150,8 @@ object BuiltinModelCatalog {
         ),
         ModelManifest(
             id = "whisper-tiny-q5_1",
+            supportsLanguageHint = true,
+            supportsTranslateToEnglish = true,
             name = "Whisper Tiny",
             description = "Ultra-light 32 MB model for low-memory devices or quick testing.",
             engineType = EngineType.WHISPER_CPP,
