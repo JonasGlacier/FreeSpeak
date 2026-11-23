@@ -15,10 +15,14 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.animation.ValueAnimator
+import android.view.animation.DecelerateInterpolator
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.freespeak.ime.FreeSpeakApplication
 import com.freespeak.ime.R
@@ -49,7 +53,20 @@ class FreeSpeakInputMethodService : InputMethodService() {
     private var currentSettings = UserSettings()
 
     // Views
-    private var btnModelSwitch: TextView? = null
+    private var punctRow: View? = null
+    private var bottomRow: View? = null
+    private var btnUndo: View? = null
+    private var btnRedo: View? = null
+    private var btnSettings: View? = null
+    private var btnLang: TextView? = null
+    private var btnTargetIme: View? = null
+    private var btnCancelRecording: View? = null
+    private var micAnimator: ValueAnimator? = null
+    private var translateAvailable = false
+
+    // Undo / redo of text that was inserted by speech recognition
+    private val undoStack = ArrayDeque<String>()
+    private val redoStack = ArrayDeque<String>()
     private var lastTextUsesCjk: Boolean? = null
     private var tvStatus: TextView? = null
     private var waveformView: VoiceWaveformView? = null
@@ -122,7 +139,14 @@ class FreeSpeakInputMethodService : InputMethodService() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreateInputView(): View {
         val view = layoutInflater.inflate(R.layout.ime_voice_panel, null)
-        btnModelSwitch = view.findViewById(R.id.btnModelSwitch)
+        punctRow = view.findViewById(R.id.punctRow)
+        bottomRow = view.findViewById(R.id.bottomRow)
+        btnUndo = view.findViewById(R.id.btnUndo)
+        btnRedo = view.findViewById(R.id.btnRedo)
+        btnSettings = view.findViewById(R.id.btnOpenSettings)
+        btnLang = view.findViewById(R.id.btnLang)
+        btnTargetIme = view.findViewById(R.id.btnTargetIme)
+        btnCancelRecording = view.findViewById(R.id.btnCancelRecording)
         tvStatus = view.findViewById(R.id.tvImeStatus)
         waveformView = view.findViewById(R.id.waveformView)
         btnMic = view.findViewById(R.id.btnMic)
@@ -135,10 +159,13 @@ class FreeSpeakInputMethodService : InputMethodService() {
             view.findViewById(R.id.btnPunct4),
             view.findViewById(R.id.btnPunct5),
             view.findViewById(R.id.btnPunct6),
+            view.findViewById(R.id.btnPunct7),
+            view.findViewById(R.id.btnPunct8),
         )
         punctButtons.forEach { tv ->
             tv.setOnClickListener { v ->
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                clearUndoHistory()
                 currentInputConnection?.commitText(tv.text, 1)
             }
         }
@@ -150,9 +177,29 @@ class FreeSpeakInputMethodService : InputMethodService() {
             insets
         }
 
-        btnModelSwitch?.setOnClickListener { v ->
+        btnUndo?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            cycleInstalledModelOrOpenApp()
+            performUndo()
+        }
+        btnRedo?.setOnClickListener { v ->
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            performRedo()
+        }
+        btnLang?.setOnClickListener { v ->
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            val enable = !currentSettings.translateToEnglish
+            serviceScope.launch { app.preferencesRepository.setTranslateToEnglish(enable) }
+        }
+        btnTargetIme?.setOnClickListener { v ->
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            switchToTargetIme()
+        }
+        btnCancelRecording?.setOnClickListener { v ->
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            if (isTapSessionRecording || isHoldSessionRecording) {
+                mainHandler.removeCallbacks(holdTriggerRunnable)
+                cancelCaptureSession()
+            }
         }
 
         view.findViewById<View>(R.id.btnOpenSettings)?.setOnClickListener { v ->
@@ -160,19 +207,9 @@ class FreeSpeakInputMethodService : InputMethodService() {
             openMainApp()
         }
 
-        view.findViewById<View>(R.id.btnSwitchIme)?.apply {
-            setOnClickListener { v ->
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                switchToPreviousOrPicker()
-            }
-            setOnLongClickListener {
-                showImePicker()
-                true
-            }
-        }
-
         view.findViewById<View>(R.id.btnSpace)?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            clearUndoHistory()
             currentInputConnection?.commitText(" ", 1)
         }
 
@@ -206,17 +243,38 @@ class FreeSpeakInputMethodService : InputMethodService() {
 
         updateToolbarAndPunctuation()
         updateEnterKeyLabel(currentInputEditorInfo)
+        updatePanelMode(animate = false)
         return view
+    }
+
+    /** Dark system nav icons (hide / IME switcher) on the light panel; light icons in dark theme. */
+    private fun applyNavBarIconTint() {
+        val w = window?.window ?: return
+        val night = (resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        WindowCompat.getInsetsController(w, w.decorView).isAppearanceLightNavigationBars = !night
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        applyNavBarIconTint()
         updateEnterKeyLabel(info)
         updateToolbarAndPunctuation()
         app.engineManager.onImeShown(
             preferredModelId = currentSettings.selectedModelId,
             numThreads = currentSettings.cpuThreads,
         )
+    }
+
+    override fun onWindowShown() {
+        super.onWindowShown()
+        applyNavBarIconTint()
+    }
+
+    override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(attribute, restarting)
+        if (!restarting) clearUndoHistory()
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -351,8 +409,8 @@ class FreeSpeakInputMethodService : InputMethodService() {
         }
 
         btnMic?.setBackgroundResource(R.drawable.bg_mic_recording)
-        btnMic?.setImageResource(R.drawable.ic_stop_rounded)
         waveformView?.setVisualMode(VoiceWaveformView.VisualMode.LISTENING)
+        updatePanelMode()
         tvStatus?.setText(
             if (isHoldGesture) R.string.status_recording_hold else R.string.status_recording_tap
         )
@@ -368,16 +426,18 @@ class FreeSpeakInputMethodService : InputMethodService() {
     private fun finishCaptureAndTranscribe() {
         serviceScope.launch {
             isTranscribingNow = true
-            btnMic?.setBackgroundResource(R.drawable.bg_mic_idle)
-            btnMic?.setImageResource(R.drawable.ic_mic)
+            btnMic?.setBackgroundResource(R.drawable.bg_mic_recording)
             waveformView?.setVisualMode(VoiceWaveformView.VisualMode.TRANSCRIBING)
             tvStatus?.setText(R.string.status_transcribing)
+            updatePanelMode()
 
             val audioResult = audioRecorder.stop()
             if (!audioResult.hasVoiceActivity || audioResult.samples.isEmpty()) {
                 isTranscribingNow = false
                 waveformView?.setVisualMode(VoiceWaveformView.VisualMode.IDLE)
                 tvStatus?.setText(R.string.status_no_speech)
+                btnMic?.setBackgroundResource(R.drawable.bg_mic_idle)
+                updatePanelMode()
                 return@launch
             }
 
@@ -397,6 +457,8 @@ class FreeSpeakInputMethodService : InputMethodService() {
 
             isTranscribingNow = false
             waveformView?.setVisualMode(VoiceWaveformView.VisualMode.IDLE)
+            btnMic?.setBackgroundResource(R.drawable.bg_mic_idle)
+            updatePanelMode()
 
             transcribeResult.fold(
                 onSuccess = { res ->
@@ -406,6 +468,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
                         updateToolbarAndPunctuation()
                         val commitStr = if (shouldAppendTrailingSpace(text, asrLang)) "$text " else text
                         currentInputConnection?.commitText(commitStr, 1)
+                        pushUndo(commitStr)
                         val donePrefix = getString(R.string.status_done_latency, res.inferenceTimeMs)
                         tvStatus?.text = "$donePrefix · ${defaultIdleHint(currentSettings.interactionMode)}"
                     } else {
@@ -433,9 +496,9 @@ class FreeSpeakInputMethodService : InputMethodService() {
         isSlideCancelArmed = false
         isTranscribingNow = false
         btnMic?.setBackgroundResource(R.drawable.bg_mic_idle)
-        btnMic?.setImageResource(R.drawable.ic_mic)
         waveformView?.setVisualMode(VoiceWaveformView.VisualMode.IDLE)
         tvStatus?.text = defaultIdleHint(currentSettings.interactionMode)
+        updatePanelMode()
     }
 
     private fun updateEngineStatusUi(status: EngineRuntimeStatus) {
@@ -461,9 +524,8 @@ class FreeSpeakInputMethodService : InputMethodService() {
         val activeModel = installed.find { it.id == currentSettings.selectedModelId }
             ?: installed.firstOrNull()
 
-        val translating = activeModel?.canTranslateToEnglish == true && currentSettings.translateToEnglish
-        btnModelSwitch?.text = activeModel?.let { it.name + if (translating) " · →EN" else "" }
-            ?: getString(R.string.ime_no_model_tap)
+        translateAvailable = activeModel?.canTranslateToEnglish == true
+        val translating = translateAvailable && currentSettings.translateToEnglish
 
         val useCjkPunct = !translating && (lastTextUsesCjk
             ?: (resources.configuration.locales[0].language in setOf("zh", "ja")))
@@ -471,23 +533,132 @@ class FreeSpeakInputMethodService : InputMethodService() {
         punctButtons.forEachIndexed { idx, tv ->
             if (idx < symbols.size) tv.text = symbols[idx]
         }
+
+        btnLang?.apply {
+            setBackgroundResource(if (translating) R.drawable.bg_ime_round_active else R.drawable.bg_ime_round)
+            setTextColor(
+                ContextCompat.getColor(
+                    context,
+                    if (translating) R.color.ime_mic_fg else R.color.ime_text_primary
+                )
+            )
+        }
+        updatePanelMode(animate = false)
     }
 
-    private fun cycleInstalledModelOrOpenApp() {
-        val installed = app.modelRepository.listInstalledManifests()
-        if (installed.isEmpty()) {
-            openMainApp()
+    private val isRecordingUi: Boolean
+        get() = isTapSessionRecording || isHoldSessionRecording || isTranscribingNow
+
+    private fun hasTargetIme(): Boolean {
+        val id = currentSettings.targetImeId
+        if (id.isEmpty()) return false
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager ?: return false
+        return imm.enabledInputMethodList.any { it.id == id }
+    }
+
+    /** Shows the idle panel or the focused recording panel, and refreshes conditional buttons. */
+    private fun updatePanelMode(animate: Boolean = true) {
+        val recording = isRecordingUi
+        val idleVis = if (recording) View.GONE else View.VISIBLE
+        punctRow?.visibility = idleVis
+        tvStatus?.visibility = idleVis
+        bottomRow?.visibility = idleVis
+        btnSettings?.visibility = idleVis
+        btnUndo?.visibility = if (!recording && undoStack.isNotEmpty()) View.VISIBLE else View.GONE
+        btnRedo?.visibility = if (!recording && redoStack.isNotEmpty()) View.VISIBLE else View.GONE
+        btnLang?.visibility = if (!recording && translateAvailable) View.VISIBLE else View.GONE
+        btnTargetIme?.visibility = if (!recording && hasTargetIme()) View.VISIBLE else View.GONE
+        btnCancelRecording?.visibility =
+            if (recording && !isTranscribingNow) View.VISIBLE else View.GONE
+        waveformView?.visibility = if (recording) View.VISIBLE else View.GONE
+        btnMic?.apply {
+            if (recording) setImageDrawable(null) else setImageResource(R.drawable.ic_mic)
+        }
+        animateMic(if (recording) MIC_CIRCLE_DP else MIC_PILL_DP, animate)
+    }
+
+    private fun animateMic(targetDp: Int, animate: Boolean) {
+        val mic = btnMic ?: return
+        val density = resources.displayMetrics.density
+        val lp = mic.layoutParams as? FrameLayout.LayoutParams ?: return
+        val targetPx = (targetDp * density).toInt()
+        val centerPx = MIC_CENTER_DP * density
+        micAnimator?.cancel()
+        fun applyHeight(h: Int) {
+            lp.height = h
+            lp.topMargin = (centerPx - h / 2f).toInt()
+            mic.layoutParams = lp
+        }
+        if (!animate || lp.height == targetPx) {
+            applyHeight(targetPx)
             return
         }
-        val currentIdx = installed.indexOfFirst { it.id == currentSettings.selectedModelId }
-        val next = installed[(currentIdx + 1) % installed.size]
-        serviceScope.launch {
-            app.preferencesRepository.setSelectedModelId(next.id)
-            app.engineManager.ensureModelLoaded(next.id, currentSettings.cpuThreads)
+        micAnimator = ValueAnimator.ofInt(lp.height, targetPx).apply {
+            duration = 180L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { applyHeight(it.animatedValue as Int) }
+            start()
         }
+    }
+
+    private fun pushUndo(text: String) {
+        undoStack.addLast(text)
+        while (undoStack.size > MAX_UNDO) undoStack.removeFirst()
+        redoStack.clear()
+        updatePanelMode(animate = false)
+    }
+
+    private fun clearUndoHistory() {
+        if (undoStack.isEmpty() && redoStack.isEmpty()) return
+        undoStack.clear()
+        redoStack.clear()
+        updatePanelMode(animate = false)
+    }
+
+    private fun performUndo() {
+        val text = undoStack.lastOrNull() ?: return
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(text.length, 0)?.toString()
+        if (before != text || !ic.getSelectedText(0).isNullOrEmpty()) {
+            // The cursor moved or the text was edited elsewhere: history is stale.
+            clearUndoHistory()
+            return
+        }
+        ic.deleteSurroundingText(text.length, 0)
+        undoStack.removeLast()
+        redoStack.addLast(text)
+        updatePanelMode(animate = false)
+    }
+
+    private fun performRedo() {
+        val text = redoStack.lastOrNull() ?: return
+        val ic = currentInputConnection ?: return
+        ic.commitText(text, 1)
+        redoStack.removeLast()
+        undoStack.addLast(text)
+        updatePanelMode(animate = false)
+    }
+
+    private fun switchToTargetIme() {
+        val id = currentSettings.targetImeId
+        if (id.isEmpty()) return
+        var ok = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ok = runCatching { switchInputMethod(id) }.isSuccess
+        } else {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            val token = window?.window?.attributes?.token
+            if (imm != null && token != null) {
+                @Suppress("DEPRECATION")
+                imm.setInputMethod(token, id)
+                ok = true
+            }
+        }
+        if (!ok) showImePicker()
     }
 
     private fun performBackspaceOnce() {
+        clearUndoHistory()
         val ic = currentInputConnection ?: return
         val selected = ic.getSelectedText(0)
         if (!selected.isNullOrEmpty()) {
@@ -511,6 +682,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
     }
 
     private fun performSmartEnter() {
+        clearUndoHistory()
         val ic = currentInputConnection ?: return
         val info = currentInputEditorInfo
         val action = extractImeAction(info)
@@ -529,17 +701,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
         val noEnterAction = (info.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
         if (noEnterAction) return EditorInfo.IME_ACTION_NONE
         return info.imeOptions and EditorInfo.IME_MASK_ACTION
-    }
-
-    private fun switchToPreviousOrPicker() {
-        val switched = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            switchToPreviousInputMethod()
-        } else {
-            false
-        }
-        if (!switched) {
-            showImePicker()
-        }
     }
 
     private fun showImePicker() {
@@ -573,7 +734,11 @@ class FreeSpeakInputMethodService : InputMethodService() {
         private const val HOLD_DETECTION_MS = 240L
         private const val BACKSPACE_INITIAL_DELAY_MS = 380L
         private const val BACKSPACE_REPEAT_INTERVAL_MS = 55L
-        private val CJK_PUNCTUATION = listOf("，", "。", "？", "！", "、", "：")
-        private val LATIN_PUNCTUATION = listOf(",", ".", "?", "!", ";", ":")
+        private const val MAX_UNDO = 30
+        private const val MIC_PILL_DP = 68
+        private const val MIC_CIRCLE_DP = 164
+        private const val MIC_CENTER_DP = 104f
+        private val CJK_PUNCTUATION = listOf("，", "。", "：", "；", "！", "？", "@", "/")
+        private val LATIN_PUNCTUATION = listOf(",", ".", ":", ";", "!", "?", "@", "/")
     }
 }

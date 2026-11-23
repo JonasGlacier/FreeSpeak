@@ -23,13 +23,15 @@ class VoiceWaveformView @JvmOverloads constructor(
         TRANSCRIBING,
     }
 
-    private val barCount = 24
+    private val barCount = 17
     private val barValues = FloatArray(barCount) { 0.12f }
     private val rect = RectF()
 
-    private val idleColor = ContextCompat.getColor(context, R.color.ime_waveform_idle)
-    private val activeColor = ContextCompat.getColor(context, R.color.ime_waveform_active)
-    private val speechColor = ContextCompat.getColor(context, R.color.ime_waveform_speech)
+    // Drawn on the dark mic circle: white bars, brighter while speech is detected.
+    private val baseColor = ContextCompat.getColor(context, R.color.ime_mic_fg)
+    private val idleColor = (baseColor and 0x00FFFFFF) or (0x80 shl 24)
+    private val activeColor = (baseColor and 0x00FFFFFF) or (0xB3 shl 24)
+    private val speechColor = baseColor
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -55,16 +57,14 @@ class VoiceWaveformView @JvmOverloads constructor(
         if (mode != VisualMode.LISTENING) return
 
         // Shift from center outward for a balanced symmetric look
-        val half = barCount / 2
-        for (i in 0 until half - 1) {
+        val center = barCount / 2
+        for (i in 0 until center) {
             barValues[i] = barValues[i + 1] * 0.92f
         }
-        for (i in barCount - 1 downTo half + 1) {
+        for (i in barCount - 1 downTo center + 1) {
             barValues[i] = barValues[i - 1] * 0.92f
         }
-        val clamped = (0.14f + normalizedRms * 0.86f).coerceIn(0.12f, 1.0f)
-        barValues[half - 1] = clamped
-        barValues[half] = clamped
+        barValues[center] = (0.14f + normalizedRms * 0.86f).coerceIn(0.12f, 1.0f)
         postInvalidateOnAnimation()
     }
 
@@ -75,12 +75,12 @@ class VoiceWaveformView @JvmOverloads constructor(
         if (w <= 0f || h <= 0f) return
 
         val density = resources.displayMetrics.density
-        val barWidth = (3.5f * density)
+        val barWidth = (6f * density)
         val gap = (3.5f * density)
         val totalBarsWidth = barCount * barWidth + (barCount - 1) * gap
         val startX = (w - totalBarsWidth) * 0.5f
         val centerY = h * 0.5f
-        val maxHalfHeight = (h * 0.45f).coerceAtLeast(4f * density)
+        val maxHalfHeight = (h * 0.48f).coerceAtLeast(4f * density)
         val corner = barWidth * 0.5f
 
         paint.color = when (mode) {

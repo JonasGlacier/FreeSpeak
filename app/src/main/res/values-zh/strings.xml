@@ -182,4 +182,13 @@
     <string name="toast_catalog_synced">已同步 %1$d 款模型</string>
     <string name="toast_sync_failed">同步失败：%1$s</string>
     <string name="toast_ram_released">已释放模型内存</string>
+    <string name="pref_target_ime">键盘快捷切换</string>
+    <string name="pref_target_ime_none">无</string>
+    <string name="sub_target_ime_desc">选择语音面板上的键盘按钮要切换到的输入法。</string>
+    <string name="ime_cd_hide">收起键盘</string>
+    <string name="ime_cd_undo">撤销</string>
+    <string name="ime_cd_redo">重做</string>
+    <string name="ime_cd_cancel_recording">取消录音</string>
+    <string name="ime_cd_translate">翻译为英文</string>
+    <string name="ime_cd_target_ime">切换到常用键盘</string>
 </resources>

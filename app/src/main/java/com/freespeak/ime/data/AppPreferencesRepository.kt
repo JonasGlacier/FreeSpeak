@@ -91,6 +91,7 @@ data class UserSettings(
     val spokenLanguageHint: String = "auto",
     val translateToEnglish: Boolean = false,
     val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
+    val targetImeId: String = "",
 ) {
     /**
      * Ordered list of user's preferred languages following [SupportedLanguages.all] order.
@@ -186,6 +187,7 @@ class AppPreferencesRepository(private val context: Context) {
             translateToEnglish = prefs[KEY_TRANSLATE_ENGLISH] ?: false,
             chineseOutputMode = ChineseOutputMode.entries.find { it.name == prefs[KEY_CHINESE_OUTPUT] }
                 ?: ChineseOutputMode.SYSTEM,
+            targetImeId = prefs[KEY_TARGET_IME_ID] ?: "",
         )
     }
 
@@ -275,7 +277,12 @@ class AppPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[KEY_CHINESE_OUTPUT] = mode.name }
     }
 
+    suspend fun setTargetImeId(id: String) {
+        context.dataStore.edit { it[KEY_TARGET_IME_ID] = id }
+    }
+
     companion object {
+        private val KEY_TARGET_IME_ID = stringPreferencesKey("target_ime_id")
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val KEY_SPOKEN_LANGUAGE_HINT = stringPreferencesKey("spoken_language_hint")
         private val KEY_TRANSLATE_ENGLISH = booleanPreferencesKey("translate_english")

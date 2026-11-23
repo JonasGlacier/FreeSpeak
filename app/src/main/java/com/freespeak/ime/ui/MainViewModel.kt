@@ -240,6 +240,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { prefs.setCustomMirrorUrl(url) }
     }
 
+    fun setTargetImeId(id: String) {
+        viewModelScope.launch { prefs.setTargetImeId(id) }
+    }
+
     fun setInteractionMode(mode: RecordInteractionMode) {
         viewModelScope.launch { prefs.setInteractionMode(mode) }
     }

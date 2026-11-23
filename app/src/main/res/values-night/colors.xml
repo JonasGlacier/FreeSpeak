@@ -15,4 +15,7 @@
     <color name="ime_waveform_speech">#2CE5A7</color>
     <color name="ime_divider">#282E3F</color>
     <color name="ic_launcher_bg">#1B3AE8</color>
+    <color name="ime_round_key_bg">#2A3042</color>
+    <color name="ime_mic_bg">#05070B</color>
+    <color name="ime_mic_fg">#FFFFFF</color>
 </resources>

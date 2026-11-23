@@ -98,6 +98,7 @@ enum class SettingsSubPage {
     PREFERRED_LANGUAGES,
     CHINESE_OUTPUT,
     RECORDING_MODE,
+    TARGET_IME,
     VAD_FILTER,
     DOWNLOAD_MIRROR,
     PERFORMANCE,
@@ -253,6 +254,12 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                     onSelectMode = viewModel::setInteractionMode,
                 )
 
+                SettingsSubPage.TARGET_IME -> TargetImeSubScreen(
+                    settings = settings,
+                    onBack = { currentSubPage = SettingsSubPage.HOME },
+                    onSelect = viewModel::setTargetImeId,
+                )
+
                 SettingsSubPage.VAD_FILTER -> VadFilterSubScreen(
                     settings = settings,
                     onBack = { currentSubPage = SettingsSubPage.HOME },
@@ -393,6 +400,19 @@ private fun SettingsHomeListScreen(
                 title = stringResource(R.string.pref_recording_mode),
                 value = stringResource(settings.interactionMode.shortTitleRes),
                 onClick = { onNavigate(SettingsSubPage.RECORDING_MODE) },
+            )
+            SettingsDivider()
+
+            val ctx = LocalContext.current
+            val targetImeLabel = remember(settings.targetImeId) {
+                val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.enabledInputMethodList.firstOrNull { it.id == settings.targetImeId }
+                    ?.loadLabel(ctx.packageManager)?.toString()
+            }
+            SettingsRowItem(
+                title = stringResource(R.string.pref_target_ime),
+                value = targetImeLabel ?: stringResource(R.string.pref_target_ime_none),
+                onClick = { onNavigate(SettingsSubPage.TARGET_IME) },
             )
             SettingsDivider()
 
@@ -579,6 +599,69 @@ private fun VoiceModelSubScreen(
                     onDelete = { onDelete(item.manifest) },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TargetImeSubScreen(
+    settings: UserSettings,
+    onBack: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    val ctx = LocalContext.current
+    val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+    val methods = remember {
+        imm.enabledInputMethodList.filter { it.packageName != ctx.packageName }
+    }
+    SubPageScaffold(
+        title = stringResource(R.string.pref_target_ime),
+        onBack = onBack
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.sub_target_ime_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect("") }
+                    .padding(vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(selected = settings.targetImeId.isEmpty(), onClick = null)
+                Spacer(Modifier.width(14.dp))
+                Text(stringResource(R.string.pref_target_ime_none), style = MaterialTheme.typography.bodyLarge)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+
+            methods.forEach { info ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(info.id) }
+                        .padding(vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = settings.targetImeId == info.id, onClick = null)
+                    Spacer(Modifier.width(14.dp))
+                    Text(
+                        text = info.loadLabel(ctx.packageManager).toString(),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             }
         }
     }
