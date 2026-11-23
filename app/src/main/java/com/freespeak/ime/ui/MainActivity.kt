@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.view.inputmethod.InputMethodInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -427,11 +428,9 @@ private fun SettingsHomeListScreen(
             SettingsDivider()
 
             val ctx = LocalContext.current
-            val targetImeLabel = remember(settings.targetImeId) {
-                val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.enabledInputMethodList.firstOrNull { it.id == settings.targetImeId }
-                    ?.loadLabel(ctx.packageManager)?.toString()
-            }
+            val enabledMethods = rememberEnabledInputMethods()
+            val targetImeLabel = enabledMethods.firstOrNull { it.id == settings.targetImeId }
+                ?.loadLabel(ctx.packageManager)?.toString()
             SettingsRowItem(
                 title = stringResource(R.string.pref_target_ime),
                 value = targetImeLabel ?: stringResource(R.string.pref_target_ime_none),
@@ -628,16 +627,34 @@ private fun VoiceModelSubScreen(
 }
 
 @Composable
+private fun rememberEnabledInputMethods(): List<InputMethodInfo> {
+    val ctx = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val imm = remember(ctx) {
+        ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+    }
+    var methods by remember(imm) { mutableStateOf(imm.enabledInputMethodList) }
+
+    DisposableEffect(lifecycleOwner, imm) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                methods = imm.enabledInputMethodList
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    return methods
+}
+
+@Composable
 private fun TargetImeSubScreen(
     settings: UserSettings,
     onBack: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
     val ctx = LocalContext.current
-    val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-    val methods = remember {
-        imm.enabledInputMethodList.filter { it.packageName != ctx.packageName }
-    }
+    val methods = rememberEnabledInputMethods().filter { it.packageName != ctx.packageName }
     SubPageScaffold(
         title = stringResource(R.string.pref_target_ime),
         onBack = onBack

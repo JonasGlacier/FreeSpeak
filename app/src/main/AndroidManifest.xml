@@ -7,6 +7,13 @@
     <!-- Network used ONLY in Model Hub when downloading open-weights models -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Make third-party keyboards visible when querying enabled input methods. -->
+    <queries>
+        <intent>
+            <action android:name="android.view.InputMethod" />
+        </intent>
+    </queries>
+
     <application
         android:name=".FreeSpeakApplication"
         android:allowBackup="true"
