@@ -42,6 +42,19 @@ class VoiceWaveformView @JvmOverloads constructor(
     private var mode: VisualMode = VisualMode.IDLE
     private var speechActive: Boolean = false
     private var phase: Float = 0f
+    private var targetAmplitude = 0.14f
+    private var listeningFrameScheduled = false
+    private val listeningFrame = object : Runnable {
+        override fun run() {
+            listeningFrameScheduled = false
+            if (mode != VisualMode.LISTENING || !isShown || !isAttachedToWindow) return
+
+            if (advanceListeningFrame()) {
+                postInvalidateOnAnimation()
+                scheduleListeningFrame()
+            }
+        }
+    }
 
     fun setForegroundColor(fgColor: Int) {
         if (baseColor == fgColor) return
@@ -54,28 +67,73 @@ class VoiceWaveformView @JvmOverloads constructor(
 
     fun setVisualMode(newMode: VisualMode) {
         if (mode == newMode) return
+        stopListeningFrames()
         mode = newMode
+        targetAmplitude = 0.14f
         if (newMode == VisualMode.IDLE) {
             barValues.fill(0.12f)
             speechActive = false
         }
+        scheduleListeningFrame()
         postInvalidateOnAnimation()
     }
 
     fun pushAudioFrame(normalizedRms: Float, isSpeech: Boolean) {
+        val speechChanged = speechActive != isSpeech
         speechActive = isSpeech
         if (mode != VisualMode.LISTENING) return
 
-        // Shift from center outward for a balanced symmetric look
+        targetAmplitude = (0.14f + normalizedRms * 0.86f).coerceIn(0.12f, 1.0f)
+        if (speechChanged) postInvalidateOnAnimation()
+        scheduleListeningFrame()
+    }
+
+    private fun scheduleListeningFrame() {
+        if (mode != VisualMode.LISTENING || listeningFrameScheduled ||
+            !isAttachedToWindow || !isShown
+        ) return
+        listeningFrameScheduled = true
+        postDelayed(listeningFrame, 32L)
+    }
+
+    private fun stopListeningFrames() {
+        removeCallbacks(listeningFrame)
+        listeningFrameScheduled = false
+    }
+
+    private fun advanceListeningFrame(): Boolean {
+        // Advance independently of StateFlow emissions: repeated silence levels are conflated.
+        // Shift from center outward until the waveform settles, then let the timer sleep.
+        var changed = false
+        fun updateBar(index: Int, value: Float) {
+            if (barValues[index] != value) changed = true
+            barValues[index] = value
+        }
         val center = barCount / 2
         for (i in 0 until center) {
-            barValues[i] = barValues[i + 1] * 0.92f
+            updateBar(i, (barValues[i + 1] * 0.92f).coerceAtLeast(0.12f))
         }
         for (i in barCount - 1 downTo center + 1) {
-            barValues[i] = barValues[i - 1] * 0.92f
+            updateBar(i, (barValues[i - 1] * 0.92f).coerceAtLeast(0.12f))
         }
-        barValues[center] = (0.14f + normalizedRms * 0.86f).coerceIn(0.12f, 1.0f)
-        postInvalidateOnAnimation()
+        val delta = targetAmplitude - barValues[center]
+        updateBar(center, if (abs(delta) < 0.001f) targetAmplitude else barValues[center] + delta * 0.45f)
+        return changed
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        scheduleListeningFrame()
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (isVisible) scheduleListeningFrame() else stopListeningFrames()
+    }
+
+    override fun onDetachedFromWindow() {
+        stopListeningFrames()
+        super.onDetachedFromWindow()
     }
 
     override fun onDraw(canvas: Canvas) {

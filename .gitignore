@@ -39,3 +39,4 @@ captures/
 *.gguf
 *.onnx
 *.ort
+*.log

@@ -13,7 +13,7 @@
 Most voice keyboards on Android today force an unpleasant compromise:
 - **Cloud-based keyboards** offer good accuracy and punctuation, but require an internet connection, upload your voice to remote servers, and charge expensive subscriptions.
 - **Built-in offline keyboards** rely on dated models with poor punctuation and weak code-switching (e.g., speaking English technical terms inside a Chinese sentence).
-- **Proprietary domestic keyboards** often impose content filtering/censorship and collect telemetry.
+- **Made-in-China keyboards** impose content filtering, censorship and collect telemetry.
 - **Other free voice keyboards** rarely update their bundled models and lock users into a single fixed engine.
 
 FreeSpeak IME solves this by combining **modern compact ASR models** (`Fun-ASR-Nano`, `Qwen3-ASR-0.6B`, `Whisper`, `SenseVoice`) with an **open model manifest system**—allowing users to import or subscribe to newer models anytime without waiting for an app update.
@@ -108,14 +108,14 @@ OpenCC dictionary copyright, source version, license and adapter details are inc
 
 ## 简体中文
 
-**FreeSpeak IME** 是一款轻量级 Android 原生离线语音输入法。**免费、开源、100% 本地运算、无审查、保护隐私**，专为新一代轻量级多语言语音识别模型打造。
+**FreeSpeak IME** 是一款轻量级 Android 原生离线语音输入法。**免费、开源、100% 本地运算、无审查、保护隐私**，专为新一代轻量级多语言语音识别模型打造。对简体和繁体中文有良好的支持。
 
 ### 为什么要做这款语音输入法？
 
 目前主流的 Android 语音输入法普遍存在明显痛点：
-- **云端AI语音输入法**（如 Typeless 等）：体验好但必须联网，语音上传云端，且订阅费用昂贵。
-- **系统自带离线语音输入**：底层模型陈旧，缺乏标点符号，中英文夹杂（Code-Switching）几乎无法正常识别。
-- **国产商业输入法**：普遍存在内容审查、敏感词过滤以及后台遥测收集。
+- **云端AI语音输入法**（如 Typeless 等）：体验好，但语音上传云端，且订阅费用很昂贵。
+- **系统自带语音输入**：（如 Google Voice Input）底层模型陈旧，缺乏标点符号，中英文夹杂（Code-Switching）几乎无法正常识别。
+- **中国产商业输入法**：（如微信输入法）存在内容审查、敏感词过滤以及后台遥测收集，有資安隐患。
 - **其他免费开源输入法**：多语言能力弱，长期不更新，用户无法自行更换最新的识别模型。
 
 FreeSpeak IME 通过原生多引擎架构集成 **`Fun-ASR-Nano`、`Qwen3-ASR-0.6B`、`Whisper Small`、`SenseVoice`** 等最新量化小模型，并提供开放的模型接入规范——即使开发者不更新应用，用户发现更好的新模型也能随时自行导入使用。
@@ -133,7 +133,7 @@ FreeSpeak IME 通过原生多引擎架构集成 **`Fun-ASR-Nano`、`Qwen3-ASR-0.
 - **极致轻量**：
   - 纯语音输入面板采用原生轻量视图与自定义声波绘制，冷启动极快；支持短按录音与按住说话（上滑取消）。
   - 键盘收起闲置超时后自动卸载模型释放内存，不拖慢手机日常运行。
-  - 界面语言自动跟随 Android 系统设置（支持英文、简体/繁体中文、日文、韩文）。
+  - 界面语言自动跟随 Android 系统设置（支持英文、简体中文、繁体中文、日文、韩文）。
 
 ### 自动翻译与中文变体
 
