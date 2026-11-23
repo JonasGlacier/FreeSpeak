@@ -7,6 +7,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import com.freespeak.ime.R
 import kotlin.math.abs
 import kotlin.math.sin
@@ -27,11 +28,11 @@ class VoiceWaveformView @JvmOverloads constructor(
     private val barValues = FloatArray(barCount) { 0.12f }
     private val rect = RectF()
 
-    // Drawn on the dark mic circle: white bars, brighter while speech is detected.
-    private val baseColor = ContextCompat.getColor(context, R.color.ime_mic_fg)
-    private val idleColor = (baseColor and 0x00FFFFFF) or (0x80 shl 24)
-    private val activeColor = (baseColor and 0x00FFFFFF) or (0xB3 shl 24)
-    private val speechColor = baseColor
+    // Drawn on the mic circle: uses mic foreground color, brighter while speech is detected.
+    private var baseColor = ContextCompat.getColor(context, R.color.ime_mic_fg)
+    private var idleColor = ColorUtils.setAlphaComponent(baseColor, 0x80)
+    private var activeColor = ColorUtils.setAlphaComponent(baseColor, 0xB3)
+    private var speechColor = baseColor
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -41,6 +42,15 @@ class VoiceWaveformView @JvmOverloads constructor(
     private var mode: VisualMode = VisualMode.IDLE
     private var speechActive: Boolean = false
     private var phase: Float = 0f
+
+    fun setForegroundColor(fgColor: Int) {
+        if (baseColor == fgColor) return
+        baseColor = fgColor
+        idleColor = ColorUtils.setAlphaComponent(fgColor, 0x80)
+        activeColor = ColorUtils.setAlphaComponent(fgColor, 0xB3)
+        speechColor = fgColor
+        postInvalidateOnAnimation()
+    }
 
     fun setVisualMode(newMode: VisualMode) {
         if (mode == newMode) return

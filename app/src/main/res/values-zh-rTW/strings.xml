@@ -165,4 +165,10 @@
     <string name="toast_catalog_synced">已同步 %1$d 款模型</string>
     <string name="toast_sync_failed">同步失敗：%1$s</string>
     <string name="toast_ram_released">已釋放模型記憶體</string>
+    <string name="pref_color_scheme">面板配色</string>
+    <string name="sub_color_scheme_desc">為語音輸入面板選擇 Android 動態色彩或經典黑白配色。</string>
+    <string name="color_scheme_dynamic">Android 動態色彩</string>
+    <string name="color_scheme_dynamic_desc">跟隨系統桌布與 Material You 動態調色盤自動套用。</string>
+    <string name="color_scheme_classic">經典黑白</string>
+    <string name="color_scheme_classic_desc">簡潔純粹的高對比度黑白灰配色。</string>
 </resources>

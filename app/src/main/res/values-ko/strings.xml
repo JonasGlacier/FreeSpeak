@@ -93,4 +93,10 @@
     <string name="status_no_speech">음성이 감지되지 않음</string>
     <string name="status_need_permission">마이크 권한 필요</string>
     <string name="status_need_model">먼저 모델을 다운로드하세요</string>
+    <string name="pref_color_scheme">색상 테마</string>
+    <string name="sub_color_scheme_desc">음성 입력 패널에 사용할 Android 다이내믹 컬러 또는 클래식 흑백 테마를 선택하세요.</string>
+    <string name="color_scheme_dynamic">Android 다이내믹 컬러</string>
+    <string name="color_scheme_dynamic_desc">시스템 Material You 배경화면 색상에 맞춰 자동 적용됩니다.</string>
+    <string name="color_scheme_classic">클래식 흑백</string>
+    <string name="color_scheme_classic_desc">깔끔하고 대비가 뚜렷한 모노크롬 색상.</string>
 </resources>

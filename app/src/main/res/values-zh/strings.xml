@@ -191,4 +191,10 @@
     <string name="ime_cd_cancel_recording">取消录音</string>
     <string name="ime_cd_translate">翻译为英文</string>
     <string name="ime_cd_target_ime">切换到常用键盘</string>
+    <string name="pref_color_scheme">面板配色</string>
+    <string name="sub_color_scheme_desc">为语音输入面板选择 Android 动态取色或经典黑白配色。</string>
+    <string name="color_scheme_dynamic">Android 动态取色</string>
+    <string name="color_scheme_dynamic_desc">跟随系统壁纸与 Material You 动态色彩自动适配。</string>
+    <string name="color_scheme_classic">经典黑白</string>
+    <string name="color_scheme_classic_desc">简洁纯粹的高对比度黑白灰配色。</string>
 </resources>

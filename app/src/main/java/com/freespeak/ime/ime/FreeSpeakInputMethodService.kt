@@ -5,6 +5,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.content.res.Configuration
+import android.graphics.Color
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.os.Handler
@@ -21,9 +24,11 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.ImageViewCompat
 import com.freespeak.ime.FreeSpeakApplication
 import com.freespeak.ime.R
 import com.freespeak.ime.audio.AudioRecorder
@@ -53,16 +58,20 @@ class FreeSpeakInputMethodService : InputMethodService() {
     private var currentSettings = UserSettings()
 
     // Views
+    private var imeRoot: View? = null
     private var punctRow: View? = null
     private var bottomRow: View? = null
-    private var btnUndo: View? = null
-    private var btnRedo: View? = null
-    private var btnSettings: View? = null
+    private var btnUndo: ImageButton? = null
+    private var btnRedo: ImageButton? = null
+    private var btnSettings: ImageButton? = null
     private var btnLang: TextView? = null
-    private var btnTargetIme: View? = null
-    private var btnCancelRecording: View? = null
+    private var btnTargetIme: ImageButton? = null
+    private var btnCancelRecording: ImageButton? = null
+    private var btnSpace: TextView? = null
+    private var btnBackspace: ImageButton? = null
     private var micAnimator: ValueAnimator? = null
     private var translateAvailable = false
+    private var activePalette: ImePanelPalette? = null
 
     // Undo / redo of text that was inserted by speech recognition
     private val undoStack = ArrayDeque<String>()
@@ -107,6 +116,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
         serviceScope.launch {
             app.preferencesRepository.settingsFlow.collect { settings ->
                 currentSettings = settings
+                applyPanelTheme()
                 updateToolbarAndPunctuation()
                 if (!isTapSessionRecording && !isHoldSessionRecording && !isTranscribingNow) {
                     tvStatus?.text = defaultIdleHint(settings.interactionMode)
@@ -139,6 +149,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreateInputView(): View {
         val view = layoutInflater.inflate(R.layout.ime_voice_panel, null)
+        imeRoot = view.findViewById(R.id.imeRootContainer)
         punctRow = view.findViewById(R.id.punctRow)
         bottomRow = view.findViewById(R.id.bottomRow)
         btnUndo = view.findViewById(R.id.btnUndo)
@@ -147,6 +158,8 @@ class FreeSpeakInputMethodService : InputMethodService() {
         btnLang = view.findViewById(R.id.btnLang)
         btnTargetIme = view.findViewById(R.id.btnTargetIme)
         btnCancelRecording = view.findViewById(R.id.btnCancelRecording)
+        btnSpace = view.findViewById(R.id.btnSpace)
+        btnBackspace = view.findViewById(R.id.btnBackspace)
         tvStatus = view.findViewById(R.id.tvImeStatus)
         waveformView = view.findViewById(R.id.waveformView)
         btnMic = view.findViewById(R.id.btnMic)
@@ -241,24 +254,99 @@ class FreeSpeakInputMethodService : InputMethodService() {
             handleMicTouchEvent(v, event)
         }
 
+        applyPanelTheme()
         updateToolbarAndPunctuation()
         updateEnterKeyLabel(currentInputEditorInfo)
         updatePanelMode(animate = false)
         return view
     }
 
-    /** Dark system nav icons (hide / IME switcher) on the light panel; light icons in dark theme. */
-    private fun applyNavBarIconTint() {
+    private fun currentPalette(): ImePanelPalette {
+        return activePalette ?: ImePanelTheme.resolvePalette(this, currentSettings.imeColorScheme)
+            .also { activePalette = it }
+    }
+
+    private fun applyPanelTheme() {
+        val palette = ImePanelTheme.resolvePalette(this, currentSettings.imeColorScheme)
+        activePalette = palette
+        val density = resources.displayMetrics.density
+
+        imeRoot?.setBackgroundColor(palette.panelBg)
+        tvStatus?.setTextColor(palette.statusText)
+
+        punctButtons.forEach { tv ->
+            tv.background = ImePanelTheme.pillKeyDrawable(palette.keyBg, palette.keyRipple, density)
+            tv.setTextColor(palette.keyFg)
+        }
+        btnSpace?.apply {
+            background = ImePanelTheme.pillKeyDrawable(palette.keyBg, palette.keyRipple, density)
+            setTextColor(palette.keyFg)
+        }
+        btnEnter?.apply {
+            background = ImePanelTheme.pillKeyDrawable(palette.keyBg, palette.keyRipple, density)
+            setTextColor(palette.keyFg)
+        }
+        btnBackspace?.apply {
+            background = ImePanelTheme.pillKeyDrawable(palette.keyBg, palette.keyRipple, density)
+            ImageViewCompat.setImageTintList(this, ColorStateList.valueOf(palette.keyFg))
+        }
+
+        val roundFgTint = ColorStateList.valueOf(palette.roundKeyFg)
+        listOfNotNull(btnUndo, btnRedo, btnSettings, btnTargetIme, btnCancelRecording).forEach { btn ->
+            btn.background = ImePanelTheme.ovalKeyDrawable(palette.roundKeyBg, palette.keyRipple)
+            ImageViewCompat.setImageTintList(btn, roundFgTint)
+        }
+
+        applyLangButtonStyle(palette)
+        applyMicStyle(palette)
+        applyNavBarIconTint(palette)
+    }
+
+    private fun applyLangButtonStyle(palette: ImePanelPalette = currentPalette()) {
+        val translating = translateAvailable && currentSettings.translateToEnglish
+        btnLang?.apply {
+            background = if (translating) {
+                ImePanelTheme.ovalKeyDrawable(palette.micBg, palette.micRipple)
+            } else {
+                ImePanelTheme.ovalKeyDrawable(palette.roundKeyBg, palette.keyRipple)
+            }
+            setTextColor(if (translating) palette.micFg else palette.roundKeyFg)
+        }
+    }
+
+    private fun applyMicStyle(palette: ImePanelPalette = currentPalette()) {
+        val density = resources.displayMetrics.density
+        val bg = if (isSlideCancelArmed) palette.micCancelBg else palette.micBg
+        val fg = if (isSlideCancelArmed) palette.micCancelFg else palette.micFg
+        btnMic?.apply {
+            background = ImePanelTheme.micDrawable(bg, palette.micRipple, density)
+            ImageViewCompat.setImageTintList(this, ColorStateList.valueOf(fg))
+        }
+        waveformView?.setForegroundColor(fg)
+    }
+
+    /** Match system nav icons (hide / IME switcher) to actual panel luminance and remove nav scrim. */
+    private fun applyNavBarIconTint(palette: ImePanelPalette = currentPalette()) {
         val w = window?.window ?: return
-        val night = (resources.configuration.uiMode and
-            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
-        WindowCompat.getInsetsController(w, w.decorView).isAppearanceLightNavigationBars = !night
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            @Suppress("DEPRECATION")
+            w.navigationBarColor = Color.TRANSPARENT
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            w.isNavigationBarContrastEnforced = false
+        }
+        val isLightPanel = ColorUtils.calculateLuminance(palette.panelBg) > 0.5
+        WindowCompat.getInsetsController(w, w.decorView).isAppearanceLightNavigationBars = isLightPanel
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyPanelTheme()
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        applyNavBarIconTint()
+        applyPanelTheme()
         updateEnterKeyLabel(info)
         updateToolbarAndPunctuation()
         app.engineManager.onImeShown(
@@ -329,12 +417,11 @@ class FreeSpeakInputMethodService : InputMethodService() {
                         isSlideCancelArmed = shouldCancel
                         view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                         if (shouldCancel) {
-                            btnMic?.setBackgroundResource(R.drawable.bg_mic_cancel)
                             tvStatus?.setText(R.string.status_slide_cancel)
                         } else {
-                            btnMic?.setBackgroundResource(R.drawable.bg_mic_recording)
                             tvStatus?.setText(R.string.status_recording_hold)
                         }
+                        applyMicStyle()
                     }
                 }
                 return true
@@ -408,7 +495,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
             return
         }
 
-        btnMic?.setBackgroundResource(R.drawable.bg_mic_recording)
+        applyMicStyle()
         waveformView?.setVisualMode(VoiceWaveformView.VisualMode.LISTENING)
         updatePanelMode()
         tvStatus?.setText(
@@ -426,7 +513,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
     private fun finishCaptureAndTranscribe() {
         serviceScope.launch {
             isTranscribingNow = true
-            btnMic?.setBackgroundResource(R.drawable.bg_mic_recording)
+            applyMicStyle()
             waveformView?.setVisualMode(VoiceWaveformView.VisualMode.TRANSCRIBING)
             tvStatus?.setText(R.string.status_transcribing)
             updatePanelMode()
@@ -436,7 +523,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
                 isTranscribingNow = false
                 waveformView?.setVisualMode(VoiceWaveformView.VisualMode.IDLE)
                 tvStatus?.setText(R.string.status_no_speech)
-                btnMic?.setBackgroundResource(R.drawable.bg_mic_idle)
+                applyMicStyle()
                 updatePanelMode()
                 return@launch
             }
@@ -457,7 +544,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
 
             isTranscribingNow = false
             waveformView?.setVisualMode(VoiceWaveformView.VisualMode.IDLE)
-            btnMic?.setBackgroundResource(R.drawable.bg_mic_idle)
+            applyMicStyle()
             updatePanelMode()
 
             transcribeResult.fold(
@@ -495,7 +582,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
         isHoldSessionRecording = false
         isSlideCancelArmed = false
         isTranscribingNow = false
-        btnMic?.setBackgroundResource(R.drawable.bg_mic_idle)
+        applyMicStyle()
         waveformView?.setVisualMode(VoiceWaveformView.VisualMode.IDLE)
         tvStatus?.text = defaultIdleHint(currentSettings.interactionMode)
         updatePanelMode()
@@ -534,15 +621,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
             if (idx < symbols.size) tv.text = symbols[idx]
         }
 
-        btnLang?.apply {
-            setBackgroundResource(if (translating) R.drawable.bg_ime_round_active else R.drawable.bg_ime_round)
-            setTextColor(
-                ContextCompat.getColor(
-                    context,
-                    if (translating) R.color.ime_mic_fg else R.color.ime_text_primary
-                )
-            )
-        }
+        applyLangButtonStyle()
         updatePanelMode(animate = false)
     }
 

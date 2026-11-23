@@ -12,6 +12,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.freespeak.ime.FreeSpeakApplication
 import com.freespeak.ime.R
+import com.freespeak.ime.data.ImeColorScheme
 import com.freespeak.ime.data.MirrorSource
 import com.freespeak.ime.data.RecordInteractionMode
 import com.freespeak.ime.data.UserSettings
@@ -242,6 +243,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setTargetImeId(id: String) {
         viewModelScope.launch { prefs.setTargetImeId(id) }
+    }
+
+    fun setImeColorScheme(scheme: ImeColorScheme) {
+        viewModelScope.launch { prefs.setImeColorScheme(scheme) }
     }
 
     fun setInteractionMode(mode: RecordInteractionMode) {

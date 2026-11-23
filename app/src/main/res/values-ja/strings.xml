@@ -93,4 +93,10 @@
     <string name="status_no_speech">音声が検出されませんでした</string>
     <string name="status_need_permission">マイク権限が必要です</string>
     <string name="status_need_model">モデルをダウンロードしてください</string>
+    <string name="pref_color_scheme">配色テーマ</string>
+    <string name="sub_color_scheme_desc">音声入力パネルの配色を Android ダイナミックカラーとクラシック白黒から選択します。</string>
+    <string name="color_scheme_dynamic">Android ダイナミックカラー</string>
+    <string name="color_scheme_dynamic_desc">システムの Material You カラースキームに合わせて自動調整します。</string>
+    <string name="color_scheme_classic">クラシック（白黒）</string>
+    <string name="color_scheme_classic_desc">視認性の高いモノクローム配色。</string>
 </resources>

@@ -191,4 +191,10 @@
     <string name="ime_cd_cancel_recording">Cancel recording</string>
     <string name="ime_cd_translate">Translate to English</string>
     <string name="ime_cd_target_ime">Switch to preferred keyboard</string>
+    <string name="pref_color_scheme">Color Scheme</string>
+    <string name="sub_color_scheme_desc">Choose between Android dynamic wallpaper colors and classic black-and-white for the voice panel.</string>
+    <string name="color_scheme_dynamic">Android Dynamic Color</string>
+    <string name="color_scheme_dynamic_desc">Adapts the keyboard panel to your system Material You palette.</string>
+    <string name="color_scheme_classic">Classic Black &amp; White</string>
+    <string name="color_scheme_classic_desc">Clean, high-contrast monochrome palette.</string>
 </resources>

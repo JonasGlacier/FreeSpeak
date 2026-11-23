@@ -28,6 +28,14 @@ enum class RecordInteractionMode(
     HOLD_ONLY(R.string.mode_hold_short, R.string.mode_hold_desc),
 }
 
+enum class ImeColorScheme(
+    @get:StringRes val titleRes: Int,
+    @get:StringRes val descriptionRes: Int,
+) {
+    DYNAMIC(R.string.color_scheme_dynamic, R.string.color_scheme_dynamic_desc),
+    CLASSIC(R.string.color_scheme_classic, R.string.color_scheme_classic_desc),
+}
+
 enum class MirrorSource(
     @get:StringRes val titleRes: Int,
     val hfBaseUrl: String,
@@ -92,6 +100,7 @@ data class UserSettings(
     val translateToEnglish: Boolean = false,
     val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
     val targetImeId: String = "",
+    val imeColorScheme: ImeColorScheme = ImeColorScheme.DYNAMIC,
 ) {
     /**
      * Ordered list of user's preferred languages following [SupportedLanguages.all] order.
@@ -188,6 +197,8 @@ class AppPreferencesRepository(private val context: Context) {
             chineseOutputMode = ChineseOutputMode.entries.find { it.name == prefs[KEY_CHINESE_OUTPUT] }
                 ?: ChineseOutputMode.SYSTEM,
             targetImeId = prefs[KEY_TARGET_IME_ID] ?: "",
+            imeColorScheme = ImeColorScheme.entries.find { it.name == prefs[KEY_IME_COLOR_SCHEME] }
+                ?: ImeColorScheme.DYNAMIC,
         )
     }
 
@@ -281,8 +292,13 @@ class AppPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[KEY_TARGET_IME_ID] = id }
     }
 
+    suspend fun setImeColorScheme(scheme: ImeColorScheme) {
+        context.dataStore.edit { it[KEY_IME_COLOR_SCHEME] = scheme.name }
+    }
+
     companion object {
         private val KEY_TARGET_IME_ID = stringPreferencesKey("target_ime_id")
+        private val KEY_IME_COLOR_SCHEME = stringPreferencesKey("ime_color_scheme")
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val KEY_SPOKEN_LANGUAGE_HINT = stringPreferencesKey("spoken_language_hint")
         private val KEY_TRANSLATE_ENGLISH = booleanPreferencesKey("translate_english")

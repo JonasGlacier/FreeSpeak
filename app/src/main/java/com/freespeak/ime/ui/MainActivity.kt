@@ -18,7 +18,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,10 +32,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -67,6 +73,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -78,11 +85,13 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freespeak.ime.R
+import com.freespeak.ime.data.ImeColorScheme
 import com.freespeak.ime.data.MirrorSource
 import com.freespeak.ime.data.RecordInteractionMode
 import com.freespeak.ime.data.SupportedLanguages
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.EngineRuntimeStatus
+import com.freespeak.ime.ime.ImePanelTheme
 import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ManagedModelItem
 import com.freespeak.ime.model.ModelInstallState
@@ -98,6 +107,7 @@ enum class SettingsSubPage {
     PREFERRED_LANGUAGES,
     CHINESE_OUTPUT,
     RECORDING_MODE,
+    COLOR_SCHEME,
     TARGET_IME,
     VAD_FILTER,
     DOWNLOAD_MIRROR,
@@ -254,6 +264,12 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                     onSelectMode = viewModel::setInteractionMode,
                 )
 
+                SettingsSubPage.COLOR_SCHEME -> ColorSchemeSubScreen(
+                    settings = settings,
+                    onBack = { currentSubPage = SettingsSubPage.HOME },
+                    onSelectScheme = viewModel::setImeColorScheme,
+                )
+
                 SettingsSubPage.TARGET_IME -> TargetImeSubScreen(
                     settings = settings,
                     onBack = { currentSubPage = SettingsSubPage.HOME },
@@ -400,6 +416,13 @@ private fun SettingsHomeListScreen(
                 title = stringResource(R.string.pref_recording_mode),
                 value = stringResource(settings.interactionMode.shortTitleRes),
                 onClick = { onNavigate(SettingsSubPage.RECORDING_MODE) },
+            )
+            SettingsDivider()
+
+            SettingsRowItem(
+                title = stringResource(R.string.pref_color_scheme),
+                value = stringResource(settings.imeColorScheme.titleRes),
+                onClick = { onNavigate(SettingsSubPage.COLOR_SCHEME) },
             )
             SettingsDivider()
 
@@ -660,6 +683,99 @@ private fun TargetImeSubScreen(
                         text = info.loadLabel(ctx.packageManager).toString(),
                         style = MaterialTheme.typography.bodyLarge
                     )
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColorSchemeSubScreen(
+    settings: UserSettings,
+    onBack: () -> Unit,
+    onSelectScheme: (ImeColorScheme) -> Unit,
+) {
+    val ctx = LocalContext.current
+    val isDark = isSystemInDarkTheme()
+
+    SubPageScaffold(
+        title = stringResource(R.string.pref_color_scheme),
+        onBack = onBack
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.sub_color_scheme_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+
+            ImeColorScheme.entries.forEach { scheme ->
+                val palette = remember(scheme, isDark) {
+                    ImePanelTheme.resolvePalette(ctx, scheme, isDark)
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelectScheme(scheme) }
+                        .padding(vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = settings.imeColorScheme == scheme,
+                        onClick = null
+                    )
+                    Spacer(Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(scheme.titleRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(scheme.descriptionRes),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .background(Color(palette.panelBg), RoundedCornerShape(16.dp))
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .background(Color(palette.keyBg), CircleShape)
+                                .border(0.5.dp, Color(palette.keyFg).copy(alpha = 0.2f), CircleShape)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .background(Color(palette.roundKeyBg), CircleShape)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .background(Color(palette.micBg), CircleShape)
+                        )
+                    }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             }
