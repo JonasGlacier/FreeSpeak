@@ -105,6 +105,7 @@
     <string name="model_desc_funasr_nano">Compact multilingual &amp; dialect model by FunAudioLLM. Fast single-pass inference with built-in punctuation and code-switching.</string>
     <string name="model_desc_qwen3_asr">Flagship 0.6B multimodal speech model. Superior accuracy on mixed languages, technical terms, and natural punctuation.</string>
     <string name="model_desc_whisper_small">Balanced 99-language Whisper model running on whisper.cpp ARMv8 FP16.</string>
+    <string name="model_desc_whisper_medium">Larger multilingual Whisper model for accuracy testing. Slower and more memory-intensive than Whisper Small.</string>
     <string name="model_desc_sensevoice">Fast multilingual recognition (Chinese, Cantonese, English, Japanese, Korean) with punctuation &amp; ITN.</string>
     <string name="model_desc_whisper_tiny">Ultra-light 32 MB model for low-memory devices or quick testing.</string>
 

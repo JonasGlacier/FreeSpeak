@@ -94,6 +94,7 @@
     <string name="model_desc_funasr_nano">FunAudioLLM 輕量多語言與方言模型，支援中英混說與自動標點，推論極快。</string>
     <string name="model_desc_qwen3_asr">Qwen3 0.6B 多模態語音小模型，中英夾雜、專業術語及標點表現極佳。</string>
     <string name="model_desc_whisper_small">均衡型 99 語種 Whisper 量化模型（whisper.cpp 原生推論）。</string>
+    <string name="model_desc_whisper_medium">更大的多語言 Whisper 模型，適合測試辨識準確率。比 Whisper Small 更慢、占用更多記憶體。</string>
     <string name="model_desc_sensevoice">支援中、粵、英、日、韓辨識與自動標點，反應迅速。</string>
     <string name="model_desc_whisper_tiny">僅約 32 MB 的超輕模型，適合低階裝置或快速體驗。</string>
 

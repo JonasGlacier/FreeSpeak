@@ -5352,6 +5352,7 @@ int whisper_full_with_state(
         }
     }
 
+    bool reuse_language_encoder = false;
     // auto-detect language if not specified
     if (params.language == nullptr || strlen(params.language) == 0 || strcmp(params.language, "auto") == 0 || params.detect_language) {
         std::vector<float> probs(whisper_lang_max_id() + 1, 0.0f);
@@ -5368,6 +5369,13 @@ int whisper_full_with_state(
         if (params.detect_language) {
             return 0;
         }
+
+        // Language detection already encoded the window at offset zero and filled
+        // the cross-attention cache. Its decode only writes the self-attention
+        // cache, which transcription clears before feeding its own prompt.
+        reuse_language_encoder = params.offset_ms / 10 == 0 &&
+            state->exp_n_audio_ctx == params.audio_ctx &&
+            !params.encoder_begin_callback && !params.abort_callback;
     }
 
     if (params.token_timestamps) {
@@ -5543,10 +5551,12 @@ int whisper_full_with_state(
         }
 
         // encode audio features starting at offset seek
-        if (!whisper_encode_internal(*ctx, *state, seek, params.n_threads, params.abort_callback, params.abort_callback_user_data)) {
+        if (!reuse_language_encoder &&
+            !whisper_encode_internal(*ctx, *state, seek, params.n_threads, params.abort_callback, params.abort_callback_user_data)) {
             WHISPER_LOG_ERROR("%s: failed to encode\n", __func__);
             return -6;
         }
+        reuse_language_encoder = false;
 
         // if there is a very short audio segment left to process, we remove any past prompt since it tends
         // to confuse the decoder and often make it repeat or hallucinate stuff

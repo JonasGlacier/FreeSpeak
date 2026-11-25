@@ -5,11 +5,14 @@ import com.freespeak.ime.R
 
 object BuiltinModelCatalog {
 
+    private const val WHISPER_MEDIUM_SIZE_BYTES = 539_212_467L
+
     @StringRes
     fun localizedDescriptionRes(modelId: String): Int? = when (modelId) {
         "fun-asr-nano-int8" -> R.string.model_desc_funasr_nano
         "qwen3-asr-0.6b-int8" -> R.string.model_desc_qwen3_asr
         "whisper-small-q5_1" -> R.string.model_desc_whisper_small
+        "whisper-medium-q5_0" -> R.string.model_desc_whisper_medium
         "sense-voice-small-int8" -> R.string.model_desc_sensevoice
         "whisper-tiny-q5_1" -> R.string.model_desc_whisper_tiny
         else -> null
@@ -114,6 +117,30 @@ object BuiltinModelCatalog {
             ),
             runtimeConfig = ModelRuntimeConfig(
                 primaryModelFile = "ggml-small-q5_1.bin",
+            ),
+        ),
+        ModelManifest(
+            id = "whisper-medium-q5_0",
+            supportsLanguageHint = true,
+            supportsTranslateToEnglish = true,
+            name = "Whisper Medium",
+            description = "Larger multilingual Whisper model for accuracy testing. Slower and more memory-intensive than Whisper Small.",
+            engineType = EngineType.WHISPER_CPP,
+            version = "q5_0",
+            sizeBytes = WHISPER_MEDIUM_SIZE_BYTES,
+            languages = listOf("auto", "zh", "en", "ja", "ko", "fr", "de", "es", "ru"),
+            quantization = "Q5_0",
+            recommendedRamMb = 1024,
+            files = listOf(
+                ModelFileEntry(
+                    relativePath = "ggml-medium-q5_0.bin",
+                    url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-medium-q5_0.bin",
+                    sha256 = "19fea4b380c3a618ec4723c3eef2eb785ffba0d0538cf43f8f235e7b3b34220f",
+                    sizeBytes = WHISPER_MEDIUM_SIZE_BYTES,
+                ),
+            ),
+            runtimeConfig = ModelRuntimeConfig(
+                primaryModelFile = "ggml-medium-q5_0.bin",
             ),
         ),
         ModelManifest(
