@@ -33,13 +33,25 @@ data class ToggleModelOption(
 
 object ModelOptions {
     const val LANGUAGE = "language"
+    const val TARGET_LANGUAGE = "target_language"
     const val TRANSLATE_EN = "translate_en"
     const val WHISPER_PROMPT = "whisper_prompt"
 
     const val AUTO = "auto"
 
     fun specsFor(model: ModelManifest, settings: UserSettings = UserSettings()): List<ModelOption> = buildList {
-        if (model.canHintLanguage) {
+        if (model.engineType == EngineType.CANARY_ONNX) {
+            val sources = CanaryLanguages.sources(model)
+            val defaultSource = CanaryLanguages.source(model, settings.spokenLanguageHint)
+            val source = settings.modelOptions[model.id]?.get(LANGUAGE)?.takeIf { it in sources } ?: defaultSource
+            add(ChoiceModelOption(LANGUAGE, R.string.canary_source_language, sources, defaultSource))
+            add(ChoiceModelOption(
+                TARGET_LANGUAGE,
+                R.string.canary_target_language,
+                CanaryLanguages.targets(model, source),
+                CanaryLanguages.SAME_AS_SOURCE,
+            ))
+        } else if (model.canHintLanguage) {
             val langs = SupportedLanguages.all.map { it.code }
                 .filter { model.languages.isEmpty() || it in model.languages }
             val choices = listOf(AUTO) + langs
@@ -68,8 +80,9 @@ object ModelOptions {
     }
 
     /** Display label for a choice value (language codes today). */
-    fun labelFor(option: ChoiceModelOption, value: String, autoLabel: String): String = when (option.key) {
+    fun labelFor(option: ChoiceModelOption, value: String, autoLabel: String, sameAsSourceLabel: String): String = when (option.key) {
         LANGUAGE -> if (value == AUTO) autoLabel else SupportedLanguages.labelFor(value)
+        TARGET_LANGUAGE -> if (value == CanaryLanguages.SAME_AS_SOURCE) sameAsSourceLabel else SupportedLanguages.labelFor(value)
         else -> value
     }
 }
@@ -80,6 +93,7 @@ data class ResolvedModelOptions(
     val translateToEnglish: Boolean,
     val whisperPrompt: Boolean,
     val raw: Map<String, String>,
+    val targetLanguage: String? = null,
 ) {
     fun bool(option: ToggleModelOption): Boolean = raw[option.key]?.toBooleanStrictOrNull() ?: option.default
     fun choice(option: ChoiceModelOption): String = raw[option.key]?.takeIf { it in option.choices } ?: option.default
@@ -98,5 +112,6 @@ fun UserSettings.optionsFor(model: ModelManifest?): ResolvedModelOptions {
         translateToEnglish = toggle(ModelOptions.TRANSLATE_EN) ?: false,
         whisperPrompt = toggle(ModelOptions.WHISPER_PROMPT) ?: whisperStylePromptEnabled,
         raw = stored,
+        targetLanguage = choice(ModelOptions.TARGET_LANGUAGE),
     )
 }

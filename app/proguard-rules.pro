@@ -9,3 +9,6 @@
 
 # Keep ONNX Runtime JNI
 -keep class ai.onnxruntime.** { *; }
+
+# sherpa-onnx JNI also looks up Kotlin configuration fields and result constructors.
+-keep class com.k2fsa.sherpa.onnx.** { *; }

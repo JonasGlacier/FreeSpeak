@@ -49,6 +49,8 @@ android {
     }
 
     packaging {
+        // This app is ARM64-only. The upstream static AAR still includes a separate x86 ORT.
+        jniLibs.excludes += "**/x86/libonnxruntime.so"
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -80,6 +82,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
     implementation(libs.onnxruntime.android)
+    implementation("com.k2fsa.sherpa:sherpa-onnx-static-link-onnxruntime:2.0.3@aar")
     implementation(libs.commons.compress)
 
     testImplementation(libs.junit)

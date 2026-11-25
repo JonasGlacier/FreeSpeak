@@ -207,6 +207,10 @@
     <string name="hub_discover">Discover</string>
     <string name="hub_search_hint">Search Hugging Face</string>
     <string name="hub_featured">Featured</string>
+    <string name="model_desc_canary">Offline transcription in English, German, Spanish and French, with bidirectional speech translation between English and the other three languages.</string>
+    <string name="canary_source_language">Spoken language</string>
+    <string name="canary_target_language">Output language</string>
+    <string name="canary_same_as_source">Same as spoken language (transcribe)</string>
     <string name="hub_no_models">No models</string>
     <string name="hub_no_results">No results</string>
     <string name="hub_compatible">Compatible</string>

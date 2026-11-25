@@ -231,6 +231,10 @@ class ModelRepository(private val context: Context) {
             EngineType.WHISPER_CPP -> ModelRuntimeConfig(primaryModelFile = if (isArchive) null else fileName)
             EngineType.FUN_ASR_ONNX -> ModelRuntimeConfig(primaryModelFile = if (isArchive) null else fileName, numMels = 80)
             EngineType.QWEN3_ASR -> ModelRuntimeConfig(numMels = 128)
+            EngineType.CANARY_ONNX -> {
+                require(isArchive) { "Canary direct downloads must be a model archive containing both ONNX files and tokens.txt" }
+                ModelRuntimeConfig()
+            }
         }
 
         val manifest = ModelManifest(

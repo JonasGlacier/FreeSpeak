@@ -9,6 +9,7 @@ enum class EngineType(val displayName: String, val shortName: String) {
     WHISPER_CPP("whisper.cpp (GGML)", "whisper.cpp"),
     FUN_ASR_ONNX("Fun-ASR / SenseVoice (ONNX)", "SenseVoice · FunASR"),
     QWEN3_ASR("Qwen3-ASR (ONNX Multimodal)", "Qwen3-ASR"),
+    CANARY_ONNX("Canary 180M Flash (ONNX)", "Canary"),
 }
 
 @Serializable
@@ -129,6 +130,25 @@ object ModelManifestCodec {
         val relPaths = allFiles.map { it.relativeTo(modelDir).invariantSeparatorsPath }
         val totalBytes = allFiles.sumOf { it.length() }
 
+        if (preferredEngine == EngineType.CANARY_ONNX) {
+            val encoder = relPaths.firstOrNull { it.substringAfterLast('/') == "encoder.int8.onnx" }
+            val decoder = relPaths.firstOrNull { it.substringAfterLast('/') == "decoder.int8.onnx" }
+            val tokens = relPaths.firstOrNull { it.substringAfterLast('/') == "tokens.txt" }
+            require(encoder != null && decoder != null && tokens != null) {
+                "Canary 180M Flash requires encoder.int8.onnx, decoder.int8.onnx and tokens.txt"
+            }
+            return ModelManifest(
+                id = fallbackId,
+                name = fallbackName,
+                description = "Imported Canary 180M Flash INT8 model",
+                engineType = EngineType.CANARY_ONNX,
+                sizeBytes = totalBytes,
+                languages = CanaryLanguages.supported,
+                runtimeConfig = ModelRuntimeConfig(encoderFile = encoder, decoderFile = decoder, vocabFile = tokens),
+                sourceTag = "local",
+            )
+        }
+
         // 1. Check for Qwen3-ASR ONNX layout (conv_frontend + encoder + decoder)
         val convFrontend = relPaths.find { it.endsWith("conv_frontend.onnx", ignoreCase = true) }
         val encoderOnnx = relPaths.find {
@@ -248,6 +268,9 @@ object ModelManifestCodec {
                 val enc = cfg.encoderFile
                 val dec = cfg.decoderFile
                 enc != null && dec != null && File(modelDir, enc).exists() && File(modelDir, dec).exists()
+            }
+            EngineType.CANARY_ONNX -> listOf(cfg.encoderFile, cfg.decoderFile, cfg.vocabFile).all { path ->
+                path != null && File(modelDir, path).let { it.isFile && it.length() > 0L }
             }
         }
     }

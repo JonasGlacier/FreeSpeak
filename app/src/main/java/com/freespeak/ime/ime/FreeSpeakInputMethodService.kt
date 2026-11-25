@@ -579,6 +579,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
                     enableStylePrompt = modelOpts.whisperPrompt,
                     translateToEnglish = modelOpts.translateToEnglish,
                     chineseOutputMode = settingsSnapshot.chineseOutputMode,
+                    targetLanguage = modelOpts.targetLanguage,
                 )
             )
 

@@ -10,6 +10,22 @@ class ModelOptionsTest {
     private fun builtin(id: String) = BuiltinModelCatalog.models.first { it.id == id }
 
     @Test
+    fun `Canary output choices follow the spoken language and reject unsupported pairs`() {
+        val model = builtin("canary-180m-flash-int8")
+        fun settings(source: String, target: String) = UserSettings(
+            modelOptions = mapOf(model.id to mapOf(ModelOptions.LANGUAGE to source, ModelOptions.TARGET_LANGUAGE to target)),
+        )
+        val english = settings("en", "fr")
+        assertEquals(listOf("en", "de", "es", "fr"), (ModelOptions.specsFor(model, english).first() as ChoiceModelOption).choices)
+        assertEquals("fr", english.optionsFor(model).targetLanguage)
+        val german = settings("de", "fr")
+        val target = ModelOptions.specsFor(model, german).last() as ChoiceModelOption
+        assertEquals(listOf(CanaryLanguages.SAME_AS_SOURCE, "en"), target.choices)
+        assertEquals("de", CanaryLanguages.target(model, "de", german.optionsFor(model).targetLanguage))
+        assertEquals("en", CanaryLanguages.target(model, "de", settings("de", "en").optionsFor(model).targetLanguage))
+    }
+
+    @Test
     fun `each engine declares only the options it supports`() {
         val whisper = ModelOptions.specsFor(builtin("whisper-small-q5_1")).map { it.key }
         assertEquals(listOf(ModelOptions.LANGUAGE, ModelOptions.TRANSLATE_EN, ModelOptions.WHISPER_PROMPT), whisper)

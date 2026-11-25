@@ -41,11 +41,12 @@ internal fun ModelOptionRows(model: ModelManifest, settings: UserSettings, handl
     val specs = ModelOptions.specsFor(model, settings)
     val values = settings.optionsFor(model)
     val autoLabel = stringResource(R.string.pref_lang_auto_mixed)
+    val sameAsSourceLabel = stringResource(R.string.canary_same_as_source)
     specs.forEach { spec ->
         when (spec) {
             is ChoiceModelOption -> ValueRow(
                 title = stringResource(spec.titleRes),
-                value = ModelOptions.labelFor(spec, values.choice(spec), autoLabel),
+                value = ModelOptions.labelFor(spec, values.choice(spec), autoLabel, sameAsSourceLabel),
                 onClick = { handlers.onOpenChoice(spec.key) },
             )
             is ToggleModelOption -> {
@@ -79,10 +80,11 @@ internal fun ModelChoiceScreen(
     }
     val current = settings.optionsFor(model).choice(spec)
     val autoLabel = stringResource(R.string.language_auto)
+    val sameAsSourceLabel = stringResource(R.string.canary_same_as_source)
     SubPageScaffold(stringResource(spec.titleRes), onBack) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
             spec.choices.forEach { value ->
-                ChoiceRow(ModelOptions.labelFor(spec, value, autoLabel), value == current, onClick = { onSelect(value) })
+                ChoiceRow(ModelOptions.labelFor(spec, value, autoLabel, sameAsSourceLabel), value == current, onClick = { onSelect(value) })
             }
         }
     }

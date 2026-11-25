@@ -5,10 +5,21 @@ import com.freespeak.ime.R
 
 object BuiltinModelCatalog {
 
+    private const val CANARY_REPO = "csukuangfj/sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8"
+    private const val CANARY_REVISION = "9077164e0d3dd1d5353743e89ceaa1d3a770838c"
+
+    private fun canaryFile(name: String, bytes: Long, hash: String) = ModelFileEntry(
+        relativePath = name,
+        url = "https://huggingface.co/$CANARY_REPO/resolve/$CANARY_REVISION/$name",
+        sizeBytes = bytes,
+        sha256 = hash,
+    )
+
     private const val WHISPER_MEDIUM_SIZE_BYTES = 539_212_467L
 
     @StringRes
     fun localizedDescriptionRes(modelId: String): Int? = when (modelId) {
+        "canary-180m-flash-int8" -> R.string.model_desc_canary
         "fun-asr-nano-int8" -> R.string.model_desc_funasr_nano
         "qwen3-asr-0.6b-int8" -> R.string.model_desc_qwen3_asr
         "whisper-small-q5_1" -> R.string.model_desc_whisper_small
@@ -17,6 +28,32 @@ object BuiltinModelCatalog {
         "whisper-tiny-q5_1" -> R.string.model_desc_whisper_tiny
         else -> null
     }
+
+    val canary = ModelManifest(
+        id = "canary-180m-flash-int8",
+        name = "Canary 180M Flash",
+        description = "Offline transcription in English, German, Spanish and French, with bidirectional speech translation between English and the other three languages.",
+        engineType = EngineType.CANARY_ONNX,
+        version = "180m-flash-int8",
+        languages = CanaryLanguages.supported,
+        sizeBytes = 207_170_046L,
+        quantization = "INT8",
+        recommendedRamMb = 512,
+        sourceRepo = CANARY_REPO,
+        sourceRevision = CANARY_REVISION,
+        supportsLanguageHint = true,
+        supportsTranslateToEnglish = false, // Canary uses a target-language picker instead.
+        files = listOf(
+            canaryFile("encoder.int8.onnx", 132_678_643L, "7a75b4e2a5857a6dcc0819503bbe3fad66943db4a3ccf21d3f27c633667d303f"),
+            canaryFile("decoder.int8.onnx", 74_437_848L, "e41a2ab9c0c2fe81a1e8ade5a45fb02a74bc4db7d1f91b89a54a25e2cf79cba2"),
+            canaryFile("tokens.txt", 53_555L, "2dae6fc7815f9640645e0c765522b278ee0cef49b482d91f6913e334628d3e77"),
+        ),
+        runtimeConfig = ModelRuntimeConfig(
+            encoderFile = "encoder.int8.onnx",
+            decoderFile = "decoder.int8.onnx",
+            vocabFile = "tokens.txt",
+        ),
+    )
 
     val models: List<ModelManifest> = listOf(
         ModelManifest(
@@ -97,6 +134,7 @@ object BuiltinModelCatalog {
                 maxNewTokens = 128,
             ),
         ),
+        canary,
         ModelManifest(
             id = "whisper-small-q5_1",
             supportsLanguageHint = true,

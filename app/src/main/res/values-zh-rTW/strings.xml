@@ -181,6 +181,10 @@
     <string name="hub_discover">探索</string>
     <string name="hub_search_hint">搜尋 Hugging Face</string>
     <string name="hub_featured">精選</string>
+    <string name="model_desc_canary">離線轉錄英語、德語、西班牙語和法語，支援英語與其他三種語言的雙向語音翻譯。</string>
+    <string name="canary_source_language">說話語言</string>
+    <string name="canary_target_language">輸出語言</string>
+    <string name="canary_same_as_source">與說話語言相同（轉錄）</string>
     <string name="hub_no_models">尚無模型</string>
     <string name="hub_no_results">無結果</string>
     <string name="hub_compatible">可用</string>

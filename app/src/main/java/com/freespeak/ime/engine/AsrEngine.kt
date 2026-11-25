@@ -19,11 +19,13 @@ data class AsrInferenceOptions(
     val enableStylePrompt: Boolean = true,
     val translateToEnglish: Boolean = false,
     val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
+    val targetLanguage: String? = null,
 )
 
 fun AsrInferenceOptions.forModel(model: ModelManifest): AsrInferenceOptions = copy(
     language = if (model.canHintLanguage) language else "auto",
     translateToEnglish = translateToEnglish && model.canTranslateToEnglish,
+    targetLanguage = targetLanguage.takeIf { model.engineType == EngineType.CANARY_ONNX },
 )
 
 interface AsrEngine {

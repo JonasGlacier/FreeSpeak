@@ -328,8 +328,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addDirectUrlModelAndDownload(name: String, url: String, engineType: EngineType) {
-        val manifest = modelRepo.registerDirectUrlModel(name, url, engineType)
-        downloadModel(manifest)
+        runCatching { modelRepo.registerDirectUrlModel(name, url, engineType) }
+            .onSuccess { downloadModel(it) }
+            .onFailure { _toastMessage.value = app.getString(R.string.toast_import_failed, it.message.orEmpty()) }
     }
 
     fun addCatalogSubscription(url: String) {

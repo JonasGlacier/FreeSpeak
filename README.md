@@ -55,7 +55,8 @@ FreeSpeakIME/
 ### Language, Translation & Chinese Output
 
 - **Spoken language hint** defaults to **Auto** independently of the system UI locale. There is no keyboard language-cycling button. Models without a language input stay automatic. A hint is the **source speech language**, never a translation target.
-- **Translate speech to English** appears only for compatible multilingual Whisper models. It enables Whisper's native translation task. Switching to a non-Whisper model disables translation for inference, while preserving your preference. English-only `.en` Whisper models cannot translate. Accuracy still depends on the model and audio.
+- **Canary 180M Flash INT8** is available in Model Hub → Featured. It runs offline on CPU via [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx). Choose the spoken language and output language in the model settings: English, German, Spanish and French can be transcribed; translation works between English and each of the other three. Choose **Same as spoken language** to transcribe. The [Canary model](https://huggingface.co/nvidia/canary-180m-flash) is by NVIDIA, licensed under CC BY 4.0; the app downloads the [sherpa-onnx INT8 export](https://huggingface.co/csukuangfj/sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8).
+- **Translate speech to English** appears only for compatible multilingual Whisper models. It enables Whisper's native translation task. The Whisper preference is preserved when switching models. English-only `.en` Whisper models cannot translate. Accuracy still depends on the model and audio.
 - **Chinese output** offers System / Simplified / Generic Traditional / Taiwan vocabulary / Hong Kong glyphs / Original. System selects Taiwan for TW, Hong Kong for HK/MO, Traditional for Hant, and Simplified otherwise.
 - Conversion uses pinned **OpenCC 1.1.9 official dictionaries**, lazily loaded offline by a Kotlin longest-prefix adapter. This adapter is not the upstream C++ MMSEG implementation; ambiguous segmentation may differ. Taiwan vocabulary is optional; Hong Kong mode is glyph conversion, not Taiwan terminology. English, numbers and punctuation are preserved. Recognized Japanese, text containing Japanese kana, and English-translation results bypass conversion. Auto-detected kanji-only Japanese can still be ambiguous; choose Original to preserve it exactly.
 - OpenCC is dictionary-based and cannot guarantee every ambiguous word or proper noun. It does not filter content or add a generative rewrite step. Select **Original** to disable this post-processing entirely.
@@ -139,7 +140,8 @@ FreeSpeak IME 通过原生多引擎架构集成 **`Fun-ASR-Nano`、`Qwen3-ASR-0.
 
 ### 自动翻译与中文变体
 
-- 仅在兼容的多语言 Whisper 上显示，使用其原生翻译任务。切换到其他模型时，保留偏好但不执行翻译。
+- 可在「模型中心 → 精选」下载 **Canary 180M Flash INT8**。在模型设置里选择说话语言和输出语言：支持英语、德语、西班牙语和法语转写，以及英语与另外三种语言的双向翻译。选择「与说话语言相同」即可转写。
+- Whisper 的「翻译成英语」选项仅在兼容的多语言 Whisper 模型上显示。切换模型时保留该偏好。
 - **中文输出**可自定义简体、繁體。
 - 內置 **OpenCC 1.1.9 官方詞典**，通過 Kotlin 最長前綴匹配適配器離線按需加載。TW 使用台灣模式、HK/MO 使用香港模式。台灣模式包含慣用詞，香港模式調整字形，不套用台灣術語。 英文、數字和標點不變；識別為日文、包含日文假名或英文翻譯時跳過轉換。自動檢測下純漢字日文仍可能存在歧義，需完全保留原字形可選擇「保持模型原文」。
 - 自定义 `model.json` 可声明 `supportsLanguageHint` / `supportsTranslateToEnglish`，英文示例见上文。权重文件仍须符合当前引擎支持的图结构；全新架构需要引擎适配代码。
