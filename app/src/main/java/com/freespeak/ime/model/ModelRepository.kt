@@ -235,6 +235,10 @@ class ModelRepository(private val context: Context) {
                 require(isArchive) { "Canary direct downloads must be a model archive containing both ONNX files and tokens.txt" }
                 ModelRuntimeConfig()
             }
+            EngineType.CANARY_GGUF -> {
+                require(isArchive || fileName.endsWith(".gguf", ignoreCase = true)) { "Canary GGUF requires a .gguf file" }
+                ModelRuntimeConfig(primaryModelFile = fileName.takeUnless { isArchive })
+            }
         }
 
         val manifest = ModelManifest(
@@ -242,6 +246,7 @@ class ModelRepository(private val context: Context) {
             name = name.trim(),
             description = "Custom URL ($fileName)",
             engineType = engineType,
+            languages = if (engineType == EngineType.CANARY_GGUF) CanaryLanguages.v2 else defaultModelLanguages,
             files = listOf(
                 ModelFileEntry(
                     relativePath = fileName,

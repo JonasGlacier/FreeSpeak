@@ -207,6 +207,7 @@
     <string name="hub_discover">Discover</string>
     <string name="hub_search_hint">Search Hugging Face</string>
     <string name="hub_featured">Featured</string>
+    <string name="hub_optional_models">Optional models</string>
     <string name="model_desc_canary">Offline transcription in English, German, Spanish and French, with bidirectional speech translation between English and the other three languages.</string>
     <string name="canary_source_language">Spoken language</string>
     <string name="canary_target_language">Output language</string>
@@ -219,7 +220,7 @@
     <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
     <string name="hf_issue_gated">Gated repo · sign-in required</string>
     <string name="hf_issue_disabled">Repo disabled</string>
-    <string name="hf_issue_gguf">GGUF · bundled whisper.cpp needs GGML .bin</string>
+    <string name="hf_issue_gguf">Unrecognized GGUF model variant</string>
     <string name="hf_issue_ct2">CTranslate2 / faster-whisper</string>
     <string name="hf_issue_pytorch">PyTorch / Transformers weights · needs conversion</string>
     <string name="hf_issue_whisper_onnx">Whisper ONNX export · use GGML .bin</string>

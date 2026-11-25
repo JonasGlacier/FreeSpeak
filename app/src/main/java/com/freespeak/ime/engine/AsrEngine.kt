@@ -6,6 +6,7 @@ import java.io.File
 import com.freespeak.ime.text.ChineseOutputMode
 import com.freespeak.ime.model.canHintLanguage
 import com.freespeak.ime.model.canTranslateToEnglish
+import com.freespeak.ime.model.isCanary
 
 data class AsrTranscriptionResult(
     val text: String,
@@ -25,7 +26,7 @@ data class AsrInferenceOptions(
 fun AsrInferenceOptions.forModel(model: ModelManifest): AsrInferenceOptions = copy(
     language = if (model.canHintLanguage) language else "auto",
     translateToEnglish = translateToEnglish && model.canTranslateToEnglish,
-    targetLanguage = targetLanguage.takeIf { model.engineType == EngineType.CANARY_ONNX },
+    targetLanguage = targetLanguage.takeIf { model.engineType.isCanary },
 )
 
 interface AsrEngine {

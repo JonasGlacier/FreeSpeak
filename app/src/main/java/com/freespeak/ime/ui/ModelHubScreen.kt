@@ -251,9 +251,10 @@ private fun DiscoverList(
     val listState = rememberLazyListState()
     val featured = models.filter { item ->
         val manifest = item.manifest
-        manifest.engineType != EngineType.WHISPER_CPP &&
+        !manifest.optional && manifest.engineType != EngineType.WHISPER_CPP &&
             (manifest.sourceTag == "builtin" || manifest.sourceTag == "catalog")
     }
+    val optional = models.filter { it.manifest.optional }
 
     val nearEnd by remember {
         derivedStateOf {
@@ -329,6 +330,16 @@ private fun DiscoverList(
                     onDelete = null,
                 )
                 HairlineDivider(Modifier.padding(horizontal = 20.dp))
+            }
+            if (optional.isNotEmpty()) {
+                item(key = "optional_label") { SectionLabel(stringResource(R.string.hub_optional_models)) }
+                items(optional, key = { "o_" + it.manifest.id }) { item ->
+                    ModelRow(item, item.manifest.id == activeId,
+                        onDownload = { actions.onDownload(item.manifest) },
+                        onCancel = { actions.onCancel(item.manifest.id) },
+                        onSelect = { actions.onSelect(item.manifest.id) }, onDelete = null)
+                    HairlineDivider(Modifier.padding(horizontal = 20.dp))
+                }
             }
         } else {
             when {

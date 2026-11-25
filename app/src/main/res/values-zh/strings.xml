@@ -207,6 +207,7 @@
     <string name="hub_discover">发现</string>
     <string name="hub_search_hint">搜索 Hugging Face</string>
     <string name="hub_featured">精选</string>
+    <string name="hub_optional_models">可选模型</string>
     <string name="model_desc_canary">离线转写英语、德语、西班牙语和法语，支持英语与其他三种语言的双向语音翻译。</string>
     <string name="canary_source_language">说话语言</string>
     <string name="canary_target_language">输出语言</string>
@@ -219,7 +220,7 @@
     <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
     <string name="hf_issue_gated">受限仓库 · 需登录授权</string>
     <string name="hf_issue_disabled">仓库已禁用</string>
-    <string name="hf_issue_gguf">GGUF · 内置 whisper.cpp 需 GGML .bin</string>
+    <string name="hf_issue_gguf">未识别的 GGUF 模型变体</string>
     <string name="hf_issue_ct2">CTranslate2 / faster-whisper 格式</string>
     <string name="hf_issue_pytorch">PyTorch / Transformers 权重 · 需转换</string>
     <string name="hf_issue_whisper_onnx">Whisper ONNX 导出 · 请用 GGML .bin</string>

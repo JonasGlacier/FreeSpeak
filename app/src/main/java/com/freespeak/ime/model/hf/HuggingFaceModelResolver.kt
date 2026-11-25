@@ -5,6 +5,7 @@ import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ModelFileEntry
 import com.freespeak.ime.model.ModelManifest
 import com.freespeak.ime.model.ModelRuntimeConfig
+import com.freespeak.ime.model.isCanary
 
 enum class HfVariantStatus {
     /** Layout matches a graph the bundled engines are known to run. */
@@ -82,11 +83,12 @@ object HuggingFaceModelResolver {
         val variants = ArrayList<HfVariant>()
 
         variants += whisperVariants(info, files)
+        canaryVariant(info, files)?.let { variants += it }
         variants += qwen3Variants(info, files)
         variants += funAsrLlmVariants(info, files)
         variants += ctcVariants(info, files, issues)
 
-        detectUnsupported(files, issues, consumedOnnx = variants.flatMap { v -> v.files.values.map { it.path } }.toSet())
+        detectUnsupported(files, issues, consumed = variants.flatMap { v -> v.files.values.map { it.path } }.toSet())
 
         if (variants.isEmpty() && issues.none { it != HfIssue.GATED && it != HfIssue.DISABLED }) {
             issues += HfIssue.NO_WEIGHTS
@@ -94,6 +96,20 @@ object HuggingFaceModelResolver {
         val distinct = variants.distinctBy { it.key }
             .sortedWith(compareBy<HfVariant> { it.status.ordinal }.thenBy { it.totalBytes })
         return HfRepoAnalysis(info, distinct, issues)
+    }
+
+    private fun canaryVariant(info: HfModelInfo, files: List<HfFile>): HfVariant? {
+        val model = builtinFor(info.id)?.takeIf { it.engineType.isCanary } ?: return null
+        val matched = model.files.associate { entry ->
+            val file = files.firstOrNull {
+                it.path == entry.relativePath && (it.size == null || it.size == entry.sizeBytes) &&
+                    (it.sha256 == null || it.sha256.equals(entry.sha256, ignoreCase = true))
+            } ?: return null
+            entry.relativePath to file
+        }
+        return HfVariant(model.id, model.name, model.engineType, HfVariantStatus.SUPPORTED,
+            model.quantization, matched, model.runtimeConfig, model.languages,
+            model.supportsLanguageHint, model.supportsTranslateToEnglish)
     }
 
     // ---------------------------------------------------------------- whisper.cpp (GGML)
@@ -326,10 +342,10 @@ object HuggingFaceModelResolver {
 
     // ---------------------------------------------------------------- unsupported formats
 
-    private fun detectUnsupported(files: List<HfFile>, issues: MutableSet<HfIssue>, consumedOnnx: Set<String>) {
+    private fun detectUnsupported(files: List<HfFile>, issues: MutableSet<HfIssue>, consumed: Set<String>) {
         val names = files.map { it.path.lowercase() }
         val baseNames = names.map { it.substringAfterLast('/') }
-        if (names.any { it.endsWith(".gguf") }) issues += HfIssue.GGUF
+        if (files.any { it.path.endsWith(".gguf", true) && it.path !in consumed }) issues += HfIssue.GGUF
         if (baseNames.any { it == "model.bin" } &&
             baseNames.any { it == "config.json" } &&
             baseNames.any { it.startsWith("vocabulary") || it == "tokenizer.json" }
@@ -346,7 +362,7 @@ object HuggingFaceModelResolver {
             } && names.none { GGML_BIN.containsMatchIn(it) }
         ) issues += HfIssue.OTHER_RUNTIME
 
-        val unconsumedOnnx = files.filter { it.path.endsWith(".onnx", true) && it.path !in consumedOnnx }
+        val unconsumedOnnx = files.filter { it.path.endsWith(".onnx", true) && it.path !in consumed }
         if (unconsumedOnnx.isEmpty()) return
         val onnxBase = unconsumedOnnx.map { it.path.substringAfterLast('/').lowercase() }
         when {
@@ -354,13 +370,14 @@ object HuggingFaceModelResolver {
             onnxBase.any { Regex("""^(tiny|base|small|medium|large|distil|turbo)[\w.-]*-(encoder|decoder)""").containsMatchIn(it) } ||
                 (onnxBase.any { it.contains("encoder") } && onnxBase.any { it.contains("decoder") } &&
                     files.any { it.path.lowercase().endsWith("-tokens.txt") }) -> issues += HfIssue.WHISPER_ONNX
-            consumedOnnx.isEmpty() -> issues += HfIssue.UNKNOWN_ONNX
+            consumed.none { it.endsWith(".onnx", true) } -> issues += HfIssue.UNKNOWN_ONNX
         }
     }
 
     // ---------------------------------------------------------------- manifest
 
     fun toManifest(info: HfModelInfo, variant: HfVariant, totalVariants: Int): ModelManifest {
+        builtinFor(info.id)?.takeIf { it.engineType.isCanary && it.id == variant.key }?.let { return it }
         val sha = info.sha ?: "main"
         val repoName = info.id.substringAfter('/')
         val entries = variant.files.map { (rel, f) ->

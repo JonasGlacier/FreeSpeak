@@ -8,9 +8,9 @@ object BuiltinModelCatalog {
     private const val CANARY_REPO = "csukuangfj/sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8"
     private const val CANARY_REVISION = "9077164e0d3dd1d5353743e89ceaa1d3a770838c"
 
-    private fun canaryFile(name: String, bytes: Long, hash: String) = ModelFileEntry(
+    private fun canaryFile(name: String, bytes: Long, hash: String, repo: String = CANARY_REPO, revision: String = CANARY_REVISION) = ModelFileEntry(
         relativePath = name,
-        url = "https://huggingface.co/$CANARY_REPO/resolve/$CANARY_REVISION/$name",
+        url = "https://huggingface.co/$repo/resolve/$revision/$name",
         sizeBytes = bytes,
         sha256 = hash,
     )
@@ -53,6 +53,44 @@ object BuiltinModelCatalog {
             decoderFile = "decoder.int8.onnx",
             vocabFile = "tokens.txt",
         ),
+    )
+
+    private val canaryV2Onnx = canary.copy(
+        id = "canary-1b-v2-int8",
+        name = "Canary 1B v2 (ONNX INT8)",
+        description = "25 European languages. Transcription and bidirectional speech translation with English.",
+        version = "1b-v2-int8",
+        sizeBytes = 1_416_509_464L,
+        languages = CanaryLanguages.v2,
+        recommendedRamMb = 2304,
+        sourceRepo = "Sarphix/canary-1b-v2-sherpa-onnx-int8",
+        sourceRevision = "7d513cd4f39f6c7dc75c13a284b5e345b37f6198",
+        optional = true,
+    ).let { model ->
+        fun file(name: String, bytes: Long, hash: String) = canaryFile(name, bytes, hash, model.sourceRepo!!, model.sourceRevision!!)
+        model.copy(files = listOf(
+            file("encoder.int8.onnx", 857_602_351L, "0d8f349aaa015d47c81d88c4ba3a5461c19bc09ebb72bf4c61698eec9f09e968"),
+            file("decoder.int8.onnx", 558_682_707L, "e68d839a8939a0c1d55d03fd5c6e6d3f113cfc97038027ffe566b8e3a4be2cd8"),
+            file("tokens.txt", 224_406L, "399db68418b655f50275779cfe425c55a5ef6dda12cf38375d709566927ef513"),
+        ))
+    }
+
+    private const val CANARY_GGUF_REPO = "cstr/canary-1b-v2-GGUF"
+    private const val CANARY_GGUF_REVISION = "f4a12db73daa964aa56a188826682f6b11fdc960"
+    private const val CANARY_GGUF_FILE = "canary-1b-v2-q4_k.gguf"
+    private val canaryV2Gguf = canaryV2Onnx.copy(
+        id = "canary-1b-v2-q4_k",
+        name = "Canary 1B v2 (GGUF Q4_K)",
+        engineType = EngineType.CANARY_GGUF,
+        version = "1b-v2-q4_k",
+        sizeBytes = 610_746_016L,
+        quantization = "Q4_K",
+        recommendedRamMb = 1536,
+        sourceRepo = CANARY_GGUF_REPO,
+        sourceRevision = CANARY_GGUF_REVISION,
+        files = listOf(canaryFile(CANARY_GGUF_FILE, 610_746_016L,
+            "5027f74ba0eb9bb707b14a11c7a68510a704748bb392e5f3af45115329ee501d", CANARY_GGUF_REPO, CANARY_GGUF_REVISION)),
+        runtimeConfig = ModelRuntimeConfig(primaryModelFile = CANARY_GGUF_FILE, numMels = 128),
     )
 
     val models: List<ModelManifest> = listOf(
@@ -135,6 +173,8 @@ object BuiltinModelCatalog {
             ),
         ),
         canary,
+        canaryV2Onnx,
+        canaryV2Gguf,
         ModelManifest(
             id = "whisper-small-q5_1",
             supportsLanguageHint = true,

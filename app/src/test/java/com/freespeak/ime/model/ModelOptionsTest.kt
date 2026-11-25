@@ -10,6 +10,20 @@ class ModelOptionsTest {
     private fun builtin(id: String) = BuiltinModelCatalog.models.first { it.id == id }
 
     @Test
+    fun `Canary v2 variants offer all 25 languages and use English as the translation pivot`() {
+        for (id in listOf("canary-1b-v2-int8", "canary-1b-v2-q4_k")) {
+            val model = builtin(id)
+            val settings = UserSettings(modelOptions = mapOf(id to mapOf(ModelOptions.LANGUAGE to "it")))
+            val (source, target) = ModelOptions.specsFor(model, settings).map { it as ChoiceModelOption }
+            assertEquals(25, source.choices.distinct().size)
+            assertTrue("pt" in source.choices)
+            assertFalse("zh" in source.choices)
+            assertEquals(listOf(CanaryLanguages.SAME_AS_SOURCE, "en"), target.choices)
+            assertEquals("it", settings.optionsFor(model).language)
+        }
+    }
+
+    @Test
     fun `Canary output choices follow the spoken language and reject unsupported pairs`() {
         val model = builtin("canary-180m-flash-int8")
         fun settings(source: String, target: String) = UserSettings(

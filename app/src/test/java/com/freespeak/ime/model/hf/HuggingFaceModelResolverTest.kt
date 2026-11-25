@@ -3,6 +3,7 @@ package com.freespeak.ime.model.hf
 import com.freespeak.ime.data.MirrorSource
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.model.EngineType
+import com.freespeak.ime.model.BuiltinModelCatalog
 import com.freespeak.ime.model.ModelManifestCodec
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
@@ -13,6 +14,19 @@ import org.junit.Test
 import java.nio.file.Files
 
 class HuggingFaceModelResolverTest {
+
+    @Test
+    fun `known Canary GGUF search result reuses the pinned optional model`() {
+        val model = BuiltinModelCatalog.models.single { it.engineType == EngineType.CANARY_GGUF }
+        val weights = model.files.single()
+        val info = repo(requireNotNull(model.sourceRepo)).copy(siblings = listOf(
+            HfSibling(weights.relativePath, weights.sizeBytes, HfLfsInfo(sha256 = weights.sha256, size = weights.sizeBytes)),
+        ))
+        val analysis = HuggingFaceModelResolver.analyze(info)
+        assertFalse(HfIssue.GGUF in analysis.issues)
+        val variant = analysis.supported.single()
+        assertEquals(model, HuggingFaceModelResolver.toManifest(info, variant, 1))
+    }
 
     private fun repo(id: String, vararg files: Pair<String, Long>, gated: Boolean = false) = HfModelInfo(
         id = id,

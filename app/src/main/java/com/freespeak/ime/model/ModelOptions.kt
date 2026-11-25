@@ -40,7 +40,7 @@ object ModelOptions {
     const val AUTO = "auto"
 
     fun specsFor(model: ModelManifest, settings: UserSettings = UserSettings()): List<ModelOption> = buildList {
-        if (model.engineType == EngineType.CANARY_ONNX) {
+        if (model.engineType.isCanary) {
             val sources = CanaryLanguages.sources(model)
             val defaultSource = CanaryLanguages.source(model, settings.spokenLanguageHint)
             val source = settings.modelOptions[model.id]?.get(LANGUAGE)?.takeIf { it in sources } ?: defaultSource
@@ -81,10 +81,13 @@ object ModelOptions {
 
     /** Display label for a choice value (language codes today). */
     fun labelFor(option: ChoiceModelOption, value: String, autoLabel: String, sameAsSourceLabel: String): String = when (option.key) {
-        LANGUAGE -> if (value == AUTO) autoLabel else SupportedLanguages.labelFor(value)
-        TARGET_LANGUAGE -> if (value == CanaryLanguages.SAME_AS_SOURCE) sameAsSourceLabel else SupportedLanguages.labelFor(value)
+        LANGUAGE -> if (value == AUTO) autoLabel else languageLabel(value)
+        TARGET_LANGUAGE -> if (value == CanaryLanguages.SAME_AS_SOURCE) sameAsSourceLabel else languageLabel(value)
         else -> value
     }
+
+    private fun languageLabel(code: String): String = SupportedLanguages.all.firstOrNull { it.code == code }?.nativeLabel
+        ?: java.util.Locale.forLanguageTag(code).let { it.getDisplayLanguage(it) }
 }
 
 /** Typed, validated view of a model's option values (stored value -> legacy global -> default). */

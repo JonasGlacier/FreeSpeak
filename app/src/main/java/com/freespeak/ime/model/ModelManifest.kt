@@ -9,7 +9,8 @@ enum class EngineType(val displayName: String, val shortName: String) {
     WHISPER_CPP("whisper.cpp (GGML)", "whisper.cpp"),
     FUN_ASR_ONNX("Fun-ASR / SenseVoice (ONNX)", "SenseVoice · FunASR"),
     QWEN3_ASR("Qwen3-ASR (ONNX Multimodal)", "Qwen3-ASR"),
-    CANARY_ONNX("Canary 180M Flash (ONNX)", "Canary"),
+    CANARY_ONNX("Canary (ONNX)", "Canary"),
+    CANARY_GGUF("Canary (GGUF)", "Canary GGUF"),
 }
 
 @Serializable
@@ -44,6 +45,8 @@ data class ModelRuntimeConfig(
  * Declarative `model.json` manifest allowing users and community catalogs to plug in new
  * speech recognition models without waiting for app updates.
  */
+internal val defaultModelLanguages = listOf("zh", "en", "ja", "ko", "yue")
+
 @Serializable
 data class ModelManifest(
     val id: String,
@@ -52,7 +55,7 @@ data class ModelManifest(
     val engineType: EngineType,
     val version: String = "1.0",
     val sizeBytes: Long = 0L,
-    val languages: List<String> = listOf("zh", "en", "ja", "ko", "yue"),
+    val languages: List<String> = defaultModelLanguages,
     val quantization: String = "INT8",
     val recommendedRamMb: Int = 1024,
     val files: List<ModelFileEntry> = emptyList(),
@@ -65,7 +68,10 @@ data class ModelManifest(
     val sourceRepo: String? = null,
     /** Pinned commit sha of [sourceRepo]. */
     val sourceRevision: String? = null,
+    val optional: Boolean = false,
 )
+
+val EngineType.isCanary: Boolean get() = this == EngineType.CANARY_ONNX || this == EngineType.CANARY_GGUF
 
 val ModelManifest.canHintLanguage: Boolean
     get() = supportsLanguageHint ?: (engineType != EngineType.FUN_ASR_ONNX || id == "sense-voice-small-int8")
@@ -130,6 +136,14 @@ object ModelManifestCodec {
         val relPaths = allFiles.map { it.relativeTo(modelDir).invariantSeparatorsPath }
         val totalBytes = allFiles.sumOf { it.length() }
 
+        if (preferredEngine == EngineType.CANARY_GGUF) {
+            val weights = requireNotNull(relPaths.singleOrNull { it.endsWith(".gguf", ignoreCase = true) }) {
+                "Select a folder with one Canary GGUF model"
+            }
+            return ModelManifest(fallbackId, fallbackName, "Imported Canary 1B v2 GGUF", EngineType.CANARY_GGUF,
+                sizeBytes = totalBytes, languages = CanaryLanguages.v2, quantization = "GGUF",
+                runtimeConfig = ModelRuntimeConfig(primaryModelFile = weights), sourceTag = "local")
+        }
         if (preferredEngine == EngineType.CANARY_ONNX) {
             val encoder = relPaths.firstOrNull { it.substringAfterLast('/') == "encoder.int8.onnx" }
             val decoder = relPaths.firstOrNull { it.substringAfterLast('/') == "decoder.int8.onnx" }
@@ -272,6 +286,7 @@ object ModelManifestCodec {
             EngineType.CANARY_ONNX -> listOf(cfg.encoderFile, cfg.decoderFile, cfg.vocabFile).all { path ->
                 path != null && File(modelDir, path).let { it.isFile && it.length() > 0L }
             }
+            EngineType.CANARY_GGUF -> cfg.primaryModelFile?.let { File(modelDir, it).let { f -> f.isFile && f.length() > 0L } } == true
         }
     }
 }

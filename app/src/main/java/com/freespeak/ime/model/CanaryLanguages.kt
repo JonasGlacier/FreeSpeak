@@ -1,13 +1,14 @@
 package com.freespeak.ime.model
 
-/** Language pairs supported by Canary 180M Flash. English is the translation pivot. */
+/** English is the translation pivot for both Canary variants. */
 internal object CanaryLanguages {
     const val ENGLISH = "en"
     const val SAME_AS_SOURCE = "same_as_source"
     val supported = listOf(ENGLISH, "de", "es", "fr")
+    val v2 = supported + listOf("bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "sv", "ru", "uk")
 
     fun sources(model: ModelManifest): List<String> =
-        supported.filter { it in model.languages }.ifEmpty { supported }
+        v2.filter { it in model.languages }.ifEmpty { supported }
 
     fun source(model: ModelManifest, requested: String): String =
         sources(model).let { requested.takeIf(it::contains) ?: it.first() }

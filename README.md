@@ -140,6 +140,8 @@ FreeSpeak IME 通过原生多引擎架构集成 **`Fun-ASR-Nano`、`Qwen3-ASR-0.
 
 ### 自动翻译与中文变体
 
+- 「模型中心 → 发现 → 可选模型」提供 **Canary 1B v2** 的 [ONNX INT8](https://huggingface.co/Sarphix/canary-1b-v2-sherpa-onnx-int8)（1.42 GB）和 [GGUF Q4_K](https://huggingface.co/cstr/canary-1b-v2-GGUF)（611 MB）社区量化版。两者基于 [NVIDIA Canary 1B v2（CC BY 4.0）](https://huggingface.co/nvidia/canary-1b-v2)，支持 25 种欧洲语言转写以及英语与其他 24 种语言的双向翻译。GGUF 使用独立的 [CrispASR](https://github.com/CrispStrobe/CrispASR) CPU 后端。
+
 - 可在「模型中心 → 精选」下载 **Canary 180M Flash INT8**。在模型设置里选择说话语言和输出语言：支持英语、德语、西班牙语和法语转写，以及英语与另外三种语言的双向翻译。选择「与说话语言相同」即可转写。
 - Whisper 的「翻译成英语」选项仅在兼容的多语言 Whisper 模型上显示。切换模型时保留该偏好。
 - **中文输出**可自定义简体、繁體。
