@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 #include "whisper.h"
 
 #define LOG_TAG "FreeSpeakWhisperJNI"
@@ -138,13 +139,23 @@ Java_com_freespeak_engine_whisper_WhisperNative_transcribe(
         params.initial_prompt = promptStr.c_str();
     }
 
-    int rc = whisper_full(ctx, params, samples.data(), static_cast<int>(samples.size()));
+    LOGI("Whisper inference started: %d samples, %d threads", audioLen, params.n_threads);
+    const auto start = std::chrono::steady_clock::now();
+    const int rc = whisper_full(ctx, params, samples.data(), static_cast<int>(samples.size()));
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start).count();
     if (rc != 0) {
-        LOGE("whisper_full failed with code %d", rc);
-        return env->NewStringUTF("");
+        LOGE("whisper_full failed with code %d after %lld ms", rc, static_cast<long long>(elapsed));
+        jclass errorClass = env->FindClass("java/lang/IllegalStateException");
+        if (errorClass != nullptr) {
+            const auto message = "Whisper transcription failed (code " + std::to_string(rc) + ")";
+            env->ThrowNew(errorClass, message.c_str());
+        }
+        return nullptr;
     }
 
     const int nSegments = whisper_full_n_segments(ctx);
+    LOGI("Whisper inference finished in %lld ms (%d segments)", static_cast<long long>(elapsed), nSegments);
     std::string fullText;
     for (int i = 0; i < nSegments; ++i) {
         const char* seg = whisper_full_get_segment_text(ctx, i);

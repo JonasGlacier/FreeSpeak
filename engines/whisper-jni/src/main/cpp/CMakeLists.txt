@@ -14,6 +14,12 @@ set(WHISPER_BUILD_SERVER OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(whisper_core)
 
+# Gradle's cppFlags do not apply to ggml's C kernels. Keep those kernels
+# optimized in Debug builds too, while retaining debug symbols and assertions.
+foreach(ggml_target IN ITEMS ggml-base ggml-cpu)
+    target_compile_options(${ggml_target} PRIVATE $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:-O3>)
+endforeach()
+
 if(ANDROID_ABI STREQUAL "arm64-v8a" AND TARGET ggml-cpu)
     target_compile_options(ggml-cpu PRIVATE -march=armv8.2-a+fp16)
 endif()
