@@ -132,6 +132,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
 
     var tab by rememberSaveable { mutableStateOf(MainTab.HOME) }
     var subPage by rememberSaveable { mutableStateOf<SettingsSubPage?>(null) }
+    var choiceKey by rememberSaveable { mutableStateOf("") }
     var pendingLocalImportUri by remember { mutableStateOf<Uri?>(null) }
     var showDirectUrlDialog by remember { mutableStateOf(false) }
 
@@ -218,6 +219,15 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                 onDelete = viewModel::deleteModel,
             )
         }
+        val modelOptionHandlers = remember(viewModel) {
+            ModelOptionHandlers(
+                onSet = viewModel::setModelOption,
+                onOpenChoice = { key ->
+                    choiceKey = key
+                    subPage = SettingsSubPage.MODEL_CHOICE
+                },
+            )
+        }
         val installed = models.filter { it.state is ModelInstallState.Installed }
         val activeItem = installed.firstOrNull { it.manifest.id == settings.selectedModelId } ?: installed.firstOrNull()
 
@@ -250,6 +260,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                             onShowImePicker = showImePicker,
                             onOpenModels = { tab = MainTab.MODELS },
                             onUnload = viewModel::unloadMemoryNow,
+                            modelOptionHandlers = modelOptionHandlers,
                             onNavigate = { subPage = it },
                         )
                         MainTab.MODELS -> ModelHubScreen(
@@ -272,6 +283,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                             activeModel = activeItem?.manifest,
                             imeStatus = imeStatus,
                             contentPadding = padding,
+                            modelOptionHandlers = modelOptionHandlers,
                             onNavigate = { subPage = it },
                         )
                     }
@@ -321,6 +333,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                             activeModel = activeItem?.manifest,
                             imeStatus = imeStatus,
                             engineStatus = engineStatus,
+                            choiceKey = choiceKey,
                             onBack = { subPage = null },
                             onRequestMic = requestMic,
                             onOpenImeSettings = openImeSettings,
@@ -361,20 +374,24 @@ private fun SettingsSubPageContent(
     activeModel: com.freespeak.ime.model.ModelManifest?,
     imeStatus: SystemImeStatus,
     engineStatus: com.freespeak.ime.engine.EngineRuntimeStatus,
+    choiceKey: String,
     onBack: () -> Unit,
     onRequestMic: () -> Unit,
     onOpenImeSettings: () -> Unit,
     onShowImePicker: () -> Unit,
 ) {
     when (page) {
-        SettingsSubPage.PREFERRED_LANGUAGES -> LanguageSettingsScreen(
-            settings = settings,
-            model = activeModel,
-            onBack = onBack,
-            onHintChange = viewModel::setSpokenLanguageHint,
-            onTranslationChange = viewModel::setTranslateToEnglish,
-            onWhisperPromptChange = viewModel::setWhisperPromptEnabled,
-        )
+        SettingsSubPage.MODEL_CHOICE -> if (activeModel != null) {
+            ModelChoiceScreen(
+                model = activeModel,
+                optionKey = choiceKey,
+                settings = settings,
+                onBack = onBack,
+                onSelect = { viewModel.setModelOption(activeModel.id, choiceKey, it) },
+            )
+        } else {
+            LaunchedEffect(Unit) { onBack() }
+        }
         SettingsSubPage.CHINESE_OUTPUT -> ChineseOutputScreen(settings.chineseOutputMode, onBack, viewModel::setChineseOutputMode)
         SettingsSubPage.RECORDING_MODE -> RecordingModeSubScreen(settings, onBack, viewModel::setInteractionMode)
         SettingsSubPage.COLOR_SCHEME -> ColorSchemeSubScreen(settings, onBack, viewModel::setImeColorScheme)

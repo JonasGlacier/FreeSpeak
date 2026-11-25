@@ -301,6 +301,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 engineMgr.unloadNow()
             }
             modelRepo.deleteModel(manifest.id)
+            prefs.clearModelOptions(manifest.id)
             val remaining = modelRepo.listInstalledManifests()
             if (curId == manifest.id) {
                 prefs.setSelectedModelId(remaining.firstOrNull()?.id ?: "")
@@ -369,16 +370,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun togglePreferredLanguage(langCode: String) {
-        viewModelScope.launch { prefs.togglePreferredLanguage(langCode) }
-    }
-
-    fun setSpokenLanguageHint(code: String) {
-        viewModelScope.launch { prefs.setSpokenLanguageHint(code) }
-    }
-
-    fun setTranslateToEnglish(enabled: Boolean) {
-        viewModelScope.launch { prefs.setTranslateToEnglish(enabled) }
+    fun setModelOption(modelId: String, key: String, value: String) {
+        viewModelScope.launch { prefs.setModelOption(modelId, key, value) }
     }
 
     fun setChineseOutputMode(mode: ChineseOutputMode) {
@@ -419,10 +412,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setIdleUnloadMinutes(minutes: Int) {
         viewModelScope.launch { prefs.setIdleUnloadMinutes(minutes) }
-    }
-
-    fun setWhisperPromptEnabled(enabled: Boolean) {
-        viewModelScope.launch { prefs.setWhisperPromptEnabled(enabled) }
     }
 
     fun unloadMemoryNow() {

@@ -38,6 +38,9 @@ import com.freespeak.ime.model.canTranslateToEnglish
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.AsrInferenceOptions
 import com.freespeak.ime.engine.EngineRuntimeStatus
+import com.freespeak.ime.model.ModelManifest
+import com.freespeak.ime.model.ModelOptions
+import com.freespeak.ime.model.optionsFor
 import com.freespeak.ime.ui.MainActivity
 import com.freespeak.ime.ui.MainTab
 import kotlinx.coroutines.CoroutineScope
@@ -73,6 +76,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
     private var btnBackspace: ImageButton? = null
     private var micAnimator: ValueAnimator? = null
     private var translateAvailable = false
+    private var cachedActiveModel: ModelManifest? = null
     private var activePalette: ImePanelPalette? = null
 
     // Undo / redo of text that was inserted by speech recognition
@@ -221,8 +225,11 @@ class FreeSpeakInputMethodService : InputMethodService() {
         }
         btnLang?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            val enable = !currentSettings.translateToEnglish
-            serviceScope.launch { app.preferencesRepository.setTranslateToEnglish(enable) }
+            val model = activeManifest() ?: return@setOnClickListener
+            val enable = !currentSettings.optionsFor(model).translateToEnglish
+            serviceScope.launch {
+                app.preferencesRepository.setModelOption(model.id, ModelOptions.TRANSLATE_EN, enable.toString())
+            }
         }
         btnTargetIme?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -324,7 +331,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
     }
 
     private fun applyLangButtonStyle(palette: ImePanelPalette = currentPalette()) {
-        val translating = translateAvailable && currentSettings.translateToEnglish
+        val translating = translateAvailable && currentSettings.optionsFor(cachedActiveModel).translateToEnglish
         btnLang?.apply {
             background = if (translating) {
                 ImePanelTheme.ovalKeyDrawable(palette.micBg, palette.micRipple)
@@ -561,15 +568,16 @@ class FreeSpeakInputMethodService : InputMethodService() {
             }
 
             val settingsSnapshot = currentSettings
-            val asrLang = settingsSnapshot.spokenLanguageHint
+            val model = activeManifest()
+            val modelOpts = settingsSnapshot.optionsFor(model)
             val transcribeResult = app.engineManager.transcribe(
                 pcm16k = audioResult.samples,
-                preferredModelId = settingsSnapshot.selectedModelId,
+                preferredModelId = model?.id ?: settingsSnapshot.selectedModelId,
                 options = AsrInferenceOptions(
-                    language = asrLang,
+                    language = modelOpts.language,
                     numThreads = settingsSnapshot.cpuThreads,
-                    enableStylePrompt = settingsSnapshot.whisperStylePromptEnabled,
-                    translateToEnglish = settingsSnapshot.translateToEnglish,
+                    enableStylePrompt = modelOpts.whisperPrompt,
+                    translateToEnglish = modelOpts.translateToEnglish,
                     chineseOutputMode = settingsSnapshot.chineseOutputMode,
                 )
             )
@@ -585,7 +593,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
                     if (text.isNotEmpty()) {
                         lastTextUsesCjk = text.any { it in '\u3000'..'\u9FFF' }
                         updateToolbarAndPunctuation()
-                        val commitStr = if (shouldAppendTrailingSpace(text, asrLang)) "$text " else text
+                        val commitStr = if (shouldAppendTrailingSpace(text, modelOpts.language)) "$text " else text
                         currentInputConnection?.commitText(commitStr, 1)
                         pushUndo(commitStr)
                         val donePrefix = getString(R.string.status_done_latency, res.inferenceTimeMs)
@@ -639,12 +647,11 @@ class FreeSpeakInputMethodService : InputMethodService() {
     }
 
     private fun updateToolbarAndPunctuation() {
-        val installed = app.modelRepository.listInstalledManifests()
-        val activeModel = installed.find { it.id == currentSettings.selectedModelId }
-            ?: installed.firstOrNull()
+        val activeModel = activeManifest()
+        cachedActiveModel = activeModel
 
         translateAvailable = activeModel?.canTranslateToEnglish == true
-        val translating = translateAvailable && currentSettings.translateToEnglish
+        val translating = translateAvailable && currentSettings.optionsFor(activeModel).translateToEnglish
 
         val useCjkPunct = !translating && (lastTextUsesCjk
             ?: (resources.configuration.locales[0].language in setOf("zh", "ja")))
@@ -812,6 +819,11 @@ class FreeSpeakInputMethodService : InputMethodService() {
         val noEnterAction = (info.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
         if (noEnterAction) return EditorInfo.IME_ACTION_NONE
         return info.imeOptions and EditorInfo.IME_MASK_ACTION
+    }
+
+    private fun activeManifest(): ModelManifest? {
+        val installed = app.modelRepository.listInstalledManifests()
+        return installed.find { it.id == currentSettings.selectedModelId } ?: installed.firstOrNull()
     }
 
     private fun showImePicker() {

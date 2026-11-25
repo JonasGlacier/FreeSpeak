@@ -72,18 +72,16 @@ import com.freespeak.ime.R
 import com.freespeak.ime.data.ImeColorScheme
 import com.freespeak.ime.data.MirrorSource
 import com.freespeak.ime.data.RecordInteractionMode
-import com.freespeak.ime.data.SupportedLanguages
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.EngineRuntimeStatus
 import com.freespeak.ime.ime.ImePanelTheme
 import com.freespeak.ime.model.ModelManifest
-import com.freespeak.ime.model.canHintLanguage
 import com.freespeak.ime.ui.theme.FreeSpeakType
 import com.freespeak.ime.ui.theme.NothingRed
 import kotlin.math.roundToInt
 
 enum class SettingsSubPage {
-    PREFERRED_LANGUAGES,
+    MODEL_CHOICE,
     CHINESE_OUTPUT,
     RECORDING_MODE,
     COLOR_SCHEME,
@@ -200,6 +198,7 @@ internal fun SettingsScreen(
     activeModel: ModelManifest?,
     imeStatus: SystemImeStatus,
     contentPadding: PaddingValues,
+    modelOptionHandlers: ModelOptionHandlers,
     onNavigate: (SettingsSubPage) -> Unit,
 ) {
     val ctx = LocalContext.current
@@ -221,16 +220,12 @@ internal fun SettingsScreen(
     ) {
         PageTitle(stringResource(R.string.settings_title), Modifier.padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 4.dp))
 
+        if (activeModel != null && hasModelOptions(activeModel, settings)) {
+            SectionLabel(stringResource(R.string.model_settings_title, activeModel.name))
+            ModelOptionRows(activeModel, settings, modelOptionHandlers)
+        }
+
         SectionLabel(stringResource(R.string.section_general))
-        ValueRow(
-            title = stringResource(R.string.pref_preferred_languages),
-            value = when {
-                activeModel?.canHintLanguage != true -> stringResource(R.string.language_builtin_auto)
-                settings.spokenLanguageHint == "auto" -> stringResource(R.string.pref_lang_auto_mixed)
-                else -> SupportedLanguages.labelFor(settings.spokenLanguageHint)
-            },
-            onClick = { onNavigate(SettingsSubPage.PREFERRED_LANGUAGES) },
-        )
         ValueRow(
             title = stringResource(R.string.chinese_output_title),
             value = stringResource(settings.chineseOutputMode.titleRes()),

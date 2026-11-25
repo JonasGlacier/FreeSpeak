@@ -239,4 +239,5 @@
     <string name="setup_select">Set as current keyboard</string>
     <string name="dialog_delete_title">Delete %1$s?</string>
     <string name="section_keyboard">Keyboard</string>
+    <string name="model_settings_title">%1$s Settings</string>
 </resources>

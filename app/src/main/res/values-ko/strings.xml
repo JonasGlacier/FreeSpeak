@@ -141,4 +141,5 @@
     <string name="setup_select">현재 키보드로 설정</string>
     <string name="dialog_delete_title">%1$s 삭제할까요?</string>
     <string name="section_keyboard">키보드</string>
+    <string name="model_settings_title">%1$s 설정</string>
 </resources>

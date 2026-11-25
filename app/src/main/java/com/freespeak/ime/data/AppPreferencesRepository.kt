@@ -14,6 +14,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.freespeak.ime.R
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import java.util.Locale
 import com.freespeak.ime.text.ChineseOutputMode
 
@@ -101,7 +104,13 @@ data class UserSettings(
     val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
     val targetImeId: String = "",
     val imeColorScheme: ImeColorScheme = ImeColorScheme.DYNAMIC,
+    /** Per-model option values: modelId -> (option key -> value). See ModelOptions. */
+    val modelOptions: Map<String, Map<String, String>> = emptyMap(),
 ) {
+    /** Installed model the user is effectively using (selected, else first installed). */
+    fun resolveActiveModelId(installedIds: List<String>): String? =
+        installedIds.firstOrNull { it == selectedModelId } ?: installedIds.firstOrNull()
+
     /**
      * Ordered list of user's preferred languages following [SupportedLanguages.all] order.
      */
@@ -207,6 +216,7 @@ class AppPreferencesRepository(private val context: Context) {
             targetImeId = prefs[KEY_TARGET_IME_ID] ?: "",
             imeColorScheme = ImeColorScheme.entries.find { it.name == prefs[KEY_IME_COLOR_SCHEME] }
                 ?: ImeColorScheme.DYNAMIC,
+            modelOptions = decodeModelOptions(prefs[KEY_MODEL_OPTIONS]),
         )
     }
 
@@ -296,6 +306,22 @@ class AppPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[KEY_CHINESE_OUTPUT] = mode.name }
     }
 
+    suspend fun setModelOption(modelId: String, key: String, value: String) {
+        if (modelId.isBlank()) return
+        context.dataStore.edit { prefs ->
+            val all = decodeModelOptions(prefs[KEY_MODEL_OPTIONS]).toMutableMap()
+            all[modelId] = all[modelId].orEmpty() + (key to value)
+            prefs[KEY_MODEL_OPTIONS] = modelOptionsJson.encodeToString(modelOptionsSerializer, all)
+        }
+    }
+
+    suspend fun clearModelOptions(modelId: String) {
+        context.dataStore.edit { prefs ->
+            val all = decodeModelOptions(prefs[KEY_MODEL_OPTIONS])
+            if (modelId in all) prefs[KEY_MODEL_OPTIONS] = modelOptionsJson.encodeToString(modelOptionsSerializer, all - modelId)
+        }
+    }
+
     suspend fun setTargetImeId(id: String) {
         context.dataStore.edit { it[KEY_TARGET_IME_ID] = id }
     }
@@ -305,6 +331,14 @@ class AppPreferencesRepository(private val context: Context) {
     }
 
     companion object {
+        private val modelOptionsJson = Json { ignoreUnknownKeys = true }
+        private val modelOptionsSerializer = MapSerializer(String.serializer(), MapSerializer(String.serializer(), String.serializer()))
+
+        internal fun decodeModelOptions(raw: String?): Map<String, Map<String, String>> =
+            if (raw.isNullOrBlank()) emptyMap()
+            else runCatching { modelOptionsJson.decodeFromString(modelOptionsSerializer, raw) }.getOrDefault(emptyMap())
+
+        private val KEY_MODEL_OPTIONS = stringPreferencesKey("model_options")
         private val KEY_TARGET_IME_ID = stringPreferencesKey("target_ime_id")
         private val KEY_IME_COLOR_SCHEME = stringPreferencesKey("ime_color_scheme")
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")

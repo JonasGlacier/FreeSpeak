@@ -41,12 +41,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.freespeak.ime.R
-import com.freespeak.ime.data.SupportedLanguages
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.EngineRuntimeStatus
 import com.freespeak.ime.model.ManagedModelItem
-import com.freespeak.ime.model.canHintLanguage
-import com.freespeak.ime.model.canTranslateToEnglish
 import com.freespeak.ime.ui.theme.NothingRed
 
 @Composable
@@ -61,6 +58,7 @@ internal fun HomeScreen(
     onShowImePicker: () -> Unit,
     onOpenModels: () -> Unit,
     onUnload: () -> Unit,
+    modelOptionHandlers: ModelOptionHandlers,
     onNavigate: (SettingsSubPage) -> Unit,
 ) {
     Column(
@@ -87,18 +85,8 @@ internal fun HomeScreen(
 
         ModelPanel(activeModel, engineStatus, onOpenModels, onUnload)
 
-        val manifest = activeModel?.manifest
         Panel(contentPadding = PaddingValues(vertical = 4.dp)) {
-            ValueRow(
-                title = stringResource(R.string.pref_preferred_languages),
-                value = when {
-                    manifest?.canTranslateToEnglish == true && settings.translateToEnglish -> "→ EN"
-                    manifest?.canHintLanguage != true -> stringResource(R.string.language_builtin_auto)
-                    settings.spokenLanguageHint == "auto" -> stringResource(R.string.pref_lang_auto_mixed)
-                    else -> SupportedLanguages.labelFor(settings.spokenLanguageHint)
-                },
-                onClick = { onNavigate(SettingsSubPage.PREFERRED_LANGUAGES) },
-            )
+            activeModel?.manifest?.let { ModelOptionRows(it, settings, modelOptionHandlers) }
             ValueRow(
                 title = stringResource(R.string.chinese_output_title),
                 value = stringResource(settings.chineseOutputMode.titleRes()),
