@@ -59,7 +59,7 @@
     <string name="mode_hold_short">길게 눌러 말하기</string>
 
     <string name="pref_vad_filter">음성 감지 및 무음 필터</string>
-    <string name="pref_download_mirror">다운로드 소스 및 사용자 모델</string>
+    <string name="pref_download_mirror">다운로드 소스</string>
     <string name="pref_performance">성능 및 메모리</string>
     <string name="pref_performance_summary">%1$d 스레드 · %2$s</string>
     <string name="idle_never">메모리 유지</string>
@@ -99,4 +99,46 @@
     <string name="color_scheme_dynamic_desc">시스템 Material You 배경화면 색상에 맞춰 자동 적용됩니다.</string>
     <string name="color_scheme_classic">클래식 흑백</string>
     <string name="color_scheme_classic_desc">깔끔하고 대비가 뚜렷한 모노크롬 색상.</string>
+
+    <!-- Main navigation & Model hub -->
+    <string name="nav_home">홈</string>
+    <string name="nav_models">모델</string>
+    <string name="nav_settings">설정</string>
+    <string name="hub_mine">내 모델</string>
+    <string name="hub_discover">탐색</string>
+    <string name="hub_search_hint">Hugging Face 검색</string>
+    <string name="hub_featured">추천</string>
+    <string name="hub_no_models">모델 없음</string>
+    <string name="hub_no_results">결과 없음</string>
+    <string name="hub_compatible">호환</string>
+    <string name="hub_unverified">미검증</string>
+    <string name="hub_unsupported">미지원</string>
+    <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
+    <string name="hf_issue_gated">제한된 저장소 · 로그인 필요</string>
+    <string name="hf_issue_disabled">비활성화된 저장소</string>
+    <string name="hf_issue_gguf">GGUF · 내장 whisper.cpp는 GGML .bin 필요</string>
+    <string name="hf_issue_ct2">CTranslate2 / faster-whisper 형식</string>
+    <string name="hf_issue_pytorch">PyTorch / Transformers 가중치 · 변환 필요</string>
+    <string name="hf_issue_whisper_onnx">Whisper ONNX 형식 · GGML .bin 사용</string>
+    <string name="hf_issue_transducer">Transducer 구조 (encoder / decoder / joiner)</string>
+    <string name="hf_issue_other_runtime">기타 런타임 (TFLite / NCNN / Core ML …)</string>
+    <string name="hf_issue_unknown_onnx">알 수 없는 ONNX 구조</string>
+    <string name="hf_issue_no_weights">모델 가중치 없음</string>
+    <string name="action_pause">일시정지</string>
+    <string name="action_resume">이어받기</string>
+    <string name="action_search">검색</string>
+    <string name="action_more">더보기</string>
+    <string name="action_open_browser">브라우저에서 열기</string>
+    <string name="action_switch_model">모델 전환</string>
+    <string name="label_model">모델</string>
+    <string name="model_state_unloaded">대기</string>
+    <string name="model_state_loading">로드 중</string>
+    <string name="model_state_ready">메모리에 로드됨</string>
+    <string name="model_state_busy">변환 중</string>
+    <string name="model_state_error">오류</string>
+    <string name="setup_mic">마이크</string>
+    <string name="setup_enable">키보드 활성화</string>
+    <string name="setup_select">현재 키보드로 설정</string>
+    <string name="dialog_delete_title">%1$s 삭제할까요?</string>
+    <string name="section_keyboard">키보드</string>
 </resources>

@@ -59,7 +59,7 @@
     <string name="mode_hold_short">按住說話</string>
 
     <string name="pref_vad_filter">語音偵測與靜音過濾</string>
-    <string name="pref_download_mirror">下載來源與自訂模型</string>
+    <string name="pref_download_mirror">下載來源</string>
     <string name="pref_performance">效能與記憶體管理</string>
     <string name="pref_performance_summary">%1$d 執行緒 · %2$s</string>
     <string name="idle_never">常駐記憶體</string>
@@ -77,4 +77,46 @@
     <string name="color_scheme_dynamic_desc">跟隨系統桌布與 Material You 動態調色盤自動套用。</string>
     <string name="color_scheme_classic">經典黑白</string>
     <string name="color_scheme_classic_desc">簡潔純粹的高對比度黑白灰配色。</string>
+
+    <!-- Main navigation & Model hub -->
+    <string name="nav_home">首頁</string>
+    <string name="nav_models">模型中心</string>
+    <string name="nav_settings">設定</string>
+    <string name="hub_mine">我的</string>
+    <string name="hub_discover">探索</string>
+    <string name="hub_search_hint">搜尋 Hugging Face</string>
+    <string name="hub_featured">精選</string>
+    <string name="hub_no_models">尚無模型</string>
+    <string name="hub_no_results">無結果</string>
+    <string name="hub_compatible">可用</string>
+    <string name="hub_unverified">未驗證</string>
+    <string name="hub_unsupported">不支援</string>
+    <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
+    <string name="hf_issue_gated">受限儲存庫 · 需登入授權</string>
+    <string name="hf_issue_disabled">儲存庫已停用</string>
+    <string name="hf_issue_gguf">GGUF · 內建 whisper.cpp 需 GGML .bin</string>
+    <string name="hf_issue_ct2">CTranslate2 / faster-whisper 格式</string>
+    <string name="hf_issue_pytorch">PyTorch / Transformers 權重 · 需轉換</string>
+    <string name="hf_issue_whisper_onnx">Whisper ONNX 匯出 · 請用 GGML .bin</string>
+    <string name="hf_issue_transducer">Transducer 結構（encoder / decoder / joiner）</string>
+    <string name="hf_issue_other_runtime">其他執行環境（TFLite / NCNN / Core ML …）</string>
+    <string name="hf_issue_unknown_onnx">未識別的 ONNX 結構</string>
+    <string name="hf_issue_no_weights">找不到模型權重</string>
+    <string name="action_pause">暫停</string>
+    <string name="action_resume">繼續下載</string>
+    <string name="action_search">搜尋</string>
+    <string name="action_more">更多</string>
+    <string name="action_open_browser">在瀏覽器中開啟</string>
+    <string name="action_switch_model">切換模型</string>
+    <string name="label_model">模型</string>
+    <string name="model_state_unloaded">未載入</string>
+    <string name="model_state_loading">載入中</string>
+    <string name="model_state_ready">已載入</string>
+    <string name="model_state_busy">轉寫中</string>
+    <string name="model_state_error">錯誤</string>
+    <string name="setup_mic">咪高峰</string>
+    <string name="setup_enable">啟用鍵盤</string>
+    <string name="setup_select">設為目前輸入法</string>
+    <string name="dialog_delete_title">刪除 %1$s？</string>
+    <string name="section_keyboard">鍵盤</string>
 </resources>

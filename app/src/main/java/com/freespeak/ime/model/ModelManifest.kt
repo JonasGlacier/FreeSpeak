@@ -5,10 +5,10 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 @Serializable
-enum class EngineType(val displayName: String) {
-    WHISPER_CPP("whisper.cpp (GGML/GGUF)"),
-    FUN_ASR_ONNX("Fun-ASR / SenseVoice (ONNX)"),
-    QWEN3_ASR("Qwen3-ASR (ONNX Multimodal)"),
+enum class EngineType(val displayName: String, val shortName: String) {
+    WHISPER_CPP("whisper.cpp (GGML)", "whisper.cpp"),
+    FUN_ASR_ONNX("Fun-ASR / SenseVoice (ONNX)", "SenseVoice · FunASR"),
+    QWEN3_ASR("Qwen3-ASR (ONNX Multimodal)", "Qwen3-ASR"),
 }
 
 @Serializable
@@ -18,6 +18,8 @@ data class ModelFileEntry(
     val modelScopeUrl: String? = null,
     val sha256: String? = null,
     val extractArchive: Boolean = false,
+    /** Exact byte size when known (e.g. from the Hugging Face file tree); used for integrity checks. */
+    val sizeBytes: Long? = null,
 )
 
 @Serializable
@@ -58,6 +60,10 @@ data class ModelManifest(
     // Nullable hints preserve compatibility with existing downloaded model.json files.
     val supportsLanguageHint: Boolean? = null,
     val supportsTranslateToEnglish: Boolean? = null,
+    /** Hugging Face `owner/name` this model was installed from, if any. */
+    val sourceRepo: String? = null,
+    /** Pinned commit sha of [sourceRepo]. */
+    val sourceRevision: String? = null,
 )
 
 val ModelManifest.canHintLanguage: Boolean
@@ -215,7 +221,7 @@ object ModelManifestCodec {
         if (manifest.files.isNotEmpty() && manifest.files.none { it.extractArchive }) {
             return manifest.files.all { entry ->
                 val f = File(modelDir, entry.relativePath)
-                f.exists() && f.length() > 0L
+                f.exists() && f.length() > 0L && (entry.sizeBytes == null || f.length() == entry.sizeBytes)
             }
         }
         val cfg = manifest.runtimeConfig

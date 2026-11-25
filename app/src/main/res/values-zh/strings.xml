@@ -64,7 +64,7 @@
 
     <string name="pref_vad_filter">语音检测与静音过滤</string>
 
-    <string name="pref_download_mirror">下载源与自定义模型</string>
+    <string name="pref_download_mirror">下载源</string>
 
     <string name="pref_performance">性能与内存管理</string>
     <string name="pref_performance_summary">%1$d 线程 · %2$s</string>
@@ -197,4 +197,46 @@
     <string name="color_scheme_dynamic_desc">跟随系统壁纸与 Material You 动态色彩自动适配。</string>
     <string name="color_scheme_classic">经典黑白</string>
     <string name="color_scheme_classic_desc">简洁纯粹的高对比度黑白灰配色。</string>
+
+    <!-- Main navigation & Model hub -->
+    <string name="nav_home">首页</string>
+    <string name="nav_models">模型中心</string>
+    <string name="nav_settings">设置</string>
+    <string name="hub_mine">我的</string>
+    <string name="hub_discover">发现</string>
+    <string name="hub_search_hint">搜索 Hugging Face</string>
+    <string name="hub_featured">精选</string>
+    <string name="hub_no_models">暂无模型</string>
+    <string name="hub_no_results">无结果</string>
+    <string name="hub_compatible">可用</string>
+    <string name="hub_unverified">未验证</string>
+    <string name="hub_unsupported">不支持</string>
+    <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
+    <string name="hf_issue_gated">受限仓库 · 需登录授权</string>
+    <string name="hf_issue_disabled">仓库已禁用</string>
+    <string name="hf_issue_gguf">GGUF · 内置 whisper.cpp 需 GGML .bin</string>
+    <string name="hf_issue_ct2">CTranslate2 / faster-whisper 格式</string>
+    <string name="hf_issue_pytorch">PyTorch / Transformers 权重 · 需转换</string>
+    <string name="hf_issue_whisper_onnx">Whisper ONNX 导出 · 请用 GGML .bin</string>
+    <string name="hf_issue_transducer">Transducer 结构（encoder / decoder / joiner）</string>
+    <string name="hf_issue_other_runtime">其他运行时（TFLite / NCNN / Core ML …）</string>
+    <string name="hf_issue_unknown_onnx">未识别的 ONNX 结构</string>
+    <string name="hf_issue_no_weights">未找到模型权重</string>
+    <string name="action_pause">暂停</string>
+    <string name="action_resume">继续下载</string>
+    <string name="action_search">搜索</string>
+    <string name="action_more">更多</string>
+    <string name="action_open_browser">在浏览器中打开</string>
+    <string name="action_switch_model">切换模型</string>
+    <string name="label_model">模型</string>
+    <string name="model_state_unloaded">未加载</string>
+    <string name="model_state_loading">加载中</string>
+    <string name="model_state_ready">已加载</string>
+    <string name="model_state_busy">转写中</string>
+    <string name="model_state_error">错误</string>
+    <string name="setup_mic">麦克风</string>
+    <string name="setup_enable">启用键盘</string>
+    <string name="setup_select">设为当前输入法</string>
+    <string name="dialog_delete_title">删除 %1$s？</string>
+    <string name="section_keyboard">键盘</string>
 </resources>

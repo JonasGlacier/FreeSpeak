@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -44,6 +44,8 @@ sealed interface ModelInstallState {
     ) : ModelInstallState
     data object Extracting : ModelInstallState
     data class Installed(val diskBytes: Long) : ModelInstallState
+    /** Download was interrupted (cancelled or app restarted); files on disk can be resumed. */
+    data class Partial(val downloadedBytes: Long, val totalBytes: Long) : ModelInstallState
     data class Error(val message: String) : ModelInstallState
 }
 
@@ -71,6 +73,8 @@ class ModelRepository(private val context: Context) {
         .build()
 
     private val activeJobs = ConcurrentHashMap<String, Job>()
+
+    val huggingFace = com.freespeak.ime.model.hf.HuggingFaceClient(okHttpClient)
 
     private val _externalModels = MutableStateFlow<List<ModelManifest>>(emptyList())
     private val _downloadStates = MutableStateFlow<Map<String, ModelInstallState>>(emptyMap())
@@ -117,7 +121,17 @@ class ModelRepository(private val context: Context) {
                     ModelInstallState.Installed(diskSize)
                 }
                 transientState is ModelInstallState.Error -> transientState
-                else -> ModelInstallState.NotInstalled
+                else -> {
+                    val onDisk = if (dir.isDirectory) {
+                        dir.walkTopDown().filter { it.isFile && it.name != ModelManifestCodec.MANIFEST_FILE_NAME }
+                            .sumOf { it.length() }
+                    } else 0L
+                    if (onDisk > 0L && manifest.files.isNotEmpty()) {
+                        ModelInstallState.Partial(onDisk, manifest.sizeBytes)
+                    } else {
+                        ModelInstallState.NotInstalled
+                    }
+                }
             }
             ManagedModelItem(
                 manifest = manifest,
@@ -239,6 +253,16 @@ class ModelRepository(private val context: Context) {
         return manifest
     }
 
+    /**
+     * Persists a manifest (e.g. generated from a Hugging Face repo) so it survives restarts and
+     * interrupted downloads can be resumed from "My models".
+     */
+    fun registerManifest(manifest: ModelManifest) {
+        File(customRegistryDir, "${sanitizeId(manifest.id)}.json")
+            .writeText(ModelManifestCodec.encodeManifest(manifest))
+        refreshLocalInventory()
+    }
+
     fun startDownload(
         manifest: ModelManifest,
         settings: UserSettings,
@@ -261,6 +285,7 @@ class ModelRepository(private val context: Context) {
                         url = resolvedUrl,
                         destFile = targetFile,
                         expectedSha256 = entry.sha256,
+                        expectedSize = entry.sizeBytes,
                         onProgress = { fileDone, fileTotal, speed ->
                             val grandDone = completedBytesAcrossFiles + fileDone
                             val grandTotal = if (declaredTotal > 0L) {
@@ -411,10 +436,17 @@ class ModelRepository(private val context: Context) {
         url: String,
         destFile: File,
         expectedSha256: String?,
+        expectedSize: Long?,
         onProgress: (downloaded: Long, total: Long, speedBytesPerSec: Long) -> Unit,
     ) = withContext(Dispatchers.IO) {
         if (destFile.exists() && destFile.length() > 0L) {
-            if (expectedSha256 == null || verifySha256(destFile, expectedSha256)) {
+            val ok = when {
+                // Exact size match: the file was hash-verified when it was first completed.
+                expectedSize != null -> destFile.length() == expectedSize
+                expectedSha256 == null -> true
+                else -> verifySha256(destFile, expectedSha256)
+            }
+            if (ok) {
                 onProgress(destFile.length(), destFile.length(), 0L)
                 return@withContext
             } else {
@@ -424,63 +456,75 @@ class ModelRepository(private val context: Context) {
 
         val partFile = File(destFile.parentFile, "${destFile.name}.part")
         var existingBytes = if (partFile.exists()) partFile.length() else 0L
-
-        val reqBuilder = Request.Builder().url(url)
-        if (existingBytes > 0L) {
-            reqBuilder.header("Range", "bytes=$existingBytes-")
+        if (expectedSize != null && existingBytes > expectedSize) {
+            partFile.delete()
+            existingBytes = 0L
         }
 
-        okHttpClient.newCall(reqBuilder.build()).execute().use { response ->
-            if (response.code == 416) {
-                // Range already satisfied
-                partFile.renameTo(destFile)
-                return@withContext
-            }
-            if (!response.isSuccessful) {
-                throw IllegalStateException("HTTP ${response.code} (${url.substringBefore('?')})")
+        if (expectedSize == null || existingBytes < expectedSize) {
+            val reqBuilder = Request.Builder().url(url)
+            if (existingBytes > 0L) {
+                reqBuilder.header("Range", "bytes=$existingBytes-")
             }
 
-            val isResume = response.code == 206 && existingBytes > 0L
-            if (!isResume) {
-                existingBytes = 0L
-                if (partFile.exists()) partFile.delete()
-            }
+            okHttpClient.newCall(reqBuilder.build()).execute().use { response ->
+                if (response.code == 416 && existingBytes > 0L) {
+                    // Range already satisfied; verified below.
+                    return@use
+                }
+                if (!response.isSuccessful) {
+                    throw IllegalStateException("HTTP ${response.code} (${url.substringBefore('?')})")
+                }
 
-            val body = response.body ?: throw IllegalStateException("Empty server response")
-            val contentLen = body.contentLength()
-            val totalFileBytes = if (contentLen > 0L) existingBytes + contentLen else 0L
+                val isResume = response.code == 206 && existingBytes > 0L
+                if (!isResume) {
+                    existingBytes = 0L
+                    if (partFile.exists()) partFile.delete()
+                }
 
-            RandomAccessFile(partFile, "rw").use { raf ->
-                if (isResume) raf.seek(existingBytes) else raf.setLength(0L)
+                val body = response.body ?: throw IllegalStateException("Empty server response")
+                val contentLen = body.contentLength()
+                val totalFileBytes = expectedSize ?: if (contentLen > 0L) existingBytes + contentLen else 0L
 
-                val buf = ByteArray(64 * 1024)
-                var downloaded = existingBytes
-                var windowBytes = 0L
-                var lastTickMs = System.currentTimeMillis()
-                var currentSpeed = 0L
+                RandomAccessFile(partFile, "rw").use { raf ->
+                    if (isResume) raf.seek(existingBytes) else raf.setLength(0L)
 
-                body.byteStream().use { input ->
-                    while (coroutineContext.isActive) {
-                        val read = input.read(buf)
-                        if (read == -1) break
-                        raf.write(buf, 0, read)
-                        downloaded += read
-                        windowBytes += read
+                    val buf = ByteArray(64 * 1024)
+                    var downloaded = existingBytes
+                    var windowBytes = 0L
+                    var lastTickMs = System.currentTimeMillis()
+                    var currentSpeed = 0L
 
-                        val now = System.currentTimeMillis()
-                        val elapsed = now - lastTickMs
-                        if (elapsed >= 250L) {
-                            currentSpeed = (windowBytes * 1000L) / elapsed
-                            windowBytes = 0L
-                            lastTickMs = now
-                            onProgress(downloaded, totalFileBytes, currentSpeed)
+                    body.byteStream().use { input ->
+                        while (true) {
+                            // Throws on cancellation so a partial file is never promoted to complete.
+                            ensureActive()
+                            val read = input.read(buf)
+                            if (read == -1) break
+                            raf.write(buf, 0, read)
+                            downloaded += read
+                            windowBytes += read
+
+                            val now = System.currentTimeMillis()
+                            val elapsed = now - lastTickMs
+                            if (elapsed >= 250L) {
+                                currentSpeed = (windowBytes * 1000L) / elapsed
+                                windowBytes = 0L
+                                lastTickMs = now
+                                onProgress(downloaded, totalFileBytes, currentSpeed)
+                            }
                         }
                     }
+                    onProgress(downloaded, totalFileBytes, currentSpeed)
                 }
-                onProgress(downloaded, totalFileBytes, currentSpeed)
             }
         }
 
+        if (expectedSize != null && partFile.length() != expectedSize) {
+            val got = partFile.length()
+            if (got > expectedSize) partFile.delete()
+            throw IllegalStateException("Incomplete download: ${destFile.name} ($got / $expectedSize bytes)")
+        }
         if (!expectedSha256.isNullOrBlank() && !verifySha256(partFile, expectedSha256)) {
             partFile.delete()
             throw IllegalStateException("SHA-256 checksum mismatch: ${destFile.name}")

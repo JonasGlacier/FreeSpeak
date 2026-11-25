@@ -64,7 +64,7 @@
 
     <string name="pref_vad_filter">Voice Detection &amp; Silence Filter</string>
 
-    <string name="pref_download_mirror">Download Source &amp; Custom Models</string>
+    <string name="pref_download_mirror">Download Source</string>
 
     <string name="pref_performance">Performance &amp; Memory</string>
     <string name="pref_performance_summary">%1$d threads · %2$s</string>
@@ -197,4 +197,46 @@
     <string name="color_scheme_dynamic_desc">Adapts the keyboard panel to your system Material You palette.</string>
     <string name="color_scheme_classic">Classic Black &amp; White</string>
     <string name="color_scheme_classic_desc">Clean, high-contrast monochrome palette.</string>
+
+    <!-- Main navigation & Model hub -->
+    <string name="nav_home">Home</string>
+    <string name="nav_models">Models</string>
+    <string name="nav_settings">Settings</string>
+    <string name="hub_mine">Mine</string>
+    <string name="hub_discover">Discover</string>
+    <string name="hub_search_hint">Search Hugging Face</string>
+    <string name="hub_featured">Featured</string>
+    <string name="hub_no_models">No models</string>
+    <string name="hub_no_results">No results</string>
+    <string name="hub_compatible">Compatible</string>
+    <string name="hub_unverified">Unverified</string>
+    <string name="hub_unsupported">Unsupported</string>
+    <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
+    <string name="hf_issue_gated">Gated repo · sign-in required</string>
+    <string name="hf_issue_disabled">Repo disabled</string>
+    <string name="hf_issue_gguf">GGUF · bundled whisper.cpp needs GGML .bin</string>
+    <string name="hf_issue_ct2">CTranslate2 / faster-whisper</string>
+    <string name="hf_issue_pytorch">PyTorch / Transformers weights · needs conversion</string>
+    <string name="hf_issue_whisper_onnx">Whisper ONNX export · use GGML .bin</string>
+    <string name="hf_issue_transducer">Transducer (encoder / decoder / joiner)</string>
+    <string name="hf_issue_other_runtime">Other runtime (TFLite / NCNN / Core ML …)</string>
+    <string name="hf_issue_unknown_onnx">Unrecognized ONNX layout</string>
+    <string name="hf_issue_no_weights">No model weights found</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_search">Search</string>
+    <string name="action_more">More</string>
+    <string name="action_open_browser">Open in browser</string>
+    <string name="action_switch_model">Switch model</string>
+    <string name="label_model">Model</string>
+    <string name="model_state_unloaded">Idle</string>
+    <string name="model_state_loading">Loading</string>
+    <string name="model_state_ready">In memory</string>
+    <string name="model_state_busy">Transcribing</string>
+    <string name="model_state_error">Error</string>
+    <string name="setup_mic">Microphone</string>
+    <string name="setup_enable">Enable keyboard</string>
+    <string name="setup_select">Set as current keyboard</string>
+    <string name="dialog_delete_title">Delete %1$s?</string>
+    <string name="section_keyboard">Keyboard</string>
 </resources>

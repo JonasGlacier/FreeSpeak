@@ -352,15 +352,16 @@ private fun ModelStepContent(
                         item.state is ModelInstallState.Installed &&
                         models.firstOrNull { it.state is ModelInstallState.Installed }?.manifest?.id == item.manifest.id)
 
-                CompactModelRow(
+                ModelRow(
                     item = item,
                     isActive = isSelected && item.state is ModelInstallState.Installed,
                     onDownload = { onDownload(item.manifest) },
                     onCancel = { onCancel(item.manifest.id) },
                     onSelect = { onSelect(item.manifest.id) },
                     onDelete = null,
+                    startPadding = 0.dp,
                 )
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                HairlineDivider()
             }
 
             item {
@@ -438,149 +439,5 @@ private fun EnableImeStepContent(
                 Text(stringResource(R.string.onboarding_select_ime))
             }
         }
-    }
-}
-
-@Composable
-internal fun CompactModelRow(
-    item: ManagedModelItem,
-    isActive: Boolean,
-    onDownload: () -> Unit,
-    onCancel: () -> Unit,
-    onSelect: () -> Unit,
-    onDelete: (() -> Unit)?,
-) {
-    val manifest = item.manifest
-    val descRes = BuiltinModelCatalog.localizedDescriptionRes(manifest.id)
-    val descriptionText = if (descRes != null) stringResource(descRes) else manifest.description
-    val sizeMb = (manifest.sizeBytes / (1024 * 1024)).toInt()
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 14.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = manifest.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                if (sizeMb > 0) {
-                    Text(
-                        text = stringResource(R.string.model_size_format, sizeMb, manifest.quantization),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            when (item.state) {
-                ModelInstallState.NotInstalled -> {
-                    OutlinedButton(onClick = onDownload) {
-                        Text(stringResource(R.string.action_download))
-                    }
-                }
-                is ModelInstallState.Downloading -> {
-                    TextButton(onClick = onCancel) {
-                        Text(stringResource(R.string.action_cancel))
-                    }
-                }
-                ModelInstallState.Extracting -> Unit
-                is ModelInstallState.Installed -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isActive) {
-                            Text(
-                                text = stringResource(R.string.label_in_use),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.secondary,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        } else {
-                            TextButton(onClick = onSelect) {
-                                Text(stringResource(R.string.action_use))
-                            }
-                        }
-                        if (onDelete != null) {
-                            Spacer(Modifier.width(4.dp))
-                            TextButton(onClick = onDelete) {
-                                Text(
-                                    text = stringResource(R.string.action_delete),
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    }
-                }
-                is ModelInstallState.Error -> {
-                    OutlinedButton(onClick = onDownload) {
-                        Text(stringResource(R.string.action_retry))
-                    }
-                }
-            }
-        }
-
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = descriptionText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        when (val st = item.state) {
-            is ModelInstallState.Downloading -> {
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { st.progress },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(
-                        R.string.model_downloading_format,
-                        st.currentFile,
-                        (st.downloadedBytes / (1024 * 1024)).toInt(),
-                        (st.totalBytes / (1024 * 1024)).toInt(),
-                        formatSpeedLabel(st.speedBytesPerSec),
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            ModelInstallState.Extracting -> {
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.model_extracting),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-            is ModelInstallState.Error -> {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = st.message,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            else -> Unit
-        }
-    }
-}
-
-internal fun formatSpeedLabel(bytesPerSec: Long): String {
-    if (bytesPerSec <= 0L) return "…"
-    val kb = bytesPerSec / 1024.0
-    return if (kb >= 1024.0) {
-        String.format("%.1f MB/s", kb / 1024.0)
-    } else {
-        String.format("%.0f KB/s", kb)
     }
 }

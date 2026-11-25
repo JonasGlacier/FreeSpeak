@@ -131,6 +131,14 @@ data class UserSettings(
         return orderedPreferredLanguages.joinToString(", ") { SupportedLanguages.labelFor(it) }
     }
 
+    /** Base URL used for Hugging Face Hub API calls (search / repo info). */
+    val hubApiBase: String
+        get() = when (mirrorSource) {
+            MirrorSource.HUGGINGFACE -> "https://huggingface.co"
+            MirrorSource.HF_MIRROR, MirrorSource.MODELSCOPE -> "https://hf-mirror.com"
+            MirrorSource.CUSTOM -> customMirrorUrl.trim().trimEnd('/').ifEmpty { "https://hf-mirror.com" }
+        }
+
     fun resolveDownloadUrl(hfUrl: String, modelScopeUrl: String? = null): String {
         if (mirrorSource == MirrorSource.MODELSCOPE && !modelScopeUrl.isNullOrBlank()) {
             return modelScopeUrl

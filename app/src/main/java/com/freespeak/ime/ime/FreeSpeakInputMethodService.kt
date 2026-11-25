@@ -39,6 +39,7 @@ import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.AsrInferenceOptions
 import com.freespeak.ime.engine.EngineRuntimeStatus
 import com.freespeak.ime.ui.MainActivity
+import com.freespeak.ime.ui.MainTab
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -237,7 +238,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
 
         view.findViewById<View>(R.id.btnOpenSettings)?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            openMainApp()
+            openMainApp(MainTab.SETTINGS)
         }
 
         view.findViewById<View>(R.id.btnSpace)?.setOnClickListener { v ->
@@ -501,7 +502,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
             isTapSessionRecording = false
             isHoldSessionRecording = false
             tvStatus?.setText(R.string.status_need_permission)
-            openMainApp()
+            openMainApp(MainTab.HOME)
             return
         }
 
@@ -510,7 +511,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
             isTapSessionRecording = false
             isHoldSessionRecording = false
             tvStatus?.setText(R.string.status_need_model)
-            openMainApp()
+            openMainApp(MainTab.MODELS)
             return
         }
 
@@ -818,9 +819,10 @@ class FreeSpeakInputMethodService : InputMethodService() {
         imm?.showInputMethodPicker()
     }
 
-    private fun openMainApp() {
+    private fun openMainApp(tab: MainTab) {
         val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra(MainActivity.EXTRA_TAB, tab.name)
         }
         startActivity(intent)
     }
