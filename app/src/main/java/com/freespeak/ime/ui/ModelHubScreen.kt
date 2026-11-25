@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.freespeak.ime.R
 import com.freespeak.ime.data.UserSettings
+import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ManagedModelItem
 import com.freespeak.ime.model.ModelInstallState
 import com.freespeak.ime.model.ModelManifest
@@ -248,7 +249,11 @@ private fun DiscoverList(
 ) {
     val focus = LocalFocusManager.current
     val listState = rememberLazyListState()
-    val featured = models.filter { it.manifest.sourceTag == "builtin" || it.manifest.sourceTag == "catalog" }
+    val featured = models.filter { item ->
+        val manifest = item.manifest
+        manifest.engineType != EngineType.WHISPER_CPP &&
+            (manifest.sourceTag == "builtin" || manifest.sourceTag == "catalog")
+    }
 
     val nearEnd by remember {
         derivedStateOf {
