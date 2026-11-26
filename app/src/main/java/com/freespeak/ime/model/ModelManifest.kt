@@ -39,6 +39,8 @@ data class ModelRuntimeConfig(
     val blankId: Int? = null,
     val initialPrompt: String? = null,
     val maxNewTokens: Int = 128,
+    val rumbleFormatting: Boolean = false,
+    val maxDecoderContext: Int? = null,
 )
 
 /**
@@ -72,6 +74,9 @@ data class ModelManifest(
 )
 
 val EngineType.isCanary: Boolean get() = this == EngineType.CANARY_ONNX || this == EngineType.CANARY_GGUF
+
+val ModelManifest.hasRumbleFormatting: Boolean
+    get() = engineType == EngineType.QWEN3_ASR && runtimeConfig.rumbleFormatting
 
 val ModelManifest.canHintLanguage: Boolean
     get() = supportsLanguageHint ?: (engineType != EngineType.FUN_ASR_ONNX || id == "sense-voice-small-int8")

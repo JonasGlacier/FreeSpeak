@@ -6,6 +6,7 @@ import com.freespeak.ime.model.ModelFileEntry
 import com.freespeak.ime.model.ModelManifest
 import com.freespeak.ime.model.ModelRuntimeConfig
 import com.freespeak.ime.model.isCanary
+import com.freespeak.ime.model.hasRumbleFormatting
 
 enum class HfVariantStatus {
     /** Layout matches a graph the bundled engines are known to run. */
@@ -83,8 +84,9 @@ object HuggingFaceModelResolver {
         val variants = ArrayList<HfVariant>()
 
         variants += whisperVariants(info, files)
-        canaryVariant(info, files)?.let { variants += it }
-        variants += qwen3Variants(info, files)
+        pinnedVariant(info, files)?.let { variants += it }
+        // Do not offer a second generic Qwen entry that would lose Rumble's prompt controls.
+        if (builtinFor(info.id)?.hasRumbleFormatting != true) variants += qwen3Variants(info, files)
         variants += funAsrLlmVariants(info, files)
         variants += ctcVariants(info, files, issues)
 
@@ -98,8 +100,8 @@ object HuggingFaceModelResolver {
         return HfRepoAnalysis(info, distinct, issues)
     }
 
-    private fun canaryVariant(info: HfModelInfo, files: List<HfFile>): HfVariant? {
-        val model = builtinFor(info.id)?.takeIf { it.engineType.isCanary } ?: return null
+    private fun pinnedVariant(info: HfModelInfo, files: List<HfFile>): HfVariant? {
+        val model = builtinFor(info.id)?.takeIf { it.engineType.isCanary || it.hasRumbleFormatting } ?: return null
         val matched = model.files.associate { entry ->
             val file = files.firstOrNull {
                 it.path == entry.relativePath && (it.size == null || it.size == entry.sizeBytes) &&
@@ -377,7 +379,7 @@ object HuggingFaceModelResolver {
     // ---------------------------------------------------------------- manifest
 
     fun toManifest(info: HfModelInfo, variant: HfVariant, totalVariants: Int): ModelManifest {
-        builtinFor(info.id)?.takeIf { it.engineType.isCanary && it.id == variant.key }?.let { return it }
+        builtinFor(info.id)?.takeIf { (it.engineType.isCanary || it.hasRumbleFormatting) && it.id == variant.key }?.let { return it }
         val sha = info.sha ?: "main"
         val repoName = info.id.substringAfter('/')
         val entries = variant.files.map { (rel, f) ->

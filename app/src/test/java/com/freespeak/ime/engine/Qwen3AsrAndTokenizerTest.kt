@@ -73,7 +73,10 @@ class Qwen3AsrAndTokenizerTest {
                     "151644": {"content": "<|im_start|>", "special": true},
                     "151645": {"content": "<|im_end|>", "special": true},
                     "151676": {"content": "<|audio_pad|>", "special": true},
-                    "151704": {"content": "<asr_text>", "special": false}
+                    "151704": {"content": "<asr_text>", "special": false},
+                    "99625": {"content": "<nodigits>", "special": true},
+                    "99626": {"content": "<filler>", "special": true},
+                    "99629": {"content": "<noverbatim>", "special": true}
                   }
                 }
                 """.trimIndent()
@@ -85,6 +88,14 @@ class Qwen3AsrAndTokenizerTest {
 
             val encoded = tok.encode("<|im_start|>OK<|im_end|>")
             assertEquals(listOf(151644, 14, 151645), encoded.toList())
+
+            val prompt = com.freespeak.ime.engine.qwen3asr.buildQwen3AsrPromptIds(
+                tok, 2, "Chinese", com.freespeak.ime.model.RumbleFormatting(false, true, false),
+            ).toList()
+            val systemEnd = prompt.indexOf(151645L)
+            assertEquals(listOf(99625L, 99626L, 99629L), prompt.subList(systemEnd - 3, systemEnd))
+            assertEquals(2, prompt.count { it == 151676L })
+            assertEquals(151704L, prompt.last())
 
             // Simulate Qwen3-ASR output: "language Chinese<asr_text>OK"
             val outText = tok.decode(intArrayOf(10, 11, 12, 13, 151704, 14, 151645))

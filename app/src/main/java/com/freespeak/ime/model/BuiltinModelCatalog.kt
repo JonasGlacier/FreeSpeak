@@ -93,6 +93,51 @@ object BuiltinModelCatalog {
         runtimeConfig = ModelRuntimeConfig(primaryModelFile = CANARY_GGUF_FILE, numMels = 128),
     )
 
+    private const val RUMBLE_REPO = "TypeWhisper/Rumble-2-Flash-sherpa-onnx-int8"
+    private const val RUMBLE_REVISION = "a8128305e8e8c4aa5bf6fcd0a8454347ff80d6d1"
+    private fun rumbleFile(path: String, bytes: Long, hash: String) = ModelFileEntry(
+        relativePath = path,
+        url = "https://huggingface.co/$RUMBLE_REPO/resolve/$RUMBLE_REVISION/$path",
+        sizeBytes = bytes,
+        sha256 = hash,
+    )
+
+    private val rumble = ModelManifest(
+        id = "rumble-2-flash-int8",
+        name = "Rumble-2-Flash",
+        description = "Multilingual transcription with controls for digits, filler words and repeated words.",
+        engineType = EngineType.QWEN3_ASR,
+        version = "2-flash-int8",
+        sizeBytes = 656_199_213L,
+        languages = listOf("af", "ar", "bn", "bs", "ca", "ceb", "cs", "da", "de", "el", "en", "es", "eu",
+            "fa", "fi", "fil", "fr", "hi", "hr", "hu", "id", "is", "it", "ja", "ko", "lt", "lv", "mk",
+            "ms", "mt", "nb", "nl", "pl", "pt", "ro", "ru", "sq", "sr", "sv", "th", "tr", "uk", "vi", "yue", "zh"),
+        quantization = "INT8",
+        recommendedRamMb = 2304,
+        supportsLanguageHint = true,
+        supportsTranslateToEnglish = false,
+        optional = true,
+        sourceRepo = RUMBLE_REPO,
+        sourceRevision = RUMBLE_REVISION,
+        files = listOf(
+            rumbleFile("conv_frontend.onnx", 44_148_280L, "00c48c47db2937884636a3d99f23166390088e8c939ff7e9e803e69b8af4c0b5"),
+            rumbleFile("encoder.int8.onnx", 182_491_662L, "e6b4847992553dfa57bffda161b8c62d0af79c952c73269e6a2f6dc887f3e5dd"),
+            rumbleFile("decoder.int8.onnx", 426_507_858L, "e9be29023d0d52518e75cc4b77abbfc569564c7453ad1f546e50174c9a8b426c"),
+            rumbleFile("tokenizer/vocab.json", 1_961_918L, "c5e356c0638515539c196bca5da724fcf35a91fceaf1a2204c2a7193adc21059"),
+            rumbleFile("tokenizer/tokenizer_config.json", 13_585L, "c812aa17410d17b1b8c12f499d5359d6d9bd7395729bc7a7e1742aaa21f2b7df"),
+            rumbleFile("tokenizer/merges.txt", 1_075_910L, "ca57770275b525f8766ed68bf4b2d1d66b85adc41b06d8b5686cc3ca2b808aa9"),
+        ),
+        runtimeConfig = ModelRuntimeConfig(
+            convFrontendFile = "conv_frontend.onnx",
+            encoderFile = "encoder.int8.onnx",
+            decoderFile = "decoder.int8.onnx",
+            vocabFile = "tokenizer/vocab.json",
+            numMels = 128,
+            rumbleFormatting = true,
+            maxDecoderContext = 512,
+        ),
+    )
+
     val models: List<ModelManifest> = listOf(
         ModelManifest(
             id = "fun-asr-nano-int8",
@@ -175,6 +220,7 @@ object BuiltinModelCatalog {
         canary,
         canaryV2Onnx,
         canaryV2Gguf,
+        rumble,
         ModelManifest(
             id = "whisper-small-q5_1",
             supportsLanguageHint = true,

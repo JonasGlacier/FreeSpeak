@@ -182,6 +182,9 @@
     <string name="hub_search_hint">搜尋 Hugging Face</string>
     <string name="hub_featured">精選</string>
     <string name="hub_optional_models">可選模型</string>
+    <string name="rumble_digits">用阿拉伯數字寫數值</string>
+    <string name="rumble_filler">保留填充詞（如「嗯」「呃」）</string>
+    <string name="rumble_verbatim">保留重複詞</string>
     <string name="model_desc_canary">離線轉錄英語、德語、西班牙語和法語，支援英語與其他三種語言的雙向語音翻譯。</string>
     <string name="canary_source_language">說話語言</string>
     <string name="canary_target_language">輸出語言</string>

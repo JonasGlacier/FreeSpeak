@@ -580,6 +580,7 @@ class FreeSpeakInputMethodService : InputMethodService() {
                     translateToEnglish = modelOpts.translateToEnglish,
                     chineseOutputMode = settingsSnapshot.chineseOutputMode,
                     targetLanguage = modelOpts.targetLanguage,
+                    rumbleFormatting = modelOpts.rumbleFormatting,
                 )
             )
 

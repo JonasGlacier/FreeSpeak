@@ -12,11 +12,14 @@ import com.freespeak.ime.engine.AsrInferenceOptions
 import com.freespeak.ime.engine.AsrTranscriptionResult
 import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ModelManifest
+import com.freespeak.ime.model.RumbleFormatting
+import com.freespeak.ime.model.hasRumbleFormatting
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.nio.LongBuffer
+import java.util.Locale
 
 /**
  * Memory-optimized ONNX multimodal inference engine for `Qwen3-ASR-0.6B`
@@ -71,24 +74,31 @@ class Qwen3AsrEngine : AsrEngine {
             ?: error("Missing decoder.int8.onnx / decoder.onnx")
 
         val tok = QwenBpeTokenizer.loadFromDirectory(modelDir, cfg.vocabFile)
-        val opts = OrtSession.SessionOptions().apply {
-            setIntraOpNumThreads(numThreads.coerceIn(1, 8))
-            setInterOpNumThreads(1)
-            setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
-            setMemoryPatternOptimization(false)
-            setCPUArenaAllocator(false)
+        if (manifest.hasRumbleFormatting) {
+            RumbleFormatting().promptTokens().plus(RumbleFormatting(false, true, false).promptTokens()).forEach {
+                requireNotNull(tok.tokenToId(it)) { "Rumble tokenizer is missing $it" }
+            }
+            requireNotNull(tok.tokenToId("<|audio_pad|>")) { "Rumble tokenizer is missing the audio token" }
+            requireNotNull(tok.tokenToId("<|im_end|>")) { "Rumble tokenizer is missing the end-of-turn token" }
+            requireNotNull(tok.tokenToId("<|endoftext|>")) { "Rumble tokenizer is missing the end-of-text token" }
         }
 
-        val cSess = env.createSession(convFile.absolutePath, opts)
-        val eSess = env.createSession(encFile.absolutePath, opts)
-        val dSess = env.createSession(decFile.absolutePath, opts)
+        val dSess = OrtSession.SessionOptions().use { opts ->
+            opts.setIntraOpNumThreads(numThreads.coerceIn(1, 8))
+            opts.setInterOpNumThreads(1)
+            opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+            opts.setMemoryPatternOptimization(false)
+            opts.setCPUArenaAllocator(false)
+            convSession = env.createSession(convFile.absolutePath, opts)
+            encoderSession = env.createSession(encFile.absolutePath, opts)
+            env.createSession(decFile.absolutePath, opts).also { decoderSession = it }
+        }
 
         val cacheKeys = dSess.inputInfo.keys
             .filter { it.startsWith("cache_key_") }
             .sortedBy { it.substringAfterLast('_').toIntOrNull() ?: 0 }
 
         if (cacheKeys.isEmpty()) {
-            cSess.close(); eSess.close(); dSess.close()
             error("Decoder missing cache_key_* inputs")
         }
 
@@ -104,12 +114,9 @@ class Qwen3AsrEngine : AsrEngine {
         kvHeads = firstCacheShape[2].toInt()
         headDim = firstCacheShape[3].toInt()
 
-        convSession = cSess
-        encoderSession = eSess
-        decoderSession = dSess
         tokenizer = tok
         this.manifest = manifest
-    }
+    }.onFailure { release() }
 
     override suspend fun transcribe(
         pcm16k: FloatArray,
@@ -198,20 +205,31 @@ class Qwen3AsrEngine : AsrEngine {
             maskTensor.close()
         }
 
-        val promptIds = buildQwen3AsrPromptIds(tok, actualA, options.language)
+        val rumble = manifest?.takeIf { it.hasRumbleFormatting }
+        val formatting = rumble?.let { options.rumbleFormatting ?: RumbleFormatting() }
+        val forceLanguage = mapQwenLanguageName(options.language) ?: options.language
+            .takeIf { rumble != null && it in rumble.languages }
+            ?.let { Locale.forLanguageTag(it).getDisplayLanguage(Locale.ENGLISH) }
+        val promptIds = buildQwen3AsrPromptIds(tok, actualA, forceLanguage, formatting)
         if (promptIds.isEmpty()) return@runCatching AsrTranscriptionResult("")
 
         val configuredMaxNew = manifest?.runtimeConfig?.maxNewTokens ?: 128
         // Dynamic speech-proportional cap: ~6 tokens per audio token + margin, capped at configuredMaxNew
         val adaptiveMaxNew = (actualA * 4 + 24).coerceIn(32, configuredMaxNew)
 
+        val contextLimit = manifest?.runtimeConfig?.maxDecoderContext
         val runtimeMaxLen = if (modelFixedMaxLen > 0) {
             modelFixedMaxLen
         } else {
-            (promptIds.size + adaptiveMaxNew + 8).coerceAtMost(1024)
+            (promptIds.size + adaptiveMaxNew + 8).coerceAtMost(contextLimit ?: 1024)
+        }
+        if (contextLimit != null) {
+            require(promptIds.size < minOf(runtimeMaxLen, contextLimit)) {
+                "Recording exceeds the model's audio context. Try a shorter recording."
+            }
         }
 
-        val maxNew = adaptiveMaxNew.coerceAtMost((runtimeMaxLen - promptIds.size - 1).coerceAtLeast(1))
+        val maxNew = adaptiveMaxNew.coerceAtMost((minOf(runtimeMaxLen, contextLimit ?: runtimeMaxLen) - promptIds.size - 1).coerceAtLeast(1))
 
         // Step 4: Allocate KV caches 100% off-heap in DirectByteBuffers & wrap ONCE into OnnxTensors
         val stridePerPos = kvHeads * headDim
@@ -311,7 +329,7 @@ class Qwen3AsrEngine : AsrEngine {
                     vocabSize = logits.size,
                     generatedTokens = generatedIds.toIntArray(),
                     suppressTokens = if (step == 0) intArrayOf(eosId, eotId) else null,
-                    repetitionPenalty = 1.05f,
+                    repetitionPenalty = if (formatting != null) 1f else 1.05f,
                 )
 
                 if (nextToken < 0 || nextToken == eosId || nextToken == eotId) {
@@ -431,30 +449,6 @@ class Qwen3AsrEngine : AsrEngine {
             .allocateDirect(maxOf(1, count) * 4)
             .order(ByteOrder.nativeOrder())
             .asFloatBuffer()
-    }
-
-    private fun buildQwen3AsrPromptIds(
-        tok: QwenBpeTokenizer,
-        audioTokenCount: Int,
-        languageCode: String,
-    ): LongArray {
-        val audioPadId = tok.tokenToId("<|audio_pad|>") ?: 151676
-        val prefixIds = tok.encode("<|im_start|>system\n<|im_end|>\n<|im_start|>user\n<|audio_start|>")
-        val forceLangName = mapQwenLanguageName(languageCode)
-        val suffixPrompt = if (forceLangName != null) {
-            "<|audio_end|><|im_end|>\n<|im_start|>assistant\nlanguage $forceLangName<asr_text>"
-        } else {
-            "<|audio_end|><|im_end|>\n<|im_start|>assistant\n"
-        }
-        val suffixIds = tok.encode(suffixPrompt)
-
-        val total = prefixIds.size + audioTokenCount + suffixIds.size
-        val result = LongArray(total)
-        var pos = 0
-        for (id in prefixIds) result[pos++] = id.toLong()
-        repeat(audioTokenCount) { result[pos++] = audioPadId.toLong() }
-        for (id in suffixIds) result[pos++] = id.toLong()
-        return result
     }
 
     private fun mapQwenLanguageName(code: String): String? {

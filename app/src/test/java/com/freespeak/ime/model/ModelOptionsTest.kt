@@ -10,6 +10,19 @@ class ModelOptionsTest {
     private fun builtin(id: String) = BuiltinModelCatalog.models.first { it.id == id }
 
     @Test
+    fun `Rumble formatting defaults and saved overrides are scoped to this model`() {
+        val rumble = builtin("rumble-2-flash-int8")
+        assertEquals(RumbleFormatting(), UserSettings().optionsFor(rumble).rumbleFormatting)
+        val settings = UserSettings(modelOptions = mapOf(rumble.id to mapOf(
+            ModelOptions.RUMBLE_DIGITS to "false",
+            ModelOptions.RUMBLE_FILLER to "true",
+            ModelOptions.RUMBLE_VERBATIM to "false",
+        )))
+        assertEquals(RumbleFormatting(digits = false, filler = true, verbatim = false), settings.optionsFor(rumble).rumbleFormatting)
+        assertEquals(null, settings.optionsFor(builtin("qwen3-asr-0.6b-int8")).rumbleFormatting)
+    }
+
+    @Test
     fun `Canary v2 variants offer all 25 languages and use English as the translation pivot`() {
         for (id in listOf("canary-1b-v2-int8", "canary-1b-v2-q4_k")) {
             val model = builtin(id)

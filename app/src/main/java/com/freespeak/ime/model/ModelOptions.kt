@@ -36,6 +36,9 @@ object ModelOptions {
     const val TARGET_LANGUAGE = "target_language"
     const val TRANSLATE_EN = "translate_en"
     const val WHISPER_PROMPT = "whisper_prompt"
+    const val RUMBLE_DIGITS = "rumble_digits"
+    const val RUMBLE_FILLER = "rumble_filler"
+    const val RUMBLE_VERBATIM = "rumble_verbatim"
 
     const val AUTO = "auto"
 
@@ -52,7 +55,7 @@ object ModelOptions {
                 CanaryLanguages.SAME_AS_SOURCE,
             ))
         } else if (model.canHintLanguage) {
-            val langs = SupportedLanguages.all.map { it.code }
+            val langs = if (model.hasRumbleFormatting) model.languages.filterNot { it == AUTO } else SupportedLanguages.all.map { it.code }
                 .filter { model.languages.isEmpty() || it in model.languages }
             val choices = listOf(AUTO) + langs
             add(
@@ -66,6 +69,12 @@ object ModelOptions {
         }
         if (model.canTranslateToEnglish) {
             add(ToggleModelOption(TRANSLATE_EN, R.string.translate_english_title, settings.translateToEnglish))
+        }
+        if (model.hasRumbleFormatting) {
+            val defaults = RumbleFormatting()
+            add(ToggleModelOption(RUMBLE_DIGITS, R.string.rumble_digits, defaults.digits))
+            add(ToggleModelOption(RUMBLE_FILLER, R.string.rumble_filler, defaults.filler))
+            add(ToggleModelOption(RUMBLE_VERBATIM, R.string.rumble_verbatim, defaults.verbatim))
         }
         if (model.engineType == EngineType.WHISPER_CPP) {
             add(
@@ -97,6 +106,7 @@ data class ResolvedModelOptions(
     val whisperPrompt: Boolean,
     val raw: Map<String, String>,
     val targetLanguage: String? = null,
+    val rumbleFormatting: RumbleFormatting? = null,
 ) {
     fun bool(option: ToggleModelOption): Boolean = raw[option.key]?.toBooleanStrictOrNull() ?: option.default
     fun choice(option: ChoiceModelOption): String = raw[option.key]?.takeIf { it in option.choices } ?: option.default
@@ -116,5 +126,13 @@ fun UserSettings.optionsFor(model: ModelManifest?): ResolvedModelOptions {
         whisperPrompt = toggle(ModelOptions.WHISPER_PROMPT) ?: whisperStylePromptEnabled,
         raw = stored,
         targetLanguage = choice(ModelOptions.TARGET_LANGUAGE),
+        rumbleFormatting = model?.takeIf { it.hasRumbleFormatting }?.let {
+            val defaults = RumbleFormatting()
+            RumbleFormatting(
+                digits = toggle(ModelOptions.RUMBLE_DIGITS) ?: defaults.digits,
+                filler = toggle(ModelOptions.RUMBLE_FILLER) ?: defaults.filler,
+                verbatim = toggle(ModelOptions.RUMBLE_VERBATIM) ?: defaults.verbatim,
+            )
+        },
     )
 }
