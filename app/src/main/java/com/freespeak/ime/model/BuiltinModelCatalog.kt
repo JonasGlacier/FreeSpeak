@@ -14,15 +14,15 @@ object BuiltinModelCatalog {
         sha256 = hash,
     )
 
-    fun tagResIds(modelId: String): List<Int> = when (modelId) {
-        "fun-asr-nano-int8" -> listOf(R.string.tag_fast, R.string.tag_cjk_5, R.string.tag_dialects)
-        "sense-voice-small-int8" -> listOf(R.string.tag_fast, R.string.tag_cjk_5, R.string.tag_auto_itn)
-        "qwen3-asr-0.6b-int8" -> listOf(R.string.tag_high_accuracy, R.string.tag_code_switching, R.string.tag_9_langs)
-        "canary-180m-flash-int8" -> listOf(R.string.tag_en_de_es_fr, R.string.tag_speech_translation, R.string.tag_compact)
-        "canary-1b-v2-q4_k" -> listOf(R.string.tag_25_eu_langs, R.string.tag_speech_translation, R.string.tag_low_ram)
-        "canary-1b-v2-int8" -> listOf(R.string.tag_25_eu_langs, R.string.tag_speech_translation, R.string.tag_high_accuracy)
-        "rumble-2-flash-int8" -> listOf(R.string.tag_45_langs, R.string.tag_format_controls, R.string.tag_filler_removal)
-        "fluid-speech-pro-int8" -> listOf(R.string.tag_25_eu_langs, R.string.tag_clean_mode, R.string.tag_filler_removal)
+    fun featureTagResIds(modelId: String): List<Int> = when (modelId) {
+        "fun-asr-nano-int8" -> listOf(R.string.tag_fast, R.string.tag_dialects, R.string.tag_no_punctuation)
+        "sense-voice-small-int8" -> listOf(R.string.tag_fast, R.string.tag_no_punctuation)
+        "qwen3-asr-0.6b-int8" -> listOf(R.string.tag_high_accuracy, R.string.tag_code_switching)
+        "canary-180m-flash-int8" -> listOf(R.string.tag_speech_translation, R.string.tag_compact)
+        "canary-1b-v2-q4_k" -> listOf(R.string.tag_speech_translation, R.string.tag_low_ram)
+        "canary-1b-v2-int8" -> listOf(R.string.tag_speech_translation, R.string.tag_high_accuracy)
+        "rumble-2-flash-int8" -> listOf(R.string.tag_digits, R.string.tag_filler_removal)
+        "fluid-speech-pro-int8" -> listOf(R.string.tag_clean_mode, R.string.tag_filler_removal)
         else -> emptyList()
     }
 
@@ -39,7 +39,8 @@ object BuiltinModelCatalog {
         sourceRepo = CANARY_REPO,
         sourceRevision = CANARY_REVISION,
         supportsLanguageHint = true,
-        tags = listOf("EN·DE·ES·FR", "Speech translation", "Compact"),
+        optional = true,
+        tags = listOf("Speech translation", "Compact"),
         files = listOf(
             canaryFile("encoder.int8.onnx", 132_678_643L, "7a75b4e2a5857a6dcc0819503bbe3fad66943db4a3ccf21d3f27c633667d303f"),
             canaryFile("decoder.int8.onnx", 74_437_848L, "e41a2ab9c0c2fe81a1e8ade5a45fb02a74bc4db7d1f91b89a54a25e2cf79cba2"),
@@ -63,7 +64,7 @@ object BuiltinModelCatalog {
         sourceRepo = "Sarphix/canary-1b-v2-sherpa-onnx-int8",
         sourceRevision = "7d513cd4f39f6c7dc75c13a284b5e345b37f6198",
         optional = true,
-        tags = listOf("25 EU languages", "Speech translation", "High accuracy"),
+        tags = listOf("Speech translation", "High accuracy"),
     ).let { model ->
         fun file(name: String, bytes: Long, hash: String) = canaryFile(name, bytes, hash, model.sourceRepo!!, model.sourceRevision!!)
         model.copy(files = listOf(
@@ -86,7 +87,8 @@ object BuiltinModelCatalog {
         recommendedRamMb = 1536,
         sourceRepo = CANARY_GGUF_REPO,
         sourceRevision = CANARY_GGUF_REVISION,
-        tags = listOf("25 EU languages", "Speech translation", "Low RAM"),
+        optional = false,
+        tags = listOf("Speech translation", "Low RAM"),
         files = listOf(canaryFile(CANARY_GGUF_FILE, 610_746_016L,
             "5027f74ba0eb9bb707b14a11c7a68510a704748bb392e5f3af45115329ee501d", CANARY_GGUF_REPO, CANARY_GGUF_REVISION)),
         runtimeConfig = ModelRuntimeConfig(primaryModelFile = CANARY_GGUF_FILE, numMels = 128),
@@ -117,7 +119,7 @@ object BuiltinModelCatalog {
         optional = true,
         sourceRepo = RUMBLE_REPO,
         sourceRevision = RUMBLE_REVISION,
-        tags = listOf("45 languages", "Format controls", "Filler removal"),
+        tags = listOf("Number digits", "Filler removal"),
         files = listOf(
             rumbleFile("conv_frontend.onnx", 44_148_280L, "00c48c47db2937884636a3d99f23166390088e8c939ff7e9e803e69b8af4c0b5"),
             rumbleFile("encoder.int8.onnx", 182_491_662L, "e6b4847992553dfa57bffda161b8c62d0af79c952c73269e6a2f6dc887f3e5dd"),
@@ -169,74 +171,10 @@ object BuiltinModelCatalog {
         sourceRepo = FLUID_REPO,
         sourceRevision = FLUID_REVISION,
         optional = true,
-        tags = listOf("25 EU languages", "Clean mode", "Filler removal"),
+        tags = listOf("Clean mode", "Filler removal"),
     )
 
     val models: List<ModelManifest> = listOf(
-        ModelManifest(
-            id = "fun-asr-nano-int8",
-            supportsLanguageHint = false,
-            name = "Fun-ASR-Nano",
-            description = "Compact multilingual & dialect model by FunAudioLLM with built-in punctuation and code-switching.",
-            engineType = EngineType.FUN_ASR_ONNX,
-            version = "2512-int8",
-            sizeBytes = 264_471_717L,
-            languages = listOf("auto", "zh", "en", "yue", "ja", "ko"),
-            quantization = "INT8",
-            recommendedRamMb = 600,
-            tags = listOf("Fast", "ZH·EN·YUE·JA·KO", "Dialects"),
-            files = listOf(
-                ModelFileEntry(
-                    relativePath = "model.int8.onnx",
-                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-funasr-nano-int8-2025-12-17/resolve/main/model.int8.onnx",
-                ),
-                ModelFileEntry(
-                    relativePath = "tokens.txt",
-                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-funasr-nano-int8-2025-12-17/resolve/main/tokens.txt",
-                ),
-            ),
-            runtimeConfig = ModelRuntimeConfig(
-                primaryModelFile = "model.int8.onnx",
-                vocabFile = "tokens.txt",
-                numMels = 80,
-                lfrWindowSize = 7,
-                lfrWindowShift = 6,
-                upscaleSamples = true,
-                blankId = 60514,
-            ),
-        ),
-        ModelManifest(
-            id = "sense-voice-small-int8",
-            supportsLanguageHint = true,
-            name = "SenseVoice-Small",
-            description = "Fast multilingual model (Chinese, Cantonese, English, Japanese, Korean) with punctuation & ITN.",
-            engineType = EngineType.FUN_ASR_ONNX,
-            version = "2025.09-int8",
-            sizeBytes = 237_431_441L,
-            languages = listOf("auto", "zh", "en", "yue", "ja", "ko"),
-            quantization = "INT8",
-            recommendedRamMb = 550,
-            tags = listOf("Fast", "ZH·EN·YUE·JA·KO", "Auto-ITN"),
-            files = listOf(
-                ModelFileEntry(
-                    relativePath = "model.int8.onnx",
-                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/model.int8.onnx",
-                ),
-                ModelFileEntry(
-                    relativePath = "tokens.txt",
-                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/tokens.txt",
-                ),
-            ),
-            runtimeConfig = ModelRuntimeConfig(
-                primaryModelFile = "model.int8.onnx",
-                vocabFile = "tokens.txt",
-                numMels = 80,
-                lfrWindowSize = 7,
-                lfrWindowShift = 6,
-                upscaleSamples = true,
-                blankId = 0,
-            ),
-        ),
         ModelManifest(
             id = "qwen3-asr-0.6b-int8",
             supportsLanguageHint = true,
@@ -248,7 +186,7 @@ object BuiltinModelCatalog {
             languages = listOf("auto", "zh", "en", "yue", "ja", "ko", "fr", "de", "es", "ru"),
             quantization = "INT8",
             recommendedRamMb = 1800,
-            tags = listOf("High accuracy", "Code-switching", "9 languages"),
+            tags = listOf("High accuracy", "Code-switching"),
             files = listOf(
                 ModelFileEntry(
                     relativePath = "conv_frontend.onnx",
@@ -283,8 +221,74 @@ object BuiltinModelCatalog {
                 maxNewTokens = 128,
             ),
         ),
-        canary,
         canaryV2Gguf,
+        ModelManifest(
+            id = "fun-asr-nano-int8",
+            supportsLanguageHint = false,
+            optional = true,
+            name = "Fun-ASR-Nano",
+            description = "Compact multilingual & dialect model by FunAudioLLM without punctuation.",
+            engineType = EngineType.FUN_ASR_ONNX,
+            version = "2512-int8",
+            sizeBytes = 264_471_717L,
+            languages = listOf("auto", "zh", "en", "yue", "ja", "ko"),
+            quantization = "INT8",
+            recommendedRamMb = 600,
+            tags = listOf("Fast", "Chinese dialects", "No punctuation"),
+            files = listOf(
+                ModelFileEntry(
+                    relativePath = "model.int8.onnx",
+                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-funasr-nano-int8-2025-12-17/resolve/main/model.int8.onnx",
+                ),
+                ModelFileEntry(
+                    relativePath = "tokens.txt",
+                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-funasr-nano-int8-2025-12-17/resolve/main/tokens.txt",
+                ),
+            ),
+            runtimeConfig = ModelRuntimeConfig(
+                primaryModelFile = "model.int8.onnx",
+                vocabFile = "tokens.txt",
+                numMels = 80,
+                lfrWindowSize = 7,
+                lfrWindowShift = 6,
+                upscaleSamples = true,
+                blankId = 60514,
+            ),
+        ),
+        ModelManifest(
+            id = "sense-voice-small-int8",
+            supportsLanguageHint = true,
+            optional = true,
+            name = "SenseVoice-Small",
+            description = "Fast multilingual model (Chinese, Cantonese, English, Japanese, Korean) without punctuation.",
+            engineType = EngineType.FUN_ASR_ONNX,
+            version = "2025.09-int8",
+            sizeBytes = 237_431_441L,
+            languages = listOf("auto", "zh", "en", "yue", "ja", "ko"),
+            quantization = "INT8",
+            recommendedRamMb = 550,
+            tags = listOf("Fast", "No punctuation"),
+            files = listOf(
+                ModelFileEntry(
+                    relativePath = "model.int8.onnx",
+                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/model.int8.onnx",
+                ),
+                ModelFileEntry(
+                    relativePath = "tokens.txt",
+                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/tokens.txt",
+                ),
+            ),
+            runtimeConfig = ModelRuntimeConfig(
+                primaryModelFile = "model.int8.onnx",
+                vocabFile = "tokens.txt",
+                numMels = 80,
+                lfrWindowSize = 7,
+                lfrWindowShift = 6,
+                upscaleSamples = true,
+                blankId = 0,
+            ),
+        ),
+        canary,
         canaryV2Onnx,
         rumble,
         fluidSpeech,

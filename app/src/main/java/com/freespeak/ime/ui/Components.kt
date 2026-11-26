@@ -38,12 +38,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import android.content.res.Resources
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -53,6 +55,10 @@ import com.freespeak.ime.model.BuiltinModelCatalog
 import com.freespeak.ime.model.ManagedModelItem
 import com.freespeak.ime.model.ModelInstallState
 import com.freespeak.ime.model.ModelManifest
+import com.freespeak.ime.model.hasTranslation
+import com.freespeak.ime.model.isCanary
+import com.freespeak.ime.model.matchedSystemLanguage
+import com.freespeak.ime.model.supportedLanguageCount
 import com.freespeak.ime.ui.theme.FreeSpeakType
 import com.freespeak.ime.ui.theme.NothingRed
 import java.util.Locale
@@ -387,12 +393,37 @@ private fun ModelTagChip(text: String) {
 
 @Composable
 internal fun resolveModelTags(manifest: ModelManifest): List<String> {
-    val resIds = BuiltinModelCatalog.tagResIds(manifest.id)
-    return if (resIds.isNotEmpty()) {
-        resIds.map { stringResource(it) }
+    val uiLocale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    val sysLocale = Resources.getSystem().configuration.locales[0] ?: uiLocale
+    val hasKnownLanguages = manifest.sourceTag == "builtin" || manifest.sourceTag == "catalog" || manifest.engineType.isCanary
+    val matchedLang = if (hasKnownLanguages) manifest.matchedSystemLanguage(sysLocale) else null
+    val featureResIds = BuiltinModelCatalog.featureTagResIds(manifest.id)
+    val features = if (featureResIds.isNotEmpty()) {
+        featureResIds.map { stringResource(it) }
     } else {
         manifest.tags
     }
+    return buildList {
+        if (matchedLang != null) {
+            add(stringResource(R.string.tag_supports_language, displayLanguageForTag(matchedLang, uiLocale)))
+        }
+        if (manifest.hasTranslation && manifest.supportedLanguageCount > 0) {
+            add(stringResource(R.string.tag_n_languages, manifest.supportedLanguageCount))
+        }
+        addAll(features)
+    }
+}
+
+internal fun displayLanguageForTag(matchedCode: String, uiLocale: Locale): String = when (uiLocale.language.lowercase(Locale.ROOT)) {
+    "zh" -> if (matchedCode == "yue") {
+        if (uiLocale.country.uppercase(Locale.ROOT) in setOf("TW", "HK", "MO") || uiLocale.script == "Hant") "粵語" else "粤语"
+    } else {
+        "中文"
+    }
+    "yue" -> if (matchedCode == "yue") "粵語" else "中文"
+    "ja" -> Locale.forLanguageTag(matchedCode).getDisplayLanguage(Locale.JAPANESE)
+    "ko" -> Locale.forLanguageTag(matchedCode).getDisplayLanguage(Locale.KOREAN)
+    else -> Locale.forLanguageTag(matchedCode).getDisplayLanguage(Locale.ENGLISH)
 }
 
 internal fun modelSizeLabel(item: ManagedModelItem): String? {

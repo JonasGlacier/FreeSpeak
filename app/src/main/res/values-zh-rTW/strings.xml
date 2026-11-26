@@ -89,20 +89,17 @@
     <string name="model_downloading_format">%1$s · %2$d / %3$d MB (%4$s)</string>
     <string name="model_extracting">正在解壓縮模型檔案…</string>
 
+    <string name="tag_supports_language">支援%1$s</string>
+    <string name="tag_n_languages">%1$d 語種</string>
     <string name="tag_fast">極速</string>
     <string name="tag_high_accuracy">高準確率</string>
     <string name="tag_compact">輕量</string>
     <string name="tag_low_ram">省記憶體</string>
-    <string name="tag_cjk_5">中英日韓粵</string>
     <string name="tag_dialects">中文方言</string>
     <string name="tag_code_switching">中英混輸</string>
-    <string name="tag_9_langs">9 語種</string>
-    <string name="tag_45_langs">45 語種</string>
-    <string name="tag_en_de_es_fr">英德西法</string>
-    <string name="tag_25_eu_langs">25 歐洲語種</string>
     <string name="tag_speech_translation">雙向互譯</string>
-    <string name="tag_auto_itn">數字正規化</string>
-    <string name="tag_format_controls">格式可控</string>
+    <string name="tag_no_punctuation">無標點</string>
+    <string name="tag_digits">阿拉伯數字</string>
     <string name="tag_filler_removal">去贅詞</string>
     <string name="tag_clean_mode">口語淨化</string>
 

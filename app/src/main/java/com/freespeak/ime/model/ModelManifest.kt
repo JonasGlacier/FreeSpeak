@@ -3,6 +3,7 @@ package com.freespeak.ime.model
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.util.Locale
 
 @Serializable
 enum class EngineType(val displayName: String, val shortName: String) {
@@ -74,6 +75,32 @@ data class ModelManifest(
 )
 
 val EngineType.isCanary: Boolean get() = this == EngineType.CANARY_ONNX || this == EngineType.CANARY_GGUF
+
+val ModelManifest.hasTranslation: Boolean get() = engineType.isCanary
+
+val ModelManifest.supportedLanguageCount: Int
+    get() = languages.map { it.lowercase(Locale.ROOT) }.filter { it != "auto" }.distinct().size
+
+/**
+ * Returns the canonical language code in [ModelManifest.languages] matching [locale], or null if
+ * the model does not support the user's system language.
+ */
+fun ModelManifest.matchedSystemLanguage(locale: Locale): String? {
+    val supported = languages.map { it.lowercase(Locale.ROOT) }.filter { it != "auto" }.toSet()
+    if (supported.isEmpty()) return null
+    val rawLang = locale.language.lowercase(Locale.ROOT)
+    val candidates = when (rawLang) {
+        "in" -> listOf("id", "in")
+        "iw" -> listOf("he", "iw")
+        "ji" -> listOf("yi", "ji")
+        "no", "nn" -> listOf(rawLang, "nb")
+        "tl" -> listOf("fil", "tl")
+        "zh" -> if (locale.country.uppercase(Locale.ROOT) in setOf("HK", "MO")) listOf("zh", "yue") else listOf("zh")
+        "yue" -> listOf("yue", "zh")
+        else -> listOf(rawLang)
+    }
+    return candidates.firstOrNull { it in supported }
+}
 
 val ModelManifest.hasRumbleFormatting: Boolean
     get() = engineType == EngineType.QWEN3_ASR && runtimeConfig.rumbleFormatting

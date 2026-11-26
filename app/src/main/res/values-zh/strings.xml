@@ -100,20 +100,17 @@
     <string name="model_extracting">正在解压模型文件…</string>
 
     <!-- Model Tags -->
+    <string name="tag_supports_language">支持%1$s</string>
+    <string name="tag_n_languages">%1$d 语种</string>
     <string name="tag_fast">极速</string>
     <string name="tag_high_accuracy">高准确率</string>
     <string name="tag_compact">轻量</string>
     <string name="tag_low_ram">省内存</string>
-    <string name="tag_cjk_5">中英日韩粤</string>
     <string name="tag_dialects">中文方言</string>
     <string name="tag_code_switching">中英混输</string>
-    <string name="tag_9_langs">9 语种</string>
-    <string name="tag_45_langs">45 语种</string>
-    <string name="tag_en_de_es_fr">英德西法</string>
-    <string name="tag_25_eu_langs">25 欧洲语种</string>
     <string name="tag_speech_translation">双向互译</string>
-    <string name="tag_auto_itn">数字规范化</string>
-    <string name="tag_format_controls">格式可控</string>
+    <string name="tag_no_punctuation">无标点</string>
+    <string name="tag_digits">阿拉伯数字</string>
     <string name="tag_filler_removal">去语气词</string>
     <string name="tag_clean_mode">口语净化</string>
 

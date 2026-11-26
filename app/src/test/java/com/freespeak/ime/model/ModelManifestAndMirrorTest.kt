@@ -2,22 +2,48 @@ package com.freespeak.ime.model
 
 import com.freespeak.ime.data.MirrorSource
 import com.freespeak.ime.data.UserSettings
+import com.freespeak.ime.ui.displayLanguageForTag
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
+import java.util.Locale
 
 class ModelManifestAndMirrorTest {
 
     @Test
     fun `builtin catalog contains curated models with files and tags`() {
-        val ids = BuiltinModelCatalog.models.map { it.id }.toSet()
-        assertTrue("fun-asr-nano-int8" in ids)
-        assertTrue("sense-voice-small-int8" in ids)
-        assertTrue("qwen3-asr-0.6b-int8" in ids)
-        assertTrue("canary-180m-flash-int8" in ids)
+        val featuredIds = BuiltinModelCatalog.models.filter { !it.optional }.map { it.id }
+        assertEquals(listOf("qwen3-asr-0.6b-int8", "canary-1b-v2-q4_k"), featuredIds)
         assertTrue(BuiltinModelCatalog.models.all { it.files.isNotEmpty() })
-        assertTrue(BuiltinModelCatalog.models.all { it.tags.isNotEmpty() && BuiltinModelCatalog.tagResIds(it.id).isNotEmpty() })
+        assertTrue(BuiltinModelCatalog.models.all { it.tags.isNotEmpty() && BuiltinModelCatalog.featureTagResIds(it.id).isNotEmpty() })
+    }
+
+    @Test
+    fun `system language matching and translation language count follow model capabilities`() {
+        val funAsr = BuiltinModelCatalog.models.first { it.id == "fun-asr-nano-int8" }
+        val canary180m = BuiltinModelCatalog.models.first { it.id == "canary-180m-flash-int8" }
+        val canary1b = BuiltinModelCatalog.models.first { it.id == "canary-1b-v2-q4_k" }
+        val rumble = BuiltinModelCatalog.models.first { it.id == "rumble-2-flash-int8" }
+
+        assertEquals("zh", funAsr.matchedSystemLanguage(Locale.SIMPLIFIED_CHINESE))
+        assertNull(funAsr.matchedSystemLanguage(Locale.GERMAN))
+        assertFalse(funAsr.hasTranslation)
+
+        assertNull(canary180m.matchedSystemLanguage(Locale.SIMPLIFIED_CHINESE))
+        assertEquals("de", canary180m.matchedSystemLanguage(Locale.GERMAN))
+        assertTrue(canary180m.hasTranslation)
+        assertEquals(4, canary180m.supportedLanguageCount)
+
+        assertTrue(canary1b.hasTranslation)
+        assertEquals(25, canary1b.supportedLanguageCount)
+        assertFalse(rumble.hasTranslation)
+        assertEquals("id", rumble.matchedSystemLanguage(Locale.forLanguageTag("in-ID")))
+
+        assertEquals("中文", displayLanguageForTag("zh", Locale.SIMPLIFIED_CHINESE))
+        assertEquals("German", displayLanguageForTag("de", Locale.GERMAN))
     }
 
     @Test

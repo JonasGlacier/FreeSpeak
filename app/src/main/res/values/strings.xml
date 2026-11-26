@@ -100,20 +100,17 @@
     <string name="model_extracting">Extracting model files…</string>
 
     <!-- Model Tags -->
+    <string name="tag_supports_language">Supports %1$s</string>
+    <string name="tag_n_languages">%1$d languages</string>
     <string name="tag_fast">Fast</string>
     <string name="tag_high_accuracy">High accuracy</string>
     <string name="tag_compact">Compact</string>
     <string name="tag_low_ram">Low RAM</string>
-    <string name="tag_cjk_5">ZH·EN·YUE·JA·KO</string>
-    <string name="tag_dialects">Dialects</string>
+    <string name="tag_dialects">Chinese dialects</string>
     <string name="tag_code_switching">Code-switching</string>
-    <string name="tag_9_langs">9 languages</string>
-    <string name="tag_45_langs">45 languages</string>
-    <string name="tag_en_de_es_fr">EN·DE·ES·FR</string>
-    <string name="tag_25_eu_langs">25 EU languages</string>
     <string name="tag_speech_translation">Speech translation</string>
-    <string name="tag_auto_itn">Auto-ITN</string>
-    <string name="tag_format_controls">Format controls</string>
+    <string name="tag_no_punctuation">No punctuation</string>
+    <string name="tag_digits">Number digits</string>
     <string name="tag_filler_removal">Filler removal</string>
     <string name="tag_clean_mode">Clean mode</string>
 
