@@ -36,6 +36,7 @@ import com.freespeak.ime.audio.AudioRecorder
 import com.freespeak.ime.data.RecordInteractionMode
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.AsrInferenceOptions
+import com.freespeak.ime.engine.AsrInputTooLongException
 import com.freespeak.ime.engine.EngineRuntimeStatus
 import com.freespeak.ime.model.ModelManifest
 import com.freespeak.ime.model.optionsFor
@@ -571,13 +572,15 @@ class FreeSpeakInputMethodService : InputMethodService() {
                         currentInputConnection?.commitText(commitStr, 1)
                         pushUndo(commitStr)
                         val donePrefix = getString(R.string.status_done_latency, res.inferenceTimeMs)
-                        tvStatus?.text = "$donePrefix · ${defaultIdleHint(currentSettings.interactionMode)}"
+                        tvStatus?.text = if (res.outputLimited) getString(R.string.status_output_limited)
+                            else "$donePrefix · ${defaultIdleHint(currentSettings.interactionMode)}"
                     } else {
-                        tvStatus?.setText(R.string.status_no_speech)
+                        tvStatus?.setText(if (res.outputLimited) R.string.status_output_limited else R.string.status_no_speech)
                     }
                 },
                 onFailure = { err ->
-                    tvStatus?.text = err.message.orEmpty()
+                    tvStatus?.text = if (err is AsrInputTooLongException) getString(R.string.status_input_too_long)
+                        else err.message.orEmpty()
                 }
             )
         }

@@ -26,6 +26,7 @@ FreeSpeak IME solves this by combining **modern compact ASR models** (`Fun-ASR-N
 - **Smart VAD Silence Filtering (No Utterance Splitting)**: Built-in Silero VAD v5 filters leading/trailing dead air and compresses long silent pauses to prevent hallucinations and save CPU—without chopping your speech into fragmented segments.
 - **Open & Extensible Models (`model.json`)**:
   - Download curated quantized models via HuggingFace, HF-Mirror, ModelScope, or a custom mirror.
+  - **Fun-ASR-MLT-Nano** is a featured offline model for 31 languages with automatic detection or an explicit language hint. It uses [luigi000's sherpa-onnx INT8 1024-context export](https://huggingface.co/luigi000/fun-asr-mlt-nano-onnx-int8-1024) (about 997 MB). Since audio and text share the context, use shorter clips for long dictation.
   - **Search Hugging Face in-app** (Model hub → Discover): enter keywords, `owner/repo`, or paste a repo link. FreeSpeak inspects the repo file tree, lists the variants the bundled engines can run (e.g. every `ggml-*.bin` quantization, Qwen3-ASR / SenseVoice ONNX exports), marks look-alike layouts as *unverified*, and explains why other formats are unsupported (GGUF, CTranslate2, PyTorch/Transformers, Whisper-ONNX, transducers, gated repos). Downloads are pinned to the repo commit, checked against the file sizes and LFS SHA-256 from the Hub, and resumable from *Mine*.
   - Import `.bin`, `.gguf`, `.onnx`, `.zip`, `.tar.gz`, or `.tar.bz2` packages offline from local storage (SAF).
   - Add direct model URLs or subscribe to external community JSON catalogs.
@@ -130,6 +131,7 @@ FreeSpeak IME 通过原生多引擎架构集成 **`Fun-ASR-Nano`、`Qwen3-ASR-0.
 - **智能 VAD 静音过滤（不切碎句子）**：内置 Silero VAD v5 仅用于检测语音活动、剔除首尾留白与超长停顿以消除静音幻觉并节省算力，**绝不按静音强行切分句子**，整段语音一次性转写以保留上下文与标点语感。
 - **开放模型生态（`model.json`）**：
   - 内置精选模型下载，支持一键切换 `HF-Mirror`、`ModelScope（魔搭）`、`HuggingFace` 或自定义镜像源，支持断点续传。
+  - **Fun-ASR-MLT-Nano** 可在模型中心的「精选模型」下载，使用 [luigi000 的 sherpa-onnx INT8 1024 转换版](https://huggingface.co/luigi000/fun-asr-mlt-nano-onnx-int8-1024)（约 997 MB）。支持 31 种语言，可自动识别或手动指定。录音和输出共用上下文，长段听写建议分开录制。
   - **应用内搜索 Hugging Face**（模型中心 → 发现）：输入关键词、`作者/仓库名` 或粘贴仓库链接。应用会分析仓库文件结构，列出内置引擎可运行的版本（如各量化规格的 `ggml-*.bin`、Qwen3-ASR / SenseVoice ONNX 导出），将结构相似但未经验证的标记为「未验证」，并说明其他格式不支持的原因（GGUF、CTranslate2、PyTorch/Transformers、Whisper ONNX、Transducer、受限仓库）。下载锁定仓库 commit，按 Hub 提供的文件大小与 LFS SHA-256 校验，中断后可在「我的」继续下载。
   - 支持从手机本地存储（SAF）完全离线导入 `.bin` / `.gguf` / `.onnx` / `.zip` / `.tar.gz` / `.tar.bz2` 模型包。
   - 支持直链下载或订阅外部社区维护的 JSON 模型源。

@@ -12,6 +12,7 @@ import com.freespeak.ime.engine.AsrEngine
 import com.freespeak.ime.engine.AsrInferenceOptions
 import com.freespeak.ime.engine.AsrTranscriptionResult
 import com.freespeak.ime.model.EngineType
+import com.freespeak.ime.model.FunAsrMltLanguages
 import com.freespeak.ime.model.ModelManifest
 import java.io.File
 import java.nio.FloatBuffer
@@ -42,6 +43,9 @@ class FunAsrNanoEngine : AsrEngine {
     private var cmvnNegMean: FloatArray? = null
     private var cmvnInvStd: FloatArray? = null
     private var isLlmTripleGraph: Boolean = false
+    private var kvDecoder: FunAsrKvDecoder? = null
+
+    private data class LlmTranscription(val text: String, val limited: Boolean = false)
 
     override val isLoaded: Boolean
         get() = (primarySession != null || (encoderSession != null && llmSession != null)) && tokenizer != null
@@ -74,19 +78,22 @@ class FunAsrNanoEngine : AsrEngine {
 
         if (encFile != null && encFile.exists() && embFile != null && embFile.exists() && decFile != null && decFile.exists()) {
             isLlmTripleGraph = true
-            val opts = createSessionOptions(numThreads)
-            val encSess = env.createSession(encFile.absolutePath, opts)
-            val embSess = env.createSession(embFile.absolutePath, opts)
-            val llmSess = env.createSession(decFile.absolutePath, opts)
-
-            val meta = encSess.metadata.customMetadata
-            lfrM = meta["lfr_window_size"]?.toIntOrNull() ?: cfg.lfrWindowSize
-            lfrN = meta["lfr_window_shift"]?.toIntOrNull() ?: cfg.lfrWindowShift
-            upscaleSamples = true
-
-            encoderSession = encSess
-            embeddingSession = embSess
-            llmSession = llmSess
+            try {
+                createSessionOptions(numThreads).use { opts ->
+                    opts.setMemoryPatternOptimization(false)
+                    val encSess = env.createSession(encFile.absolutePath, opts).also { encoderSession = it }
+                    embeddingSession = env.createSession(embFile.absolutePath, opts)
+                    val llmSess = env.createSession(decFile.absolutePath, opts).also { llmSession = it }
+                    val meta = encSess.metadata.customMetadata
+                    lfrM = meta["lfr_window_size"]?.toIntOrNull() ?: cfg.lfrWindowSize
+                    lfrN = meta["lfr_window_shift"]?.toIntOrNull() ?: cfg.lfrWindowShift
+                    upscaleSamples = meta["normalize_samples"]?.toIntOrNull()?.let { it == 0 } ?: cfg.upscaleSamples
+                    kvDecoder = if ("cache_key_0" in llmSess.inputNames) FunAsrKvDecoder(llmSess, cfg.maxDecoderContext) else null
+                }
+            } catch (e: Exception) {
+                release()
+                throw e
+            }
         } else {
             isLlmTripleGraph = false
             val modelFile = resolvePrimaryOnnx(modelDir, manifest)
@@ -115,17 +122,18 @@ class FunAsrNanoEngine : AsrEngine {
         if (pcm16k.isEmpty()) return@runCatching AsrTranscriptionResult("")
 
         val startMs = System.currentTimeMillis()
-        val text = if (isLlmTripleGraph) {
-            transcribeTripleLlm(pcm16k)
+        val output = if (isLlmTripleGraph) {
+            transcribeTripleLlm(pcm16k, options.language)
         } else {
-            transcribeSingleCtc(pcm16k, options.language)
+            LlmTranscription(transcribeSingleCtc(pcm16k, options.language))
         }
         val elapsed = System.currentTimeMillis() - startMs
 
         AsrTranscriptionResult(
-            text = text,
+            text = output.text,
             detectedLanguage = options.language.takeIf { it != "auto" },
             inferenceTimeMs = elapsed,
+            outputLimited = output.limited,
         )
     }
 
@@ -206,7 +214,7 @@ class FunAsrNanoEngine : AsrEngine {
         }
     }
 
-    private fun transcribeTripleLlm(pcm16k: FloatArray): String {
+    private fun transcribeTripleLlm(pcm16k: FloatArray, language: String): LlmTranscription {
         val env = ortEnv ?: error("ORT environment uninitialized")
         val encSess = encoderSession ?: error("Encoder session uninitialized")
         val embSess = embeddingSession ?: error("Embedding session uninitialized")
@@ -219,12 +227,13 @@ class FunAsrNanoEngine : AsrEngine {
             numMels = 80,
             lfrM = lfrM,
             lfrN = lfrN,
-            upscaleSamples = true,
+            upscaleSamples = upscaleSamples,
             cmvnNegMean = null,
             cmvnInvStd = null,
+            sherpaFunAsrFrontend = kvDecoder != null,
         )
         val numFrames = features.size / featDim
-        if (numFrames <= 0) return ""
+        if (numFrames <= 0) return LlmTranscription("")
 
         // 1. Run encoder_adaptor -> [1, T_audio, hiddenDim]
         val encInputName = encSess.inputNames.first()
@@ -245,7 +254,8 @@ class FunAsrNanoEngine : AsrEngine {
         }
 
         // 2. Embed prefix & suffix prompt
-        val prefixIds = tok.encode("<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\n语音转写：")
+        val task = FunAsrMltLanguages.transcriptionPrompt(if (kvDecoder != null) language else "auto")
+        val prefixIds = tok.encode("<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\n$task")
         val suffixIds = tok.encode("<|im_end|>\n<|im_start|>assistant\n")
         val prefixEmbeds = lookupEmbeddings(env, embSess, prefixIds, hiddenDim)
         val suffixEmbeds = lookupEmbeddings(env, embSess, suffixIds, hiddenDim)
@@ -256,6 +266,13 @@ class FunAsrNanoEngine : AsrEngine {
         val imEndId = tok.tokenToId("<|im_end|>") ?: 151645
         val eosId = tok.tokenToId("<|endoftext|>") ?: 151643
         val maxNewTokens = manifest?.runtimeConfig?.maxNewTokens ?: 100
+        kvDecoder?.let { decoder ->
+            check(hiddenDim == decoder.hiddenSize) { "Fun-ASR encoder and decoder embedding dimensions differ" }
+            val result = decoder.decode(env, currentEmbeds, maxNewTokens, setOf(imEndId, eosId)) {
+                lookupEmbeddings(env, embSess, intArrayOf(it), hiddenDim)
+            }
+            return LlmTranscription(tok.decode(result.tokens), result.limited)
+        }
         val generated = ArrayList<Int>(maxNewTokens)
         val decInputName = decSess.inputNames.first()
 
@@ -300,7 +317,7 @@ class FunAsrNanoEngine : AsrEngine {
             seqLen++
         }
 
-        return tok.decode(generated.toIntArray(), skipSpecialTokens = true)
+        return LlmTranscription(tok.decode(generated.toIntArray(), skipSpecialTokens = true))
     }
 
     private fun lookupEmbeddings(
@@ -335,6 +352,7 @@ class FunAsrNanoEngine : AsrEngine {
         encoderSession = null
         embeddingSession = null
         llmSession = null
+        kvDecoder = null
         tokenizer = null
         manifest = null
     }

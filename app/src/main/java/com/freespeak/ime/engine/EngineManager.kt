@@ -118,7 +118,7 @@ class EngineManager(
                         effectiveOptions.targetLanguage == "en",
                     ))
                 }
-                if (res.isSuccess) {
+                if (res.isSuccess || res.exceptionOrNull() is AsrInputTooLongException) {
                     _status.value = EngineRuntimeStatus.Ready(manifest.id, manifest.name)
                 } else {
                     _status.value = EngineRuntimeStatus.Error(res.exceptionOrNull()?.message ?: "Transcription failed")

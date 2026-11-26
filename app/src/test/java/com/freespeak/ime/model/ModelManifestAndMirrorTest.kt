@@ -16,7 +16,7 @@ class ModelManifestAndMirrorTest {
     @Test
     fun `builtin catalog contains curated models with files and tags`() {
         val featuredIds = BuiltinModelCatalog.models.filter { !it.optional }.map { it.id }
-        assertEquals(listOf("qwen3-asr-0.6b-int8", "canary-1b-v2-q4_k"), featuredIds)
+        assertEquals(listOf("qwen3-asr-0.6b-int8", "canary-1b-v2-q4_k", "fun-asr-mlt-nano-int8"), featuredIds)
         assertTrue(BuiltinModelCatalog.models.all { it.files.isNotEmpty() })
         assertTrue(BuiltinModelCatalog.models.all { it.tags.isNotEmpty() && BuiltinModelCatalog.featureTagResIds(it.id).isNotEmpty() })
     }

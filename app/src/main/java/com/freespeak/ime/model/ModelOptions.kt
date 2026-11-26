@@ -57,8 +57,11 @@ object ModelOptions {
                 CanaryLanguages.SAME_AS_SOURCE,
             ))
         } else if (model.canHintLanguage) {
-            val langs = if (model.hasRumbleFormatting) model.languages.filterNot { it == AUTO } else SupportedLanguages.all.map { it.code }
-                .filter { model.languages.isEmpty() || it in model.languages }
+            val langs = if (model.hasRumbleFormatting || model.id == BuiltinModelCatalog.FUN_ASR_MLT_ID) {
+                model.languages.filterNot { it == AUTO }
+            } else {
+                SupportedLanguages.all.map { it.code }.filter { model.languages.isEmpty() || it in model.languages }
+            }
             val choices = listOf(AUTO) + langs
             add(
                 ChoiceModelOption(

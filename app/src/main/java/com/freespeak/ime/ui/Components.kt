@@ -407,7 +407,7 @@ internal fun resolveModelTags(manifest: ModelManifest): List<String> {
         if (matchedLang != null) {
             add(stringResource(R.string.tag_supports_language, displayLanguageForTag(matchedLang, uiLocale)))
         }
-        if (manifest.hasTranslation && manifest.supportedLanguageCount > 0) {
+        if ((manifest.hasTranslation || manifest.id == BuiltinModelCatalog.FUN_ASR_MLT_ID) && manifest.supportedLanguageCount > 0) {
             add(stringResource(R.string.tag_n_languages, manifest.supportedLanguageCount))
         }
         addAll(features)

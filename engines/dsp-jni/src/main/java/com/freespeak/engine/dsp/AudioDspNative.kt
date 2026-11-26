@@ -18,6 +18,7 @@ object AudioDspNative {
     /**
      * Extracts 80-dim Kaldi Mel-Fbank + optional LFR (e.g. m=7, n=6 -> 560-dim) + optional CMVN.
      * Returns row-major FloatArray of shape [numOutFrames, numMels * max(1, lfrM)].
+     * [sherpaFunAsrFrontend] uses Hamming windows with reflected edges and unpadded LFR stacking.
      */
     external fun extractKaldiFbankLfrCmvn(
         pcm16k: FloatArray,
@@ -27,6 +28,7 @@ object AudioDspNative {
         upscaleSamples: Boolean = true,
         cmvnNegMean: FloatArray? = null,
         cmvnInvStd: FloatArray? = null,
+        sherpaFunAsrFrontend: Boolean = false,
     ): FloatArray
 
     /**

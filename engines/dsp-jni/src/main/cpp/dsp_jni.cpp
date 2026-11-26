@@ -149,7 +149,8 @@ Java_com_freespeak_engine_dsp_AudioDspNative_extractKaldiFbankLfrCmvn(
         jint lfrN,
         jboolean upscaleSamples,
         jfloatArray cmvnNegMean,
-        jfloatArray cmvnInvStd) {
+        jfloatArray cmvnInvStd,
+        jboolean sherpaFunAsrFrontend) {
     if (pcm16k == nullptr || numMels <= 0) {
         return env->NewFloatArray(0);
     }
@@ -168,7 +169,7 @@ Java_com_freespeak_engine_dsp_AudioDspNative_extractKaldiFbankLfrCmvn(
     constexpr int kNumBins = kFftSize / 2 + 1;
     constexpr float kPreemph = 0.97f;
 
-    if (static_cast<int>(audio.size()) < kFrameLen) {
+    if (!sherpaFunAsrFrontend && static_cast<int>(audio.size()) < kFrameLen) {
         audio.resize(kFrameLen, 0.0f);
     }
 
@@ -179,11 +180,14 @@ Java_com_freespeak_engine_dsp_AudioDspNative_extractKaldiFbankLfrCmvn(
         }
     }
 
-    const int numFrames = 1 + (static_cast<int>(audio.size()) - kFrameLen) / kFrameShift;
-    std::vector<float> poveyWindow(kFrameLen);
+    const int sampleCount = static_cast<int>(audio.size());
+    const int numFrames = sherpaFunAsrFrontend ? (sampleCount + kFrameShift / 2) / kFrameShift
+                                             : 1 + (sampleCount - kFrameLen) / kFrameShift;
+    std::vector<float> window(kFrameLen);
     for (int i = 0; i < kFrameLen; ++i) {
         float a = 2.0f * kPi * static_cast<float>(i) / static_cast<float>(kFrameLen - 1);
-        poveyWindow[i] = std::pow(0.5f - 0.5f * std::cos(a), 0.85f);
+        window[i] = sherpaFunAsrFrontend ? 0.54f - 0.46f * std::cos(a)
+                                       : std::pow(0.5f - 0.5f * std::cos(a), 0.85f);
     }
 
     const std::vector<float> melBank = buildKaldiMelBank(numMels, kFftSize, 16000.0f, 20.0f, 8000.0f);
@@ -192,9 +196,23 @@ Java_com_freespeak_engine_dsp_AudioDspNative_extractKaldiFbankLfrCmvn(
     std::vector<float> re(kFftSize, 0.0f);
     std::vector<float> im(kFftSize, 0.0f);
     std::vector<float> power(kNumBins, 0.0f);
+    std::vector<float> reflectedFrame(kFrameLen);
 
     for (int f = 0; f < numFrames; ++f) {
-        const float* frameSrc = audio.data() + f * kFrameShift;
+        const int start = f * kFrameShift - (sherpaFunAsrFrontend ? (kFrameLen - kFrameShift) / 2 : 0);
+        const float* frameSrc;
+        if (start >= 0 && start + kFrameLen <= sampleCount) {
+            frameSrc = audio.data() + start;
+        } else {
+            for (int i = 0; i < kFrameLen; ++i) {
+                int pos = start + i;
+                while (pos < 0 || pos >= sampleCount) {
+                    pos = pos < 0 ? -pos - 1 : 2 * sampleCount - 1 - pos;
+                }
+                reflectedFrame[i] = audio[pos];
+            }
+            frameSrc = reflectedFrame.data();
+        }
         float mean = 0.0f;
         for (int i = 0; i < kFrameLen; ++i) {
             mean += frameSrc[i];
@@ -205,10 +223,10 @@ Java_com_freespeak_engine_dsp_AudioDspNative_extractKaldiFbankLfrCmvn(
         std::fill(im.begin(), im.end(), 0.0f);
 
         float prev = frameSrc[0] - mean;
-        re[0] = (prev * (1.0f - kPreemph)) * poveyWindow[0];
+        re[0] = (prev * (1.0f - kPreemph)) * window[0];
         for (int i = 1; i < kFrameLen; ++i) {
             float cur = frameSrc[i] - mean;
-            re[i] = (cur - kPreemph * prev) * poveyWindow[i];
+            re[i] = (cur - kPreemph * prev) * window[i];
             prev = cur;
         }
 
@@ -234,9 +252,11 @@ Java_com_freespeak_engine_dsp_AudioDspNative_extractKaldiFbankLfrCmvn(
     int outDim = numMels;
     if (lfrM > 1 && lfrN >= 1) {
         outDim = numMels * lfrM;
-        const int leftPad = (lfrM - 1) / 2;
+        const int leftPad = sherpaFunAsrFrontend ? 0 : (lfrM - 1) / 2;
         const int totalPadded = numFrames + leftPad;
-        const int numLfrFrames = std::max(1, (totalPadded + lfrN - 1) / lfrN);
+        const int numLfrFrames = sherpaFunAsrFrontend
+            ? (numFrames < lfrM ? 0 : 1 + (numFrames - lfrM) / lfrN)
+            : std::max<int>(1, (totalPadded + lfrN - 1) / lfrN);
         output.resize(static_cast<size_t>(numLfrFrames) * outDim);
 
         for (int t = 0; t < numLfrFrames; ++t) {

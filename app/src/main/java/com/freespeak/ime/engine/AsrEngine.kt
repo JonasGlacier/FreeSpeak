@@ -13,7 +13,10 @@ data class AsrTranscriptionResult(
     val text: String,
     val detectedLanguage: String? = null,
     val inferenceTimeMs: Long = 0L,
+    val outputLimited: Boolean = false,
 )
+
+internal class AsrInputTooLongException : IllegalArgumentException("Recording is too long for the selected model")
 
 data class AsrInferenceOptions(
     val language: String = "auto",

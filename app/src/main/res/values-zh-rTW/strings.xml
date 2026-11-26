@@ -93,6 +93,8 @@
     <string name="tag_n_languages">%1$d 語種</string>
     <string name="tag_fast">極速</string>
     <string name="tag_high_accuracy">高準確率</string>
+    <string name="status_input_too_long">錄音超出目前模型的長度限制，請分段錄製。</string>
+    <string name="status_output_limited">僅轉錄部分內容 · 已達模型長度限制</string>
     <string name="tag_compact">輕量</string>
     <string name="tag_low_ram">省記憶體</string>
     <string name="tag_dialects">中文方言</string>

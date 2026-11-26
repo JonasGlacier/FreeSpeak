@@ -3,6 +3,7 @@ package com.freespeak.ime.model
 import com.freespeak.ime.R
 
 object BuiltinModelCatalog {
+    internal const val FUN_ASR_MLT_ID = "fun-asr-mlt-nano-int8"
 
     private const val CANARY_REPO = "csukuangfj/sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8"
     private const val CANARY_REVISION = "9077164e0d3dd1d5353743e89ceaa1d3a770838c"
@@ -16,6 +17,7 @@ object BuiltinModelCatalog {
 
     fun featureTagResIds(modelId: String): List<Int> = when (modelId) {
         "fun-asr-nano-int8" -> listOf(R.string.tag_fast, R.string.tag_dialects, R.string.tag_no_punctuation)
+        FUN_ASR_MLT_ID -> listOf(R.string.tag_dialects, R.string.tag_high_accuracy)
         "sense-voice-small-int8" -> listOf(R.string.tag_fast, R.string.tag_no_punctuation)
         "qwen3-asr-0.6b-int8" -> listOf(R.string.tag_high_accuracy, R.string.tag_code_switching)
         "canary-180m-flash-int8" -> listOf(R.string.tag_speech_translation, R.string.tag_compact)
@@ -174,6 +176,44 @@ object BuiltinModelCatalog {
         tags = listOf("Clean mode", "Filler removal"),
     )
 
+    private const val FUN_ASR_MLT_REPO = "luigi000/fun-asr-mlt-nano-onnx-int8-1024"
+    private const val FUN_ASR_MLT_REVISION = "39334e8a32d91f46d47f80d96d749409c86a56b1"
+
+    private fun mltFile(path: String, bytes: Long, hash: String) =
+        ModelFileEntry(path, "https://huggingface.co/$FUN_ASR_MLT_REPO/resolve/$FUN_ASR_MLT_REVISION/$path", sha256 = hash, sizeBytes = bytes)
+
+    private val mltFiles = listOf(
+        mltFile("encoder_adaptor.int8.onnx", 238_277_215, "a10c52d65ec0afbbf29070032bb69aafa2379684e5e95e24818bf29dbcc747d4"),
+        mltFile("embedding.int8.onnx", 155_583_235, "168a8d20117666a804db9595b01feff5643c149af0cd324745031d261526f69d"),
+        mltFile("llm.int8.onnx", 600_025_528, "1dff1090bd510c7a800771580d10e690260cfeda805c8d4a2464c521df296897"),
+        mltFile("tokenizer/vocab.json", 2_776_833, "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"),
+        mltFile("tokenizer/tokenizer_config.json", 9_732, "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101"),
+    )
+
+    private val funAsrMlt = ModelManifest(
+        id = FUN_ASR_MLT_ID,
+        name = "Fun-ASR-MLT-Nano",
+        description = "31-language FunAudioLLM model, converted to sherpa-onnx INT8 by luigi000.",
+        engineType = EngineType.FUN_ASR_ONNX,
+        version = "2512-int8-1024",
+        sizeBytes = mltFiles.sumOf { requireNotNull(it.sizeBytes) },
+        languages = FunAsrMltLanguages.supported,
+        recommendedRamMb = 3072,
+        sourceRepo = FUN_ASR_MLT_REPO,
+        sourceRevision = FUN_ASR_MLT_REVISION,
+        supportsLanguageHint = true,
+        files = mltFiles,
+        tags = listOf("Chinese dialects", "High accuracy"),
+        runtimeConfig = ModelRuntimeConfig(
+            encoderFile = "encoder_adaptor.int8.onnx",
+            embeddingFile = "embedding.int8.onnx",
+            decoderFile = "llm.int8.onnx",
+            vocabFile = "tokenizer/vocab.json",
+            maxDecoderContext = 1024,
+            maxNewTokens = 256,
+        ),
+    )
+
     val models: List<ModelManifest> = listOf(
         ModelManifest(
             id = "qwen3-asr-0.6b-int8",
@@ -222,6 +262,7 @@ object BuiltinModelCatalog {
             ),
         ),
         canaryV2Gguf,
+        funAsrMlt,
         ModelManifest(
             id = "fun-asr-nano-int8",
             supportsLanguageHint = false,

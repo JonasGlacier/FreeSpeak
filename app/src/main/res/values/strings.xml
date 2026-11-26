@@ -104,6 +104,8 @@
     <string name="tag_n_languages">%1$d languages</string>
     <string name="tag_fast">Fast</string>
     <string name="tag_high_accuracy">High accuracy</string>
+    <string name="status_input_too_long">Recording is too long for this model. Try a shorter clip.</string>
+    <string name="status_output_limited">Partial transcription · model limit reached</string>
     <string name="tag_compact">Compact</string>
     <string name="tag_low_ram">Low RAM</string>
     <string name="tag_dialects">Chinese dialects</string>
