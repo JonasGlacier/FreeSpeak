@@ -86,8 +86,6 @@
 
     <!-- Sub-screen: Preferred Languages -->
     <string name="sub_language_desc">Select the languages you speak. Selecting multiple languages enables automatic mixed-language recognition (code-switching) and quick cycling on the keyboard.</string>
-    <string name="sub_language_whisper_prompt">Punctuation &amp; Mixed-Script Hint (Whisper)</string>
-    <string name="sub_language_whisper_prompt_desc">Guides Whisper models to output full punctuation and clean mixed-language text.</string>
 
     <!-- Sub-screen: VAD -->
     <string name="sub_vad_desc">Uses on-device Silero VAD to detect voice activity and trim leading, trailing, and long silent gaps. Sentences are never split into fragments, preserving natural model punctuation.</string>
@@ -101,13 +99,23 @@
     <string name="model_downloading_format">%1$s · %2$d / %3$d MB (%4$s)</string>
     <string name="model_extracting">Extracting model files…</string>
 
-    <!-- Model Catalog Descriptions -->
-    <string name="model_desc_funasr_nano">Compact multilingual &amp; dialect model by FunAudioLLM. Fast single-pass inference with built-in punctuation and code-switching.</string>
-    <string name="model_desc_qwen3_asr">Flagship 0.6B multimodal speech model. Superior accuracy on mixed languages, technical terms, and natural punctuation.</string>
-    <string name="model_desc_whisper_small">Balanced 99-language Whisper model running on whisper.cpp ARMv8 FP16.</string>
-    <string name="model_desc_whisper_medium">Larger multilingual Whisper model for accuracy testing. Slower and more memory-intensive than Whisper Small.</string>
-    <string name="model_desc_sensevoice">Fast multilingual recognition (Chinese, Cantonese, English, Japanese, Korean) with punctuation &amp; ITN.</string>
-    <string name="model_desc_whisper_tiny">Ultra-light 32 MB model for low-memory devices or quick testing.</string>
+    <!-- Model Tags -->
+    <string name="tag_fast">Fast</string>
+    <string name="tag_high_accuracy">High accuracy</string>
+    <string name="tag_compact">Compact</string>
+    <string name="tag_low_ram">Low RAM</string>
+    <string name="tag_cjk_5">ZH·EN·YUE·JA·KO</string>
+    <string name="tag_dialects">Dialects</string>
+    <string name="tag_code_switching">Code-switching</string>
+    <string name="tag_9_langs">9 languages</string>
+    <string name="tag_45_langs">45 languages</string>
+    <string name="tag_en_de_es_fr">EN·DE·ES·FR</string>
+    <string name="tag_25_eu_langs">25 EU languages</string>
+    <string name="tag_speech_translation">Speech translation</string>
+    <string name="tag_auto_itn">Auto-ITN</string>
+    <string name="tag_format_controls">Format controls</string>
+    <string name="tag_filler_removal">Filler removal</string>
+    <string name="tag_clean_mode">Clean mode</string>
 
     <!-- Sub-screen: Download Source & Custom Models -->
     <string name="sub_mirror_desc">Configure model download mirrors, import offline archives, or subscribe to community JSON model feeds.</string>
@@ -119,7 +127,7 @@
     <string name="mirror_custom_url_label">Custom Mirror Base URL</string>
 
     <string name="custom_import_section">Import &amp; Custom Sources</string>
-    <string name="action_import_local_file">Import Model from Device (.bin / .gguf / .onnx / .zip / .tar.gz)</string>
+    <string name="action_import_local_file">Import Model from Device (.gguf / .onnx / .zip / .tar.gz)</string>
     <string name="action_add_direct_url">Add Model via Direct URL</string>
     <string name="catalog_section_title">External JSON Catalogs</string>
     <string name="catalog_url_label">Catalog JSON URL</string>
@@ -190,7 +198,6 @@
     <string name="ime_cd_undo">Undo</string>
     <string name="ime_cd_redo">Redo</string>
     <string name="ime_cd_cancel_recording">Cancel recording</string>
-    <string name="ime_cd_translate">Translate to English</string>
     <string name="ime_cd_target_ime">Switch to preferred keyboard</string>
     <string name="pref_color_scheme">Color Scheme</string>
     <string name="sub_color_scheme_desc">Choose between Android dynamic wallpaper colors and classic black-and-white for the voice panel.</string>
@@ -205,38 +212,20 @@
     <string name="nav_settings">Settings</string>
     <string name="hub_mine">Mine</string>
     <string name="hub_discover">Discover</string>
-    <string name="hub_search_hint">Search Hugging Face</string>
     <string name="hub_featured">Featured</string>
     <string name="hub_optional_models">Optional models</string>
     <string name="fluid_clean_mode">Clean transcription (remove fillers and repetitions)</string>
     <string name="rumble_digits">Write numbers as digits</string>
     <string name="rumble_filler">Keep filler words (um, uh)</string>
     <string name="rumble_verbatim">Keep repeated words</string>
-    <string name="model_desc_canary">Offline transcription in English, German, Spanish and French, with bidirectional speech translation between English and the other three languages.</string>
     <string name="canary_source_language">Spoken language</string>
     <string name="canary_target_language">Output language</string>
     <string name="canary_same_as_source">Same as spoken language (transcribe)</string>
     <string name="hub_no_models">No models</string>
-    <string name="hub_no_results">No results</string>
-    <string name="hub_compatible">Compatible</string>
-    <string name="hub_unverified">Unverified</string>
-    <string name="hub_unsupported">Unsupported</string>
-    <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
-    <string name="hf_issue_gated">Gated repo · sign-in required</string>
-    <string name="hf_issue_disabled">Repo disabled</string>
-    <string name="hf_issue_gguf">Unrecognized GGUF model variant</string>
-    <string name="hf_issue_ct2">CTranslate2 / faster-whisper</string>
-    <string name="hf_issue_pytorch">PyTorch / Transformers weights · needs conversion</string>
-    <string name="hf_issue_whisper_onnx">Whisper ONNX export · use GGML .bin</string>
-    <string name="hf_issue_transducer">Transducer (encoder / decoder / joiner)</string>
-    <string name="hf_issue_other_runtime">Other runtime (TFLite / NCNN / Core ML …)</string>
-    <string name="hf_issue_unknown_onnx">Unrecognized ONNX layout</string>
-    <string name="hf_issue_no_weights">No model weights found</string>
     <string name="action_pause">Pause</string>
     <string name="action_resume">Resume</string>
     <string name="action_search">Search</string>
     <string name="action_more">More</string>
-    <string name="action_open_browser">Open in browser</string>
     <string name="action_switch_model">Switch model</string>
     <string name="label_model">Model</string>
     <string name="model_state_unloaded">Idle</string>

@@ -19,19 +19,9 @@ import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.EngineRuntimeStatus
 import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ManagedModelItem
-import com.freespeak.ime.model.ModelInstallState
 import com.freespeak.ime.model.ModelManifest
-import com.freespeak.ime.model.hf.HfModelSummary
-import com.freespeak.ime.model.hf.HfRepoAnalysis
-import com.freespeak.ime.model.hf.HfSearchCursor
-import com.freespeak.ime.model.hf.HfVariant
-import com.freespeak.ime.model.hf.HuggingFaceClient
-import com.freespeak.ime.model.hf.HuggingFaceModelResolver
 import com.freespeak.ime.text.ChineseOutputMode
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,27 +40,6 @@ data class SystemImeStatus(
 }
 
 enum class MainTab { HOME, MODELS, SETTINGS }
-
-data class HubSearchUi(
-    val query: String = "",
-    /** Last submitted query; blank shows the curated list. */
-    val submitted: String = "",
-    val loading: Boolean = false,
-    val loadingMore: Boolean = false,
-    val results: List<HfModelSummary> = emptyList(),
-    val cursor: HfSearchCursor? = null,
-    val error: String? = null,
-)
-
-sealed interface HubDetailUi {
-    val repoId: String
-
-    data class Loading(override val repoId: String) : HubDetailUi
-    data class Ready(val analysis: HfRepoAnalysis) : HubDetailUi {
-        override val repoId: String get() = analysis.info.id
-    }
-    data class Failed(override val repoId: String, val message: String) : HubDetailUi
-}
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -100,15 +69,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _tabRequest = MutableStateFlow<MainTab?>(null)
     val tabRequest: StateFlow<MainTab?> = _tabRequest.asStateFlow()
 
-    private val _hubSearch = MutableStateFlow(HubSearchUi())
-    val hubSearch: StateFlow<HubSearchUi> = _hubSearch.asStateFlow()
-
-    private val _hubDetail = MutableStateFlow<HubDetailUi?>(null)
-    val hubDetail: StateFlow<HubDetailUi?> = _hubDetail.asStateFlow()
-
-    private var searchJob: Job? = null
-    private var detailJob: Job? = null
-
     init {
         refreshSystemStatus()
         viewModelScope.launch {
@@ -129,106 +89,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun consumeTabRequest() {
         _tabRequest.value = null
-    }
-
-    // ---------------------------------------------------------------- Hugging Face
-
-    private fun apiBase(): String = (settingsState.value ?: UserSettings()).hubApiBase
-
-    fun updateHubQuery(query: String) {
-        _hubSearch.update { it.copy(query = query) }
-        if (query.isBlank()) clearHubSearch()
-    }
-
-    fun clearHubSearch() {
-        searchJob?.cancel()
-        _hubSearch.value = HubSearchUi()
-    }
-
-    fun submitHubSearch(raw: String = _hubSearch.value.query) {
-        val query = raw.trim()
-        if (query.isEmpty()) {
-            clearHubSearch()
-            return
-        }
-        // Direct repo ids / pasted links open the repo straight away.
-        val looksLikeRef = query.contains('/') && !query.contains(' ')
-        HuggingFaceClient.parseRepoReference(query)?.takeIf { looksLikeRef }?.let { repoId ->
-            _hubSearch.update { it.copy(query = query) }
-            openHfRepo(repoId)
-            return
-        }
-        searchJob?.cancel()
-        _hubSearch.value = HubSearchUi(query = query, submitted = query, loading = true)
-        searchJob = viewModelScope.launch {
-            try {
-                val page = modelRepo.huggingFace.search(apiBase(), query)
-                _hubSearch.update { it.copy(loading = false, results = page.items, cursor = page.nextCursor, error = null) }
-            } catch (ce: CancellationException) {
-                throw ce
-            } catch (e: Exception) {
-                _hubSearch.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
-            }
-        }
-    }
-
-    fun loadMoreHubResults() {
-        val cur = _hubSearch.value
-        val cursor = cur.cursor ?: return
-        if (cur.loading || cur.loadingMore) return
-        _hubSearch.update { it.copy(loadingMore = true) }
-        searchJob = viewModelScope.launch {
-            try {
-                val page = modelRepo.huggingFace.search(apiBase(), cur.submitted, cursor)
-                _hubSearch.update { s ->
-                    val known = s.results.map { it.id }.toSet()
-                    s.copy(
-                        loadingMore = false,
-                        results = s.results + page.items.filter { it.id !in known },
-                        cursor = page.nextCursor,
-                    )
-                }
-            } catch (ce: CancellationException) {
-                throw ce
-            } catch (e: Exception) {
-                _hubSearch.update { it.copy(loadingMore = false, cursor = null) }
-                _toastMessage.value = e.message ?: e.javaClass.simpleName
-            }
-        }
-    }
-
-    fun openHfRepo(repoId: String) {
-        detailJob?.cancel()
-        _hubDetail.value = HubDetailUi.Loading(repoId)
-        detailJob = viewModelScope.launch {
-            try {
-                val info = modelRepo.huggingFace.modelInfo(apiBase(), repoId)
-                _hubDetail.value = HubDetailUi.Ready(HuggingFaceModelResolver.analyze(info))
-            } catch (ce: CancellationException) {
-                throw ce
-            } catch (e: Exception) {
-                _hubDetail.value = HubDetailUi.Failed(repoId, e.message ?: e.javaClass.simpleName)
-            }
-        }
-    }
-
-    fun retryHfRepo() {
-        _hubDetail.value?.repoId?.let(::openHfRepo)
-    }
-
-    fun closeHfRepo() {
-        detailJob?.cancel()
-        _hubDetail.value = null
-    }
-
-    fun hfManifestFor(analysis: HfRepoAnalysis, variant: HfVariant): ModelManifest =
-        HuggingFaceModelResolver.toManifest(analysis.info, variant, analysis.variants.size)
-
-    fun downloadHfVariant(analysis: HfRepoAnalysis, variant: HfVariant) {
-        if (analysis.blocked) return
-        val manifest = hfManifestFor(analysis, variant)
-        modelRepo.registerManifest(manifest)
-        downloadModel(manifest)
     }
 
     fun refreshSystemStatus() {

@@ -5,7 +5,6 @@ import com.freespeak.ime.engine.canary.CanaryGgufEngine
 import com.freespeak.ime.engine.fluid.FluidSpeechEngine
 import com.freespeak.ime.engine.funasr.FunAsrNanoEngine
 import com.freespeak.ime.engine.qwen3asr.Qwen3AsrEngine
-import com.freespeak.ime.engine.whisper.WhisperCppEngine
 import com.freespeak.ime.model.EngineType
 import com.freespeak.ime.model.ModelManifest
 import com.freespeak.ime.model.ModelRepository
@@ -116,7 +115,7 @@ class EngineManager(
                     result.copy(text = chineseConverter.convert(
                         result.text, effectiveOptions.chineseOutputMode,
                         result.detectedLanguage ?: effectiveOptions.language,
-                        effectiveOptions.translateToEnglish,
+                        effectiveOptions.targetLanguage == "en",
                     ))
                 }
                 if (res.isSuccess) {
@@ -165,7 +164,6 @@ class EngineManager(
     }
 
     private fun createEngine(type: EngineType): AsrEngine = when (type) {
-        EngineType.WHISPER_CPP -> WhisperCppEngine()
         EngineType.FUN_ASR_ONNX -> FunAsrNanoEngine()
         EngineType.QWEN3_ASR -> Qwen3AsrEngine()
         EngineType.CANARY_ONNX -> CanaryEngine()

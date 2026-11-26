@@ -33,6 +33,5 @@ dependencyResolutionManagement {
 rootProject.name = "FreeSpeakIME"
 include(":app")
 include(":engines:dsp-jni")
-include(":engines:whisper-jni")
 include(":engines:qwen3-asr-jni")
 include(":engines:canary-gguf-jni")

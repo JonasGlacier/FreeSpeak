@@ -6,7 +6,6 @@ import java.io.File
 
 @Serializable
 enum class EngineType(val displayName: String, val shortName: String) {
-    WHISPER_CPP("whisper.cpp (GGML)", "whisper.cpp"),
     FUN_ASR_ONNX("Fun-ASR / SenseVoice (ONNX)", "SenseVoice · FunASR"),
     QWEN3_ASR("Qwen3-ASR (ONNX Multimodal)", "Qwen3-ASR"),
     CANARY_ONNX("Canary (ONNX)", "Canary"),
@@ -66,12 +65,12 @@ data class ModelManifest(
     val sourceTag: String = "builtin",
     // Nullable hints preserve compatibility with existing downloaded model.json files.
     val supportsLanguageHint: Boolean? = null,
-    val supportsTranslateToEnglish: Boolean? = null,
     /** Hugging Face `owner/name` this model was installed from, if any. */
     val sourceRepo: String? = null,
     /** Pinned commit sha of [sourceRepo]. */
     val sourceRevision: String? = null,
     val optional: Boolean = false,
+    val tags: List<String> = emptyList(),
 )
 
 val EngineType.isCanary: Boolean get() = this == EngineType.CANARY_ONNX || this == EngineType.CANARY_GGUF
@@ -81,10 +80,6 @@ val ModelManifest.hasRumbleFormatting: Boolean
 
 val ModelManifest.canHintLanguage: Boolean
     get() = engineType != EngineType.FLUID_TDT && (supportsLanguageHint ?: (engineType != EngineType.FUN_ASR_ONNX || id == "sense-voice-small-int8"))
-
-val ModelManifest.canTranslateToEnglish: Boolean
-    get() = engineType == EngineType.WHISPER_CPP && (supportsTranslateToEnglish ?: true) &&
-        !Regex("\\.en(?:[-.]|$)", RegexOption.IGNORE_CASE).containsMatchIn(runtimeConfig.primaryModelFile.orEmpty())
 
 @Serializable
 data class ExternalModelCatalog(
@@ -234,20 +229,21 @@ object ModelManifestCodec {
             )
         }
 
-        // 3. Default: Whisper GGML / GGUF (.bin / .gguf)
-        val ggmlBin = relPaths.firstOrNull {
-            it.endsWith(".bin", ignoreCase = true) || it.endsWith(".gguf", ignoreCase = true)
-        } ?: throw IllegalArgumentException("No supported model weights (.bin / .gguf / .onnx) found")
+        // 3. Default: Canary GGUF (.gguf)
+        val ggufWeights = relPaths.firstOrNull {
+            it.endsWith(".gguf", ignoreCase = true)
+        } ?: throw IllegalArgumentException("No supported model weights (.onnx / .gguf) found")
 
         return ModelManifest(
             id = fallbackId,
             name = fallbackName,
-            description = "Imported Whisper GGML/GGUF model",
-            engineType = EngineType.WHISPER_CPP,
+            description = "Imported Canary GGUF model",
+            engineType = EngineType.CANARY_GGUF,
             sizeBytes = totalBytes,
-            quantization = ggmlBin.substringAfterLast('-', "GGML").substringBefore('.').uppercase(),
+            languages = CanaryLanguages.v2,
+            quantization = "GGUF",
             runtimeConfig = ModelRuntimeConfig(
-                primaryModelFile = ggmlBin,
+                primaryModelFile = ggufWeights,
             ),
             sourceTag = "local",
         )
@@ -266,16 +262,6 @@ object ModelManifestCodec {
         }
         val cfg = manifest.runtimeConfig
         return when (manifest.engineType) {
-            EngineType.WHISPER_CPP -> {
-                val p = cfg.primaryModelFile
-                if (p != null) {
-                    File(modelDir, p).let { it.exists() && it.length() > 1024L }
-                } else {
-                    modelDir.walkTopDown().maxDepth(2).any {
-                        it.isFile && (it.name.endsWith(".bin") || it.name.endsWith(".gguf"))
-                    }
-                }
-            }
             EngineType.FUN_ASR_ONNX -> {
                 val hasTriple = cfg.encoderFile != null && cfg.decoderFile != null && cfg.embeddingFile != null &&
                     File(modelDir, cfg.encoderFile).exists() &&

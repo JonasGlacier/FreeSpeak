@@ -1,6 +1,5 @@
 package com.freespeak.ime.model
 
-import androidx.annotation.StringRes
 import com.freespeak.ime.R
 
 object BuiltinModelCatalog {
@@ -15,18 +14,16 @@ object BuiltinModelCatalog {
         sha256 = hash,
     )
 
-    private const val WHISPER_MEDIUM_SIZE_BYTES = 539_212_467L
-
-    @StringRes
-    fun localizedDescriptionRes(modelId: String): Int? = when (modelId) {
-        "canary-180m-flash-int8" -> R.string.model_desc_canary
-        "fun-asr-nano-int8" -> R.string.model_desc_funasr_nano
-        "qwen3-asr-0.6b-int8" -> R.string.model_desc_qwen3_asr
-        "whisper-small-q5_1" -> R.string.model_desc_whisper_small
-        "whisper-medium-q5_0" -> R.string.model_desc_whisper_medium
-        "sense-voice-small-int8" -> R.string.model_desc_sensevoice
-        "whisper-tiny-q5_1" -> R.string.model_desc_whisper_tiny
-        else -> null
+    fun tagResIds(modelId: String): List<Int> = when (modelId) {
+        "fun-asr-nano-int8" -> listOf(R.string.tag_fast, R.string.tag_cjk_5, R.string.tag_dialects)
+        "sense-voice-small-int8" -> listOf(R.string.tag_fast, R.string.tag_cjk_5, R.string.tag_auto_itn)
+        "qwen3-asr-0.6b-int8" -> listOf(R.string.tag_high_accuracy, R.string.tag_code_switching, R.string.tag_9_langs)
+        "canary-180m-flash-int8" -> listOf(R.string.tag_en_de_es_fr, R.string.tag_speech_translation, R.string.tag_compact)
+        "canary-1b-v2-q4_k" -> listOf(R.string.tag_25_eu_langs, R.string.tag_speech_translation, R.string.tag_low_ram)
+        "canary-1b-v2-int8" -> listOf(R.string.tag_25_eu_langs, R.string.tag_speech_translation, R.string.tag_high_accuracy)
+        "rumble-2-flash-int8" -> listOf(R.string.tag_45_langs, R.string.tag_format_controls, R.string.tag_filler_removal)
+        "fluid-speech-pro-int8" -> listOf(R.string.tag_25_eu_langs, R.string.tag_clean_mode, R.string.tag_filler_removal)
+        else -> emptyList()
     }
 
     val canary = ModelManifest(
@@ -42,7 +39,7 @@ object BuiltinModelCatalog {
         sourceRepo = CANARY_REPO,
         sourceRevision = CANARY_REVISION,
         supportsLanguageHint = true,
-        supportsTranslateToEnglish = false, // Canary uses a target-language picker instead.
+        tags = listOf("EN·DE·ES·FR", "Speech translation", "Compact"),
         files = listOf(
             canaryFile("encoder.int8.onnx", 132_678_643L, "7a75b4e2a5857a6dcc0819503bbe3fad66943db4a3ccf21d3f27c633667d303f"),
             canaryFile("decoder.int8.onnx", 74_437_848L, "e41a2ab9c0c2fe81a1e8ade5a45fb02a74bc4db7d1f91b89a54a25e2cf79cba2"),
@@ -66,6 +63,7 @@ object BuiltinModelCatalog {
         sourceRepo = "Sarphix/canary-1b-v2-sherpa-onnx-int8",
         sourceRevision = "7d513cd4f39f6c7dc75c13a284b5e345b37f6198",
         optional = true,
+        tags = listOf("25 EU languages", "Speech translation", "High accuracy"),
     ).let { model ->
         fun file(name: String, bytes: Long, hash: String) = canaryFile(name, bytes, hash, model.sourceRepo!!, model.sourceRevision!!)
         model.copy(files = listOf(
@@ -88,6 +86,7 @@ object BuiltinModelCatalog {
         recommendedRamMb = 1536,
         sourceRepo = CANARY_GGUF_REPO,
         sourceRevision = CANARY_GGUF_REVISION,
+        tags = listOf("25 EU languages", "Speech translation", "Low RAM"),
         files = listOf(canaryFile(CANARY_GGUF_FILE, 610_746_016L,
             "5027f74ba0eb9bb707b14a11c7a68510a704748bb392e5f3af45115329ee501d", CANARY_GGUF_REPO, CANARY_GGUF_REVISION)),
         runtimeConfig = ModelRuntimeConfig(primaryModelFile = CANARY_GGUF_FILE, numMels = 128),
@@ -115,10 +114,10 @@ object BuiltinModelCatalog {
         quantization = "INT8",
         recommendedRamMb = 2304,
         supportsLanguageHint = true,
-        supportsTranslateToEnglish = false,
         optional = true,
         sourceRepo = RUMBLE_REPO,
         sourceRevision = RUMBLE_REVISION,
+        tags = listOf("45 languages", "Format controls", "Filler removal"),
         files = listOf(
             rumbleFile("conv_frontend.onnx", 44_148_280L, "00c48c47db2937884636a3d99f23166390088e8c939ff7e9e803e69b8af4c0b5"),
             rumbleFile("encoder.int8.onnx", 182_491_662L, "e6b4847992553dfa57bffda161b8c62d0af79c952c73269e6a2f6dc887f3e5dd"),
@@ -170,13 +169,13 @@ object BuiltinModelCatalog {
         sourceRepo = FLUID_REPO,
         sourceRevision = FLUID_REVISION,
         optional = true,
+        tags = listOf("25 EU languages", "Clean mode", "Filler removal"),
     )
 
     val models: List<ModelManifest> = listOf(
         ModelManifest(
             id = "fun-asr-nano-int8",
             supportsLanguageHint = false,
-            supportsTranslateToEnglish = false,
             name = "Fun-ASR-Nano",
             description = "Compact multilingual & dialect model by FunAudioLLM with built-in punctuation and code-switching.",
             engineType = EngineType.FUN_ASR_ONNX,
@@ -185,6 +184,7 @@ object BuiltinModelCatalog {
             languages = listOf("auto", "zh", "en", "yue", "ja", "ko"),
             quantization = "INT8",
             recommendedRamMb = 600,
+            tags = listOf("Fast", "ZH·EN·YUE·JA·KO", "Dialects"),
             files = listOf(
                 ModelFileEntry(
                     relativePath = "model.int8.onnx",
@@ -206,9 +206,40 @@ object BuiltinModelCatalog {
             ),
         ),
         ModelManifest(
+            id = "sense-voice-small-int8",
+            supportsLanguageHint = true,
+            name = "SenseVoice-Small",
+            description = "Fast multilingual model (Chinese, Cantonese, English, Japanese, Korean) with punctuation & ITN.",
+            engineType = EngineType.FUN_ASR_ONNX,
+            version = "2025.09-int8",
+            sizeBytes = 237_431_441L,
+            languages = listOf("auto", "zh", "en", "yue", "ja", "ko"),
+            quantization = "INT8",
+            recommendedRamMb = 550,
+            tags = listOf("Fast", "ZH·EN·YUE·JA·KO", "Auto-ITN"),
+            files = listOf(
+                ModelFileEntry(
+                    relativePath = "model.int8.onnx",
+                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/model.int8.onnx",
+                ),
+                ModelFileEntry(
+                    relativePath = "tokens.txt",
+                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/tokens.txt",
+                ),
+            ),
+            runtimeConfig = ModelRuntimeConfig(
+                primaryModelFile = "model.int8.onnx",
+                vocabFile = "tokens.txt",
+                numMels = 80,
+                lfrWindowSize = 7,
+                lfrWindowShift = 6,
+                upscaleSamples = true,
+                blankId = 0,
+            ),
+        ),
+        ModelManifest(
             id = "qwen3-asr-0.6b-int8",
             supportsLanguageHint = true,
-            supportsTranslateToEnglish = false,
             name = "Qwen3-ASR-0.6B",
             description = "Flagship 0.6B multimodal speech model with strong mixed-language and natural punctuation accuracy.",
             engineType = EngineType.QWEN3_ASR,
@@ -217,6 +248,7 @@ object BuiltinModelCatalog {
             languages = listOf("auto", "zh", "en", "yue", "ja", "ko", "fr", "de", "es", "ru"),
             quantization = "INT8",
             recommendedRamMb = 1800,
+            tags = listOf("High accuracy", "Code-switching", "9 languages"),
             files = listOf(
                 ModelFileEntry(
                     relativePath = "conv_frontend.onnx",
@@ -252,109 +284,9 @@ object BuiltinModelCatalog {
             ),
         ),
         canary,
-        canaryV2Onnx,
         canaryV2Gguf,
+        canaryV2Onnx,
         rumble,
         fluidSpeech,
-        ModelManifest(
-            id = "whisper-small-q5_1",
-            supportsLanguageHint = true,
-            supportsTranslateToEnglish = true,
-            name = "Whisper Small",
-            description = "Balanced 99-language Whisper model running on whisper.cpp.",
-            engineType = EngineType.WHISPER_CPP,
-            version = "q5_1",
-            sizeBytes = 190_085_487L,
-            languages = listOf("auto", "zh", "en", "ja", "ko", "fr", "de", "es", "ru"),
-            quantization = "Q5_1",
-            recommendedRamMb = 500,
-            files = listOf(
-                ModelFileEntry(
-                    relativePath = "ggml-small-q5_1.bin",
-                    url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin",
-                )
-            ),
-            runtimeConfig = ModelRuntimeConfig(
-                primaryModelFile = "ggml-small-q5_1.bin",
-            ),
-        ),
-        ModelManifest(
-            id = "whisper-medium-q5_0",
-            supportsLanguageHint = true,
-            supportsTranslateToEnglish = true,
-            name = "Whisper Medium",
-            description = "Larger multilingual Whisper model for accuracy testing. Slower and more memory-intensive than Whisper Small.",
-            engineType = EngineType.WHISPER_CPP,
-            version = "q5_0",
-            sizeBytes = WHISPER_MEDIUM_SIZE_BYTES,
-            languages = listOf("auto", "zh", "en", "ja", "ko", "fr", "de", "es", "ru"),
-            quantization = "Q5_0",
-            recommendedRamMb = 1024,
-            files = listOf(
-                ModelFileEntry(
-                    relativePath = "ggml-medium-q5_0.bin",
-                    url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-medium-q5_0.bin",
-                    sha256 = "19fea4b380c3a618ec4723c3eef2eb785ffba0d0538cf43f8f235e7b3b34220f",
-                    sizeBytes = WHISPER_MEDIUM_SIZE_BYTES,
-                ),
-            ),
-            runtimeConfig = ModelRuntimeConfig(
-                primaryModelFile = "ggml-medium-q5_0.bin",
-            ),
-        ),
-        ModelManifest(
-            id = "sense-voice-small-int8",
-            supportsLanguageHint = true,
-            supportsTranslateToEnglish = false,
-            name = "SenseVoice-Small",
-            description = "Fast multilingual model (Chinese, Cantonese, English, Japanese, Korean) with punctuation & ITN.",
-            engineType = EngineType.FUN_ASR_ONNX,
-            version = "2025.09-int8",
-            sizeBytes = 237_431_441L,
-            languages = listOf("auto", "zh", "en", "yue", "ja", "ko"),
-            quantization = "INT8",
-            recommendedRamMb = 550,
-            files = listOf(
-                ModelFileEntry(
-                    relativePath = "model.int8.onnx",
-                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/model.int8.onnx",
-                ),
-                ModelFileEntry(
-                    relativePath = "tokens.txt",
-                    url = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/tokens.txt",
-                ),
-            ),
-            runtimeConfig = ModelRuntimeConfig(
-                primaryModelFile = "model.int8.onnx",
-                vocabFile = "tokens.txt",
-                numMels = 80,
-                lfrWindowSize = 7,
-                lfrWindowShift = 6,
-                upscaleSamples = true,
-                blankId = 0,
-            ),
-        ),
-        ModelManifest(
-            id = "whisper-tiny-q5_1",
-            supportsLanguageHint = true,
-            supportsTranslateToEnglish = true,
-            name = "Whisper Tiny",
-            description = "Ultra-light 32 MB model for low-memory devices or quick testing.",
-            engineType = EngineType.WHISPER_CPP,
-            version = "q5_1",
-            sizeBytes = 32_152_673L,
-            languages = listOf("auto", "zh", "en", "ja", "ko", "fr", "de", "es", "ru"),
-            quantization = "Q5_1",
-            recommendedRamMb = 220,
-            files = listOf(
-                ModelFileEntry(
-                    relativePath = "ggml-tiny-q5_1.bin",
-                    url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_1.bin",
-                )
-            ),
-            runtimeConfig = ModelRuntimeConfig(
-                primaryModelFile = "ggml-tiny-q5_1.bin",
-            ),
-        ),
     )
 }

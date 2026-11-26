@@ -4,8 +4,6 @@
     <string name="language_auto">自動検出（推奨）</string>
     <string name="language_hint_description">通常は多言語を自動検出します。ヒントは話す言語を指定するもので、翻訳先ではありません。短い発話や方言を誤認識する場合に使用してください。</string>
     <string name="language_builtin_description">このモデルは言語を自動検出し、手動指定に対応していません。</string>
-    <string name="translate_english_title">音声を英語に翻訳</string>
-    <string name="translate_english_description">多言語版 Whisper の翻訳タスクを使用します。言語ヒントは入力音声の言語を指します。</string>
     <string name="chinese_output_title">中国語の字体</string>
     <string name="chinese_system">システムに従う</string>
     <string name="chinese_simplified">简体中文</string>

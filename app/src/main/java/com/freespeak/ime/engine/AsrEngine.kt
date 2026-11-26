@@ -5,7 +5,6 @@ import com.freespeak.ime.model.ModelManifest
 import java.io.File
 import com.freespeak.ime.text.ChineseOutputMode
 import com.freespeak.ime.model.canHintLanguage
-import com.freespeak.ime.model.canTranslateToEnglish
 import com.freespeak.ime.model.isCanary
 import com.freespeak.ime.model.hasRumbleFormatting
 import com.freespeak.ime.model.RumbleFormatting
@@ -19,8 +18,6 @@ data class AsrTranscriptionResult(
 data class AsrInferenceOptions(
     val language: String = "auto",
     val numThreads: Int = 4,
-    val enableStylePrompt: Boolean = true,
-    val translateToEnglish: Boolean = false,
     val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
     val targetLanguage: String? = null,
     val rumbleFormatting: RumbleFormatting? = null,
@@ -29,7 +26,6 @@ data class AsrInferenceOptions(
 
 fun AsrInferenceOptions.forModel(model: ModelManifest): AsrInferenceOptions = copy(
     language = if (model.canHintLanguage) language else "auto",
-    translateToEnglish = translateToEnglish && model.canTranslateToEnglish,
     targetLanguage = targetLanguage.takeIf { model.engineType.isCanary },
     rumbleFormatting = rumbleFormatting.takeIf { model.hasRumbleFormatting },
     fluidCleanMode = fluidCleanMode && model.engineType == EngineType.FLUID_TDT,

@@ -4,8 +4,6 @@
     <string name="language_auto">自动检测（推荐）</string>
     <string name="language_hint_description">默认自动识别多语言。此处提示的是正在说的语言，而非翻译目标；仅在短句或方言识别不准时指定。</string>
     <string name="language_builtin_description">此模型内置自动多语言识别，不提供手动语种参数。</string>
-    <string name="translate_english_title">语音译为英文</string>
-    <string name="translate_english_description">仅适用于多语言 Whisper，启用模型原生翻译任务。语种提示仍指正在说的语言。</string>
     <string name="chinese_output_title">中文简繁输出</string>
     <string name="chinese_system">跟随系统</string>
     <string name="chinese_simplified">简体中文</string>

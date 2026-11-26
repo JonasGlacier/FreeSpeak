@@ -10,22 +10,24 @@ import java.nio.file.Files
 class ModelManifestAndMirrorTest {
 
     @Test
-    fun `builtin catalog contains Fun-ASR-Nano, Qwen3-ASR-0_6B, and Whisper Small`() {
+    fun `builtin catalog contains curated models with files and tags`() {
         val ids = BuiltinModelCatalog.models.map { it.id }.toSet()
         assertTrue("fun-asr-nano-int8" in ids)
+        assertTrue("sense-voice-small-int8" in ids)
         assertTrue("qwen3-asr-0.6b-int8" in ids)
-        assertTrue("whisper-small-q5_1" in ids)
+        assertTrue("canary-180m-flash-int8" in ids)
         assertTrue(BuiltinModelCatalog.models.all { it.files.isNotEmpty() })
+        assertTrue(BuiltinModelCatalog.models.all { it.tags.isNotEmpty() && BuiltinModelCatalog.tagResIds(it.id).isNotEmpty() })
     }
 
     @Test
     fun `mirror URL resolver supports HF-Mirror, ModelScope, and Custom mirror`() {
-        val hfUrl = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin"
+        val hfUrl = "https://huggingface.co/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/main/encoder.int8.onnx"
         val msUrl = "https://modelscope.cn/models/example/model.onnx"
 
         val hfMirrorSettings = UserSettings(mirrorSource = MirrorSource.HF_MIRROR)
         assertEquals(
-            "https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin",
+            "https://hf-mirror.com/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/main/encoder.int8.onnx",
             hfMirrorSettings.resolveDownloadUrl(hfUrl, msUrl)
         )
 
@@ -37,13 +39,13 @@ class ModelManifestAndMirrorTest {
             customMirrorUrl = "https://my-mirror.example.org/"
         )
         assertEquals(
-            "https://my-mirror.example.org/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin",
+            "https://my-mirror.example.org/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/main/encoder.int8.onnx",
             customSettings.resolveDownloadUrl(hfUrl, null)
         )
     }
 
     @Test
-    fun `inferOrLoadManifest auto-detects Qwen3-ASR, Fun-ASR ONNX, and Whisper directories`() {
+    fun `inferOrLoadManifest auto-detects Qwen3-ASR, Fun-ASR ONNX, and Canary GGUF directories`() {
         val qwenDir = Files.createTempDirectory("test_qwen3").toFile()
         try {
             qwenDir.resolve("conv_frontend.onnx").writeBytes(ByteArray(16))
@@ -58,14 +60,14 @@ class ModelManifestAndMirrorTest {
             qwenDir.deleteRecursively()
         }
 
-        val whisperDir = Files.createTempDirectory("test_whisper").toFile()
+        val ggufDir = Files.createTempDirectory("test_canary_gguf").toFile()
         try {
-            whisperDir.resolve("ggml-custom-q8_0.gguf").writeBytes(ByteArray(2048))
-            val whisperManifest = ModelManifestCodec.inferOrLoadManifest(whisperDir, "id-w", "Custom Whisper")
-            assertEquals(EngineType.WHISPER_CPP, whisperManifest.engineType)
-            assertEquals("ggml-custom-q8_0.gguf", whisperManifest.runtimeConfig.primaryModelFile)
+            ggufDir.resolve("canary-1b-v2-q4_k.gguf").writeBytes(ByteArray(2048))
+            val ggufManifest = ModelManifestCodec.inferOrLoadManifest(ggufDir, "id-c", "Custom Canary")
+            assertEquals(EngineType.CANARY_GGUF, ggufManifest.engineType)
+            assertEquals("canary-1b-v2-q4_k.gguf", ggufManifest.runtimeConfig.primaryModelFile)
         } finally {
-            whisperDir.deleteRecursively()
+            ggufDir.deleteRecursively()
         }
     }
 

@@ -78,8 +78,6 @@
     <string name="mode_hold_desc">按住麥克風說話，放開手指立即轉寫，上滑取消本次錄音。</string>
 
     <string name="sub_language_desc">勾選日常使用的語言。勾選多種語言時將自動啟用多語言混輸辨識，並可在鍵盤頂欄快速切換。</string>
-    <string name="sub_language_whisper_prompt">標點與中英混輸引導（Whisper）</string>
-    <string name="sub_language_whisper_prompt_desc">使用 Whisper 模型時自動提示輸出標點符號與中英混排。</string>
 
     <string name="sub_vad_desc">透過本機 Silero VAD 偵測人聲活動，自動濾除首尾留白與過長靜音；絕不切碎句子，保留模型原生標點。</string>
     <string name="sub_vad_enable">開啟語音偵測與靜音過濾</string>
@@ -91,12 +89,22 @@
     <string name="model_downloading_format">%1$s · %2$d / %3$d MB (%4$s)</string>
     <string name="model_extracting">正在解壓縮模型檔案…</string>
 
-    <string name="model_desc_funasr_nano">FunAudioLLM 輕量多語言與方言模型，支援中英混說與自動標點，推論極快。</string>
-    <string name="model_desc_qwen3_asr">Qwen3 0.6B 多模態語音小模型，中英夾雜、專業術語及標點表現極佳。</string>
-    <string name="model_desc_whisper_small">均衡型 99 語種 Whisper 量化模型（whisper.cpp 原生推論）。</string>
-    <string name="model_desc_whisper_medium">更大的多語言 Whisper 模型，適合測試辨識準確率。比 Whisper Small 更慢、占用更多記憶體。</string>
-    <string name="model_desc_sensevoice">支援中、粵、英、日、韓辨識與自動標點，反應迅速。</string>
-    <string name="model_desc_whisper_tiny">僅約 32 MB 的超輕模型，適合低階裝置或快速體驗。</string>
+    <string name="tag_fast">極速</string>
+    <string name="tag_high_accuracy">高準確率</string>
+    <string name="tag_compact">輕量</string>
+    <string name="tag_low_ram">省記憶體</string>
+    <string name="tag_cjk_5">中英日韓粵</string>
+    <string name="tag_dialects">中文方言</string>
+    <string name="tag_code_switching">中英混輸</string>
+    <string name="tag_9_langs">9 語種</string>
+    <string name="tag_45_langs">45 語種</string>
+    <string name="tag_en_de_es_fr">英德西法</string>
+    <string name="tag_25_eu_langs">25 歐洲語種</string>
+    <string name="tag_speech_translation">雙向互譯</string>
+    <string name="tag_auto_itn">數字正規化</string>
+    <string name="tag_format_controls">格式可控</string>
+    <string name="tag_filler_removal">去贅詞</string>
+    <string name="tag_clean_mode">口語淨化</string>
 
     <string name="sub_mirror_desc">切換下載鏡像來源、從本機匯入模型壓縮檔，或訂閱社群 JSON 模型清單。</string>
     <string name="mirror_section_title">下載鏡像來源</string>
@@ -107,7 +115,7 @@
     <string name="mirror_custom_url_label">自訂鏡像網址前綴</string>
 
     <string name="custom_import_section">本機匯入與直連新增</string>
-    <string name="action_import_local_file">從本機儲存空間匯入模型 (.bin / .gguf / .onnx / .zip / .tar.gz)</string>
+    <string name="action_import_local_file">從本機儲存空間匯入模型 (.gguf / .onnx / .zip / .tar.gz)</string>
     <string name="action_add_direct_url">透過直連 URL 新增模型</string>
     <string name="catalog_section_title">外部 JSON 模型來源訂閱</string>
     <string name="catalog_url_label">模型來源 JSON URL</string>
@@ -179,38 +187,20 @@
     <string name="nav_settings">設定</string>
     <string name="hub_mine">我的</string>
     <string name="hub_discover">探索</string>
-    <string name="hub_search_hint">搜尋 Hugging Face</string>
     <string name="hub_featured">精選</string>
     <string name="hub_optional_models">可選模型</string>
     <string name="fluid_clean_mode">清理轉寫（去除填充詞和重複詞）</string>
     <string name="rumble_digits">用阿拉伯數字寫數值</string>
     <string name="rumble_filler">保留填充詞（如「嗯」「呃」）</string>
     <string name="rumble_verbatim">保留重複詞</string>
-    <string name="model_desc_canary">離線轉錄英語、德語、西班牙語和法語，支援英語與其他三種語言的雙向語音翻譯。</string>
     <string name="canary_source_language">說話語言</string>
     <string name="canary_target_language">輸出語言</string>
     <string name="canary_same_as_source">與說話語言相同（轉錄）</string>
     <string name="hub_no_models">尚無模型</string>
-    <string name="hub_no_results">無結果</string>
-    <string name="hub_compatible">可用</string>
-    <string name="hub_unverified">未驗證</string>
-    <string name="hub_unsupported">不支援</string>
-    <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
-    <string name="hf_issue_gated">受限儲存庫 · 需登入授權</string>
-    <string name="hf_issue_disabled">儲存庫已停用</string>
-    <string name="hf_issue_gguf">未辨識的 GGUF 模型變體</string>
-    <string name="hf_issue_ct2">CTranslate2 / faster-whisper 格式</string>
-    <string name="hf_issue_pytorch">PyTorch / Transformers 權重 · 需轉換</string>
-    <string name="hf_issue_whisper_onnx">Whisper ONNX 匯出 · 請用 GGML .bin</string>
-    <string name="hf_issue_transducer">Transducer 結構（encoder / decoder / joiner）</string>
-    <string name="hf_issue_other_runtime">其他執行環境（TFLite / NCNN / Core ML …）</string>
-    <string name="hf_issue_unknown_onnx">未識別的 ONNX 結構</string>
-    <string name="hf_issue_no_weights">找不到模型權重</string>
     <string name="action_pause">暫停</string>
     <string name="action_resume">繼續下載</string>
     <string name="action_search">搜尋</string>
     <string name="action_more">更多</string>
-    <string name="action_open_browser">在瀏覽器中開啟</string>
     <string name="action_switch_model">切換模型</string>
     <string name="label_model">模型</string>
     <string name="model_state_unloaded">未載入</string>

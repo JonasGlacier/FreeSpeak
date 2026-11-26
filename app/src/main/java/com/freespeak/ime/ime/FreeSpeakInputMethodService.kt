@@ -34,12 +34,10 @@ import com.freespeak.ime.FreeSpeakApplication
 import com.freespeak.ime.R
 import com.freespeak.ime.audio.AudioRecorder
 import com.freespeak.ime.data.RecordInteractionMode
-import com.freespeak.ime.model.canTranslateToEnglish
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.engine.AsrInferenceOptions
 import com.freespeak.ime.engine.EngineRuntimeStatus
 import com.freespeak.ime.model.ModelManifest
-import com.freespeak.ime.model.ModelOptions
 import com.freespeak.ime.model.optionsFor
 import com.freespeak.ime.ui.MainActivity
 import com.freespeak.ime.ui.MainTab
@@ -69,14 +67,11 @@ class FreeSpeakInputMethodService : InputMethodService() {
     private var btnUndo: ImageButton? = null
     private var btnRedo: ImageButton? = null
     private var btnSettings: ImageButton? = null
-    private var btnLang: TextView? = null
     private var btnTargetIme: ImageButton? = null
     private var btnCancelRecording: ImageButton? = null
     private var btnSpace: TextView? = null
     private var btnBackspace: ImageButton? = null
     private var micAnimator: ValueAnimator? = null
-    private var translateAvailable = false
-    private var cachedActiveModel: ModelManifest? = null
     private var activePalette: ImePanelPalette? = null
 
     // Undo / redo of text that was inserted by speech recognition
@@ -161,7 +156,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
         btnUndo = view.findViewById(R.id.btnUndo)
         btnRedo = view.findViewById(R.id.btnRedo)
         btnSettings = view.findViewById(R.id.btnOpenSettings)
-        btnLang = view.findViewById(R.id.btnLang)
         btnTargetIme = view.findViewById(R.id.btnTargetIme)
         btnCancelRecording = view.findViewById(R.id.btnCancelRecording)
         btnSpace = view.findViewById(R.id.btnSpace)
@@ -222,14 +216,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
         btnRedo?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             performRedo()
-        }
-        btnLang?.setOnClickListener { v ->
-            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            val model = activeManifest() ?: return@setOnClickListener
-            val enable = !currentSettings.optionsFor(model).translateToEnglish
-            serviceScope.launch {
-                app.preferencesRepository.setModelOption(model.id, ModelOptions.TRANSLATE_EN, enable.toString())
-            }
         }
         btnTargetIme?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -325,21 +311,8 @@ class FreeSpeakInputMethodService : InputMethodService() {
             ImageViewCompat.setImageTintList(btn, roundFgTint)
         }
 
-        applyLangButtonStyle(palette)
         applyMicStyle(palette)
         applyNavBarIconTint(palette)
-    }
-
-    private fun applyLangButtonStyle(palette: ImePanelPalette = currentPalette()) {
-        val translating = translateAvailable && currentSettings.optionsFor(cachedActiveModel).translateToEnglish
-        btnLang?.apply {
-            background = if (translating) {
-                ImePanelTheme.ovalKeyDrawable(palette.micBg, palette.micRipple)
-            } else {
-                ImePanelTheme.ovalKeyDrawable(palette.roundKeyBg, palette.keyRipple)
-            }
-            setTextColor(if (translating) palette.micFg else palette.roundKeyFg)
-        }
     }
 
     private fun applyMicStyle(palette: ImePanelPalette = currentPalette()) {
@@ -576,8 +549,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
                 options = AsrInferenceOptions(
                     language = modelOpts.language,
                     numThreads = settingsSnapshot.cpuThreads,
-                    enableStylePrompt = modelOpts.whisperPrompt,
-                    translateToEnglish = modelOpts.translateToEnglish,
                     chineseOutputMode = settingsSnapshot.chineseOutputMode,
                     targetLanguage = modelOpts.targetLanguage,
                     rumbleFormatting = modelOpts.rumbleFormatting,
@@ -650,20 +621,13 @@ class FreeSpeakInputMethodService : InputMethodService() {
     }
 
     private fun updateToolbarAndPunctuation() {
-        val activeModel = activeManifest()
-        cachedActiveModel = activeModel
-
-        translateAvailable = activeModel?.canTranslateToEnglish == true
-        val translating = translateAvailable && currentSettings.optionsFor(activeModel).translateToEnglish
-
-        val useCjkPunct = !translating && (lastTextUsesCjk
-            ?: (resources.configuration.locales[0].language in setOf("zh", "ja")))
+        val useCjkPunct = lastTextUsesCjk
+            ?: (resources.configuration.locales[0].language in setOf("zh", "ja"))
         val symbols = if (useCjkPunct) CJK_PUNCTUATION else LATIN_PUNCTUATION
         punctButtons.forEachIndexed { idx, tv ->
             if (idx < symbols.size) tv.text = symbols[idx]
         }
 
-        applyLangButtonStyle()
         updatePanelMode(animate = false)
     }
 
@@ -687,7 +651,6 @@ class FreeSpeakInputMethodService : InputMethodService() {
         btnSettings?.visibility = idleVis
         btnUndo?.visibility = if (!recording && undoStack.isNotEmpty()) View.VISIBLE else View.GONE
         btnRedo?.visibility = if (!recording && redoStack.isNotEmpty()) View.VISIBLE else View.GONE
-        btnLang?.visibility = if (!recording && translateAvailable) View.VISIBLE else View.GONE
         btnTargetIme?.visibility = if (!recording && hasTargetIme()) View.VISIBLE else View.GONE
         btnCancelRecording?.visibility =
             if (recording && !isTranscribingNow) View.VISIBLE else View.GONE

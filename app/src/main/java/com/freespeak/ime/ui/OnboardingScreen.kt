@@ -54,7 +54,6 @@ import androidx.compose.ui.unit.dp
 import com.freespeak.ime.R
 import com.freespeak.ime.data.MirrorSource
 import com.freespeak.ime.data.UserSettings
-import com.freespeak.ime.model.BuiltinModelCatalog
 import com.freespeak.ime.model.ManagedModelItem
 import com.freespeak.ime.model.ModelInstallState
 import com.freespeak.ime.model.ModelManifest

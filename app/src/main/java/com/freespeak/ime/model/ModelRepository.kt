@@ -74,8 +74,6 @@ class ModelRepository(private val context: Context) {
 
     private val activeJobs = ConcurrentHashMap<String, Job>()
 
-    val huggingFace = com.freespeak.ime.model.hf.HuggingFaceClient(okHttpClient)
-
     private val _externalModels = MutableStateFlow<List<ModelManifest>>(emptyList())
     private val _downloadStates = MutableStateFlow<Map<String, ModelInstallState>>(emptyMap())
     private val _models = MutableStateFlow<List<ManagedModelItem>>(emptyList())
@@ -229,7 +227,6 @@ class ModelRepository(private val context: Context) {
 
         val runtimeCfg = when (engineType) {
             EngineType.FLUID_TDT -> error("Download Fluid Speech Pro from Optional models")
-            EngineType.WHISPER_CPP -> ModelRuntimeConfig(primaryModelFile = if (isArchive) null else fileName)
             EngineType.FUN_ASR_ONNX -> ModelRuntimeConfig(primaryModelFile = if (isArchive) null else fileName, numMels = 80)
             EngineType.QWEN3_ASR -> ModelRuntimeConfig(numMels = 128)
             EngineType.CANARY_ONNX -> {
@@ -261,16 +258,6 @@ class ModelRepository(private val context: Context) {
         File(customRegistryDir, "${manifest.id}.json").writeText(ModelManifestCodec.encodeManifest(manifest))
         refreshLocalInventory()
         return manifest
-    }
-
-    /**
-     * Persists a manifest (e.g. generated from a Hugging Face repo) so it survives restarts and
-     * interrupted downloads can be resumed from "My models".
-     */
-    fun registerManifest(manifest: ModelManifest) {
-        File(customRegistryDir, "${sanitizeId(manifest.id)}.json")
-            .writeText(ModelManifestCodec.encodeManifest(manifest))
-        refreshLocalInventory()
     }
 
     fun startDownload(

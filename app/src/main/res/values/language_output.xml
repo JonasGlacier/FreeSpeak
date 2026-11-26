@@ -4,8 +4,6 @@
     <string name="language_auto">Auto-detect (recommended)</string>
     <string name="language_hint_description">Automatic detection supports multilingual speech. A hint describes the language you speak, not the language to translate into. Use it only when short phrases or dialects are misidentified.</string>
     <string name="language_builtin_description">This model detects languages automatically and has no manual language input.</string>
-    <string name="translate_english_title">Translate speech to English</string>
-    <string name="translate_english_description">Multilingual Whisper only. Uses its native translation task; the language hint still refers to the spoken language.</string>
     <string name="chinese_output_title">Chinese output</string>
     <string name="chinese_system">Follow system</string>
     <string name="chinese_simplified">简体中文</string>

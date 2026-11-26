@@ -86,8 +86,6 @@
 
     <!-- Sub-screen: Preferred Languages -->
     <string name="sub_language_desc">勾选你日常使用的语言。勾选多种语言时将自动启用多语言混输识别（如中英夹杂），并可在键盘顶栏快速切换。</string>
-    <string name="sub_language_whisper_prompt">标点与中英混输引导（Whisper）</string>
-    <string name="sub_language_whisper_prompt_desc">使用 Whisper 系列模型时自动提示输出简体标点与自然中英混排。</string>
 
     <!-- Sub-screen: VAD -->
     <string name="sub_vad_desc">通过本地 Silero VAD 检测人声活动，自动滤除首尾留白与过长静音以防静音幻觉并降低算力消耗；绝不切碎句子，完整保留模型原生标点。</string>
@@ -101,13 +99,23 @@
     <string name="model_downloading_format">%1$s · %2$d / %3$d MB (%4$s)</string>
     <string name="model_extracting">正在解压模型文件…</string>
 
-    <!-- Model Catalog Descriptions -->
-    <string name="model_desc_funasr_nano">FunAudioLLM 轻量多语言与方言模型，支持中英混说与自动标点，单次前向推理极快。</string>
-    <string name="model_desc_qwen3_asr">通义千问 0.6B 多模态语音小模型，中英夹杂、专业词汇及标点断句表现极佳。</string>
-    <string name="model_desc_whisper_small">均衡型 99 语种 Whisper 量化模型（基于 whisper.cpp 原生推理）。</string>
-    <string name="model_desc_whisper_medium">更大的多语言 Whisper 模型，适合测试识别准确率。比 Whisper Small 更慢、占用更多内存。</string>
-    <string name="model_desc_sensevoice">支持中、粤、英、日、韩识别，自动恢复标点与数字格式，响应迅速。</string>
-    <string name="model_desc_whisper_tiny">仅约 32 MB 的超轻模型，适合低配设备或快速体验。</string>
+    <!-- Model Tags -->
+    <string name="tag_fast">极速</string>
+    <string name="tag_high_accuracy">高准确率</string>
+    <string name="tag_compact">轻量</string>
+    <string name="tag_low_ram">省内存</string>
+    <string name="tag_cjk_5">中英日韩粤</string>
+    <string name="tag_dialects">中文方言</string>
+    <string name="tag_code_switching">中英混输</string>
+    <string name="tag_9_langs">9 语种</string>
+    <string name="tag_45_langs">45 语种</string>
+    <string name="tag_en_de_es_fr">英德西法</string>
+    <string name="tag_25_eu_langs">25 欧洲语种</string>
+    <string name="tag_speech_translation">双向互译</string>
+    <string name="tag_auto_itn">数字规范化</string>
+    <string name="tag_format_controls">格式可控</string>
+    <string name="tag_filler_removal">去语气词</string>
+    <string name="tag_clean_mode">口语净化</string>
 
     <!-- Sub-screen: Download Source & Custom Models -->
     <string name="sub_mirror_desc">切换模型下载镜像源，从手机存储离线导入模型包，或订阅外部 JSON 模型源。</string>
@@ -119,7 +127,7 @@
     <string name="mirror_custom_url_label">自定义镜像地址前缀</string>
 
     <string name="custom_import_section">本地导入与直链接入</string>
-    <string name="action_import_local_file">从本地存储导入模型 (.bin / .gguf / .onnx / .zip / .tar.gz)</string>
+    <string name="action_import_local_file">从本地存储导入模型 (.gguf / .onnx / .zip / .tar.gz)</string>
     <string name="action_add_direct_url">通过直链 URL 添加模型</string>
     <string name="catalog_section_title">外部 JSON 模型源订阅</string>
     <string name="catalog_url_label">模型源 JSON URL</string>
@@ -190,7 +198,6 @@
     <string name="ime_cd_undo">撤销</string>
     <string name="ime_cd_redo">重做</string>
     <string name="ime_cd_cancel_recording">取消录音</string>
-    <string name="ime_cd_translate">翻译为英文</string>
     <string name="ime_cd_target_ime">切换到常用键盘</string>
     <string name="pref_color_scheme">面板配色</string>
     <string name="sub_color_scheme_desc">为语音输入面板选择 Android 动态取色或经典黑白配色。</string>
@@ -205,38 +212,20 @@
     <string name="nav_settings">设置</string>
     <string name="hub_mine">我的</string>
     <string name="hub_discover">发现</string>
-    <string name="hub_search_hint">搜索 Hugging Face</string>
     <string name="hub_featured">精选</string>
     <string name="hub_optional_models">可选模型</string>
     <string name="fluid_clean_mode">清理转写（去掉填充词和重复词）</string>
     <string name="rumble_digits">用阿拉伯数字写数值</string>
     <string name="rumble_filler">保留填充词（如「嗯」「呃」）</string>
     <string name="rumble_verbatim">保留重复词</string>
-    <string name="model_desc_canary">离线转写英语、德语、西班牙语和法语，支持英语与其他三种语言的双向语音翻译。</string>
     <string name="canary_source_language">说话语言</string>
     <string name="canary_target_language">输出语言</string>
     <string name="canary_same_as_source">与说话语言相同（转写）</string>
     <string name="hub_no_models">暂无模型</string>
-    <string name="hub_no_results">无结果</string>
-    <string name="hub_compatible">可用</string>
-    <string name="hub_unverified">未验证</string>
-    <string name="hub_unsupported">不支持</string>
-    <string name="hub_downloads_likes">↓ %1$s  ♥ %2$s</string>
-    <string name="hf_issue_gated">受限仓库 · 需登录授权</string>
-    <string name="hf_issue_disabled">仓库已禁用</string>
-    <string name="hf_issue_gguf">未识别的 GGUF 模型变体</string>
-    <string name="hf_issue_ct2">CTranslate2 / faster-whisper 格式</string>
-    <string name="hf_issue_pytorch">PyTorch / Transformers 权重 · 需转换</string>
-    <string name="hf_issue_whisper_onnx">Whisper ONNX 导出 · 请用 GGML .bin</string>
-    <string name="hf_issue_transducer">Transducer 结构（encoder / decoder / joiner）</string>
-    <string name="hf_issue_other_runtime">其他运行时（TFLite / NCNN / Core ML …）</string>
-    <string name="hf_issue_unknown_onnx">未识别的 ONNX 结构</string>
-    <string name="hf_issue_no_weights">未找到模型权重</string>
     <string name="action_pause">暂停</string>
     <string name="action_resume">继续下载</string>
     <string name="action_search">搜索</string>
     <string name="action_more">更多</string>
-    <string name="action_open_browser">在浏览器中打开</string>
     <string name="action_switch_model">切换模型</string>
     <string name="label_model">模型</string>
     <string name="model_state_unloaded">未加载</string>

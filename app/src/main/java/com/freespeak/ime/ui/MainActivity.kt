@@ -127,8 +127,6 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
     val engineStatus by viewModel.engineStatus.collectAsStateWithLifecycle()
     val toastMsg by viewModel.toastMessage.collectAsStateWithLifecycle()
     val tabRequest by viewModel.tabRequest.collectAsStateWithLifecycle()
-    val hubSearch by viewModel.hubSearch.collectAsStateWithLifecycle()
-    val hubDetail by viewModel.hubDetail.collectAsStateWithLifecycle()
 
     var tab by rememberSaveable { mutableStateOf(MainTab.HOME) }
     var subPage by rememberSaveable { mutableStateOf<SettingsSubPage?>(null) }
@@ -178,7 +176,6 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
         tabRequest?.let {
             tab = it
             subPage = null
-            viewModel.closeHfRepo()
             viewModel.consumeTabRequest()
         }
     }
@@ -234,11 +231,10 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
         val installed = models.filter { it.state is ModelInstallState.Installed }
         val activeItem = installed.firstOrNull { it.manifest.id == settings.selectedModelId } ?: installed.firstOrNull()
 
-        BackHandler(enabled = subPage != null || hubDetail != null || tab != MainTab.HOME) {
+        BackHandler(enabled = subPage != null || tab != MainTab.HOME) {
             when {
                 subPage == SettingsSubPage.MODEL_CHOICE -> subPage = choiceReturn
                 subPage != null -> subPage = null
-                hubDetail != null -> viewModel.closeHfRepo()
                 else -> tab = MainTab.HOME
             }
         }
@@ -270,13 +266,8 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                         MainTab.MODELS -> ModelHubScreen(
                             models = models,
                             settings = settings,
-                            search = hubSearch,
                             contentPadding = padding,
                             actions = modelActions,
-                            onQueryChange = viewModel::updateHubQuery,
-                            onSubmitSearch = viewModel::submitHubSearch,
-                            onLoadMore = viewModel::loadMoreHubResults,
-                            onOpenRepo = viewModel::openHfRepo,
                             onImportLocal = importLocal,
                             onAddDirectUrl = { showDirectUrlDialog = true },
                             onOpenCatalogs = { subPage = SettingsSubPage.CATALOGS },
@@ -294,33 +285,9 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                 }
             }
 
-            // Overlay pages slide over the tabs so tab state (scroll, search) is preserved.
+            // Overlay pages slide over the tabs so tab state (scroll) is preserved.
             val lastSub = remember { mutableStateOf<SettingsSubPage?>(null) }.apply { if (subPage != null) value = subPage }
-            val lastDetail = remember { mutableStateOf<HubDetailUi?>(null) }.apply { if (hubDetail != null) value = hubDetail }
             val showSub = subPage != null
-            val showDetail = hubDetail != null
-
-            AnimatedVisibility(
-                visible = showDetail,
-                enter = slideInHorizontally { it / 3 } + fadeIn(tween(160)),
-                exit = slideOutHorizontally { it / 3 } + fadeOut(tween(160)),
-            ) {
-                lastDetail.value?.let { d ->
-                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        HuggingFaceRepoDetailScreen(
-                            detail = d,
-                            models = models,
-                            settings = settings,
-                            manifestFor = viewModel::hfManifestFor,
-                            onBack = viewModel::closeHfRepo,
-                            onRetry = viewModel::retryHfRepo,
-                            onDownloadVariant = viewModel::downloadHfVariant,
-                            onOpenMirror = { subPage = SettingsSubPage.DOWNLOAD_MIRROR },
-                            actions = modelActions,
-                        )
-                    }
-                }
-            }
 
             AnimatedVisibility(
                 visible = showSub,
@@ -536,7 +503,7 @@ private fun DirectUrlModelDialog(
 ) {
     var name by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
-    var engine by remember { mutableStateOf(EngineType.WHISPER_CPP) }
+    var engine by remember { mutableStateOf(EngineType.FUN_ASR_ONNX) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

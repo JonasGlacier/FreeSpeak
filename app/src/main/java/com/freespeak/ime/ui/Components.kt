@@ -3,9 +3,12 @@ package com.freespeak.ime.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,8 +49,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.freespeak.ime.R
+import com.freespeak.ime.model.BuiltinModelCatalog
 import com.freespeak.ime.model.ManagedModelItem
 import com.freespeak.ime.model.ModelInstallState
+import com.freespeak.ime.model.ModelManifest
 import com.freespeak.ime.ui.theme.FreeSpeakType
 import com.freespeak.ime.ui.theme.NothingRed
 import java.util.Locale
@@ -253,8 +258,11 @@ internal fun ConfirmDeleteDialog(name: String, onDismiss: () -> Unit, onConfirm:
 // ---------------------------------------------------------------- model row
 
 /**
- * Compact model row: selection dot, name, mono readout and icon-only actions.
+ * Compact model row:
+ * - Line 1: model name + formatted size
+ * - Line 2: feature tags
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ModelRow(
     item: ManagedModelItem,
@@ -264,12 +272,13 @@ internal fun ModelRow(
     onSelect: () -> Unit,
     onDelete: (() -> Unit)?,
     title: String = item.manifest.name,
-    readout: String = modelReadout(item),
     enabled: Boolean = true,
     startPadding: Dp = 20.dp,
 ) {
     val state = item.state
     val installed = state is ModelInstallState.Installed
+    val sizeLabel = modelSizeLabel(item)
+    val tags = resolveModelTags(item.manifest)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -282,9 +291,28 @@ internal fun ModelRow(
                 Spacer(Modifier.width(16.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(2.dp))
-                Readout(readout)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (sizeLabel != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Readout(sizeLabel)
+                    }
+                }
+                if (tags.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        tags.forEach { tag -> ModelTagChip(tag) }
+                    }
+                }
             }
             Spacer(Modifier.width(4.dp))
             when (state) {
@@ -343,17 +371,36 @@ internal fun ModelRow(
     }
 }
 
-internal fun modelReadout(item: ManagedModelItem): String {
-    val m = item.manifest
-    val size = when (val s = item.state) {
-        is ModelInstallState.Installed -> s.diskBytes
-        else -> m.sizeBytes
+@Composable
+private fun ModelTagChip(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(6.dp))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+internal fun resolveModelTags(manifest: ModelManifest): List<String> {
+    val resIds = BuiltinModelCatalog.tagResIds(manifest.id)
+    return if (resIds.isNotEmpty()) {
+        resIds.map { stringResource(it) }
+    } else {
+        manifest.tags
     }
-    return listOfNotNull(
-        size.takeIf { it > 0L }?.let { formatBytes(it) },
-        m.quantization.takeIf { it.isNotBlank() },
-        m.engineType.shortName,
-    ).joinToString(" · ")
+}
+
+internal fun modelSizeLabel(item: ManagedModelItem): String? {
+    val bytes = when (val s = item.state) {
+        is ModelInstallState.Installed -> s.diskBytes
+        else -> item.manifest.sizeBytes
+    }
+    return bytes.takeIf { it > 0L }?.let { formatBytes(it) }
 }
 
 internal fun formatBytes(bytes: Long): String {
@@ -365,12 +412,6 @@ internal fun formatBytes(bytes: Long): String {
         mb >= 1.0 -> String.format(Locale.ROOT, "%.1f MB", mb)
         else -> String.format(Locale.ROOT, "%.0f KB", bytes / 1024.0)
     }
-}
-
-internal fun formatCount(n: Long): String = when {
-    n >= 1_000_000 -> String.format(Locale.ROOT, "%.1fM", n / 1_000_000.0)
-    n >= 1_000 -> String.format(Locale.ROOT, "%.1fK", n / 1_000.0)
-    else -> n.toString()
 }
 
 internal fun formatSpeedLabel(bytesPerSec: Long): String {

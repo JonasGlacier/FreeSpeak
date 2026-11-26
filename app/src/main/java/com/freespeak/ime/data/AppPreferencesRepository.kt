@@ -98,9 +98,7 @@ data class UserSettings(
     val mirrorSource: MirrorSource = defaultMirrorForLocale(),
     val customMirrorUrl: String = "https://hf-mirror.com",
     val customCatalogUrls: Set<String> = emptySet(),
-    val whisperStylePromptEnabled: Boolean = true,
     val spokenLanguageHint: String = "auto",
-    val translateToEnglish: Boolean = false,
     val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
     val targetImeId: String = "",
     val imeColorScheme: ImeColorScheme = ImeColorScheme.DYNAMIC,
@@ -139,14 +137,6 @@ data class UserSettings(
     fun formatPreferredLanguagesSummary(): String {
         return orderedPreferredLanguages.joinToString(", ") { SupportedLanguages.labelFor(it) }
     }
-
-    /** Base URL used for Hugging Face Hub API calls (search / repo info). */
-    val hubApiBase: String
-        get() = when (mirrorSource) {
-            MirrorSource.HUGGINGFACE -> "https://huggingface.co"
-            MirrorSource.HF_MIRROR, MirrorSource.MODELSCOPE -> "https://hf-mirror.com"
-            MirrorSource.CUSTOM -> customMirrorUrl.trim().trimEnd('/').ifEmpty { "https://hf-mirror.com" }
-        }
 
     fun resolveDownloadUrl(hfUrl: String, modelScopeUrl: String? = null): String {
         if (mirrorSource == MirrorSource.MODELSCOPE && !modelScopeUrl.isNullOrBlank()) {
@@ -207,10 +197,8 @@ class AppPreferencesRepository(private val context: Context) {
                 ?: UserSettings.defaultMirrorForLocale(),
             customMirrorUrl = prefs[KEY_CUSTOM_MIRROR_URL] ?: "https://hf-mirror.com",
             customCatalogUrls = prefs[KEY_CUSTOM_CATALOG_URLS] ?: emptySet(),
-            whisperStylePromptEnabled = prefs[KEY_WHISPER_PROMPT_ENABLED] ?: true,
             // Do not migrate the old forced language: default back to genuine auto-detection.
             spokenLanguageHint = prefs[KEY_SPOKEN_LANGUAGE_HINT] ?: "auto",
-            translateToEnglish = prefs[KEY_TRANSLATE_ENGLISH] ?: false,
             chineseOutputMode = ChineseOutputMode.entries.find { it.name == prefs[KEY_CHINESE_OUTPUT] }
                 ?: ChineseOutputMode.SYSTEM,
             targetImeId = prefs[KEY_TARGET_IME_ID] ?: "",
@@ -290,16 +278,8 @@ class AppPreferencesRepository(private val context: Context) {
         }
     }
 
-    suspend fun setWhisperPromptEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[KEY_WHISPER_PROMPT_ENABLED] = enabled }
-    }
-
     suspend fun setSpokenLanguageHint(language: String) {
         context.dataStore.edit { it[KEY_SPOKEN_LANGUAGE_HINT] = language }
-    }
-
-    suspend fun setTranslateToEnglish(enabled: Boolean) {
-        context.dataStore.edit { it[KEY_TRANSLATE_ENGLISH] = enabled }
     }
 
     suspend fun setChineseOutputMode(mode: ChineseOutputMode) {
@@ -343,7 +323,6 @@ class AppPreferencesRepository(private val context: Context) {
         private val KEY_IME_COLOR_SCHEME = stringPreferencesKey("ime_color_scheme")
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val KEY_SPOKEN_LANGUAGE_HINT = stringPreferencesKey("spoken_language_hint")
-        private val KEY_TRANSLATE_ENGLISH = booleanPreferencesKey("translate_english")
         private val KEY_CHINESE_OUTPUT = stringPreferencesKey("chinese_output_mode")
         private val KEY_SELECTED_MODEL_ID = stringPreferencesKey("selected_model_id")
         private val KEY_PREFERRED_LANGUAGES = stringSetPreferencesKey("preferred_languages")
@@ -356,6 +335,5 @@ class AppPreferencesRepository(private val context: Context) {
         private val KEY_MIRROR_SOURCE = stringPreferencesKey("mirror_source")
         private val KEY_CUSTOM_MIRROR_URL = stringPreferencesKey("custom_mirror_url")
         private val KEY_CUSTOM_CATALOG_URLS = stringSetPreferencesKey("custom_catalog_urls")
-        private val KEY_WHISPER_PROMPT_ENABLED = booleanPreferencesKey("whisper_prompt_enabled")
     }
 }

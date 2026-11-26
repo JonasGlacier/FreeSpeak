@@ -34,8 +34,6 @@ data class ToggleModelOption(
 object ModelOptions {
     const val LANGUAGE = "language"
     const val TARGET_LANGUAGE = "target_language"
-    const val TRANSLATE_EN = "translate_en"
-    const val WHISPER_PROMPT = "whisper_prompt"
     const val RUMBLE_DIGITS = "rumble_digits"
     const val RUMBLE_FILLER = "rumble_filler"
     const val RUMBLE_VERBATIM = "rumble_verbatim"
@@ -71,24 +69,11 @@ object ModelOptions {
                 )
             )
         }
-        if (model.canTranslateToEnglish) {
-            add(ToggleModelOption(TRANSLATE_EN, R.string.translate_english_title, settings.translateToEnglish))
-        }
         if (model.hasRumbleFormatting) {
             val defaults = RumbleFormatting()
             add(ToggleModelOption(RUMBLE_DIGITS, R.string.rumble_digits, defaults.digits))
             add(ToggleModelOption(RUMBLE_FILLER, R.string.rumble_filler, defaults.filler))
             add(ToggleModelOption(RUMBLE_VERBATIM, R.string.rumble_verbatim, defaults.verbatim))
-        }
-        if (model.engineType == EngineType.WHISPER_CPP) {
-            add(
-                ToggleModelOption(
-                    key = WHISPER_PROMPT,
-                    titleRes = R.string.sub_language_whisper_prompt,
-                    default = settings.whisperStylePromptEnabled,
-                    disabledWhenOn = TRANSLATE_EN.takeIf { model.canTranslateToEnglish },
-                )
-            )
         }
     }
 
@@ -106,8 +91,6 @@ object ModelOptions {
 /** Typed, validated view of a model's option values (stored value -> legacy global -> default). */
 data class ResolvedModelOptions(
     val language: String,
-    val translateToEnglish: Boolean,
-    val whisperPrompt: Boolean,
     val raw: Map<String, String>,
     val targetLanguage: String? = null,
     val rumbleFormatting: RumbleFormatting? = null,
@@ -127,8 +110,6 @@ fun UserSettings.optionsFor(model: ModelManifest?): ResolvedModelOptions {
 
     return ResolvedModelOptions(
         language = choice(ModelOptions.LANGUAGE) ?: ModelOptions.AUTO,
-        translateToEnglish = toggle(ModelOptions.TRANSLATE_EN) ?: false,
-        whisperPrompt = toggle(ModelOptions.WHISPER_PROMPT) ?: whisperStylePromptEnabled,
         raw = stored,
         targetLanguage = choice(ModelOptions.TARGET_LANGUAGE),
         fluidCleanMode = toggle(ModelOptions.FLUID_CLEAN_MODE) ?: false,

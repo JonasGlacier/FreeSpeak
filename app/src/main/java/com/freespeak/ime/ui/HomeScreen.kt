@@ -145,7 +145,12 @@ private fun ModelPanel(
             modifier = Modifier.padding(end = 12.dp),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Readout(item?.let { modelReadout(it) } ?: "", Modifier.weight(1f))
+            val tags = item?.manifest?.let { resolveModelTags(it) }.orEmpty()
+            val summary = listOfNotNull(
+                item?.let { modelSizeLabel(it) },
+                tags.takeIf { it.isNotEmpty() }?.joinToString(" · "),
+            ).joinToString(" · ")
+            Readout(summary, Modifier.weight(1f))
             if (item == null) {
                 IconAction(Icons.Outlined.Add, stringResource(R.string.nav_models), onOpenModels)
             } else {

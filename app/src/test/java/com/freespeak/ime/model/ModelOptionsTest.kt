@@ -64,21 +64,13 @@ class ModelOptionsTest {
 
     @Test
     fun `each engine declares only the options it supports`() {
-        val whisper = ModelOptions.specsFor(builtin("whisper-small-q5_1")).map { it.key }
-        assertEquals(listOf(ModelOptions.LANGUAGE, ModelOptions.TRANSLATE_EN, ModelOptions.WHISPER_PROMPT), whisper)
+        val qwen = ModelOptions.specsFor(builtin("qwen3-asr-0.6b-int8")).map { it.key }
+        assertEquals(listOf(ModelOptions.LANGUAGE), qwen)
 
         val sense = ModelOptions.specsFor(builtin("sense-voice-small-int8")).map { it.key }
         assertEquals(listOf(ModelOptions.LANGUAGE), sense)
 
         assertTrue(ModelOptions.specsFor(builtin("fun-asr-nano-int8")).isEmpty())
-
-        val en = builtin("whisper-small-q5_1").let {
-            it.copy(runtimeConfig = it.runtimeConfig.copy(primaryModelFile = "ggml-small.en-q5_1.bin"))
-        }
-        val enKeys = ModelOptions.specsFor(en).map { it.key }
-        assertFalse(ModelOptions.TRANSLATE_EN in enKeys)
-        val prompt = ModelOptions.specsFor(en).first { it.key == ModelOptions.WHISPER_PROMPT } as ToggleModelOption
-        assertEquals(null, prompt.disabledWhenOn)
     }
 
     @Test
@@ -90,32 +82,27 @@ class ModelOptionsTest {
 
     @Test
     fun `values are stored per model and validated`() {
-        val whisper = builtin("whisper-small-q5_1")
+        val qwen = builtin("qwen3-asr-0.6b-int8")
         val sense = builtin("sense-voice-small-int8")
         val settings = UserSettings(
             modelOptions = mapOf(
-                whisper.id to mapOf(ModelOptions.LANGUAGE to "fr", ModelOptions.TRANSLATE_EN to "true"),
+                qwen.id to mapOf(ModelOptions.LANGUAGE to "fr"),
                 sense.id to mapOf(ModelOptions.LANGUAGE to "fr"),
             )
         )
-        val w = settings.optionsFor(whisper)
-        assertEquals("fr", w.language)
-        assertTrue(w.translateToEnglish)
-        // French is not supported by SenseVoice -> falls back to auto, and no translation.
+        val q = settings.optionsFor(qwen)
+        assertEquals("fr", q.language)
+        // French is not supported by SenseVoice -> falls back to auto.
         val s = settings.optionsFor(sense)
         assertEquals("auto", s.language)
-        assertFalse(s.translateToEnglish)
     }
 
     @Test
     fun `legacy global values act as defaults`() {
-        val whisper = builtin("whisper-small-q5_1")
-        val legacy = UserSettings(spokenLanguageHint = "ja", translateToEnglish = true, whisperStylePromptEnabled = false)
-        val o = legacy.optionsFor(whisper)
+        val qwen = builtin("qwen3-asr-0.6b-int8")
+        val legacy = UserSettings(spokenLanguageHint = "ja")
+        val o = legacy.optionsFor(qwen)
         assertEquals("ja", o.language)
-        assertTrue(o.translateToEnglish)
-        assertFalse(o.whisperPrompt)
-        assertFalse(legacy.optionsFor(builtin("qwen3-asr-0.6b-int8")).translateToEnglish)
         assertEquals("auto", UserSettings().optionsFor(null).language)
     }
 }
