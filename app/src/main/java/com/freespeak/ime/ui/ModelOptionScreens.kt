@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.freespeak.ime.R
 import com.freespeak.ime.data.UserSettings
 import com.freespeak.ime.model.ChoiceModelOption
@@ -32,32 +33,83 @@ internal class ModelOptionHandlers(
     val onOpenChoice: (key: String) -> Unit,
 )
 
-/**
- * Renders the options declared by [ModelOptions.specsFor] for [model]. Used both in the
- * Settings tab ("<Model> Settings") and on Home, so they always stay in sync.
- */
+/** One row per declared option, ready to be placed in a [RowGroup]. Used on Home and in the model page. */
 @Composable
-internal fun ModelOptionRows(model: ModelManifest, settings: UserSettings, handlers: ModelOptionHandlers) {
+internal fun modelOptionRows(model: ModelManifest, settings: UserSettings, handlers: ModelOptionHandlers): List<@Composable () -> Unit> {
     val specs = ModelOptions.specsFor(model, settings)
     val values = settings.optionsFor(model)
     val autoLabel = stringResource(R.string.pref_lang_auto_mixed)
     val sameAsSourceLabel = stringResource(R.string.canary_same_as_source)
-    specs.forEach { spec ->
+    return specs.map { spec ->
         when (spec) {
-            is ChoiceModelOption -> ValueRow(
-                title = stringResource(spec.titleRes),
-                value = ModelOptions.labelFor(spec, values.choice(spec), autoLabel, sameAsSourceLabel),
-                onClick = { handlers.onOpenChoice(spec.key) },
-            )
+            is ChoiceModelOption -> choiceRow(spec, values.choice(spec), autoLabel, sameAsSourceLabel, handlers)
             is ToggleModelOption -> {
                 val blocker = spec.disabledWhenOn?.let { k -> specs.firstOrNull { it.key == k } as? ToggleModelOption }
-                SwitchRow(
-                    title = stringResource(spec.titleRes),
-                    checked = values.bool(spec),
-                    enabled = blocker == null || !values.bool(blocker),
-                    onChange = { handlers.onSet(model.id, spec.key, it.toString()) },
-                )
+                toggleRow(spec, values.bool(spec), blocker == null || !values.bool(blocker), model.id, handlers)
             }
+        }
+    }
+}
+
+private fun choiceRow(
+    spec: ChoiceModelOption,
+    value: String,
+    autoLabel: String,
+    sameAsSourceLabel: String,
+    handlers: ModelOptionHandlers,
+): @Composable () -> Unit = {
+    ValueRow(
+        title = stringResource(spec.titleRes),
+        value = ModelOptions.labelFor(spec, value, autoLabel, sameAsSourceLabel),
+        onClick = { handlers.onOpenChoice(spec.key) },
+    )
+}
+
+private fun toggleRow(
+    spec: ToggleModelOption,
+    checked: Boolean,
+    enabled: Boolean,
+    modelId: String,
+    handlers: ModelOptionHandlers,
+): @Composable () -> Unit = {
+    SwitchRow(
+        title = stringResource(spec.titleRes),
+        checked = checked,
+        enabled = enabled,
+        onChange = { handlers.onSet(modelId, spec.key, it.toString()) },
+    )
+}
+
+/** Compact readout for the collapsed model row in Settings, e.g. "中文 · 2/3". */
+@Composable
+internal fun modelOptionSummary(model: ModelManifest, settings: UserSettings): String {
+    val specs = ModelOptions.specsFor(model, settings)
+    val values = settings.optionsFor(model)
+    val autoLabel = stringResource(R.string.pref_lang_auto_mixed)
+    val sameAsSourceLabel = stringResource(R.string.canary_same_as_source)
+    val choices = specs.filterIsInstance<ChoiceModelOption>()
+        .map { ModelOptions.labelFor(it, values.choice(it), autoLabel, sameAsSourceLabel) }
+    val toggles = specs.filterIsInstance<ToggleModelOption>()
+    val toggleSummary = toggles.takeIf { it.isNotEmpty() }?.let { t -> "${t.count { values.bool(it) }}/${t.size}" }
+    return (choices + listOfNotNull(toggleSummary)).joinToString(" · ")
+}
+
+@Composable
+internal fun ModelSettingsScreen(
+    model: ModelManifest,
+    settings: UserSettings,
+    handlers: ModelOptionHandlers,
+    onBack: () -> Unit,
+) {
+    SubPageScaffold(stringResource(R.string.model_settings_title, model.name), onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(top = 8.dp, bottom = 24.dp)
+        ) {
+            RowGroup(rows = modelOptionRows(model, settings, handlers))
         }
     }
 }

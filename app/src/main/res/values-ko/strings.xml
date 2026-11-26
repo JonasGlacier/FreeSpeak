@@ -50,7 +50,7 @@
     <string name="pref_voice_model">음성 인식 모델</string>
     <string name="pref_voice_model_none">설치 안 됨</string>
 
-    <string name="pref_preferred_languages">음성 언어 힌트</string>
+    <string name="pref_preferred_languages">언어</string>
     <string name="pref_lang_auto_mixed">자동</string>
 
     <string name="pref_recording_mode">녹음 방식</string>
@@ -58,9 +58,9 @@
     <string name="mode_tap_short">탭하여 녹음</string>
     <string name="mode_hold_short">길게 눌러 말하기</string>
 
-    <string name="pref_vad_filter">음성 감지 및 무음 필터</string>
+    <string name="pref_vad_filter">음성 감지</string>
     <string name="pref_download_mirror">다운로드 소스</string>
-    <string name="pref_performance">성능 및 메모리</string>
+    <string name="pref_performance">성능</string>
     <string name="pref_performance_summary">%1$d 스레드 · %2$s</string>
     <string name="idle_never">메모리 유지</string>
     <string name="idle_minutes">%1$d분 후 해제</string>
@@ -97,7 +97,7 @@
     <string name="sub_color_scheme_desc">음성 입력 패널에 사용할 Android 다이내믹 컬러 또는 클래식 흑백 테마를 선택하세요.</string>
     <string name="color_scheme_dynamic">Android 다이내믹 컬러</string>
     <string name="color_scheme_dynamic_desc">시스템 Material You 배경화면 색상에 맞춰 자동 적용됩니다.</string>
-    <string name="color_scheme_classic">클래식 흑백</string>
+    <string name="color_scheme_classic">흑백</string>
     <string name="color_scheme_classic_desc">깔끔하고 대비가 뚜렷한 모노크롬 색상.</string>
 
     <!-- Main navigation & Model hub -->

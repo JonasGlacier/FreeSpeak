@@ -50,7 +50,7 @@
     <string name="pref_voice_model">語音辨識模型</string>
     <string name="pref_voice_model_none">未安裝</string>
 
-    <string name="pref_preferred_languages">說話語種提示</string>
+    <string name="pref_preferred_languages">語種</string>
     <string name="pref_lang_auto_mixed">自動</string>
 
     <string name="pref_recording_mode">錄音互動模式</string>
@@ -58,9 +58,9 @@
     <string name="mode_tap_short">點擊錄音</string>
     <string name="mode_hold_short">按住說話</string>
 
-    <string name="pref_vad_filter">語音偵測與靜音過濾</string>
+    <string name="pref_vad_filter">語音偵測</string>
     <string name="pref_download_mirror">下載來源</string>
-    <string name="pref_performance">效能與記憶體管理</string>
+    <string name="pref_performance">效能</string>
     <string name="pref_performance_summary">%1$d 執行緒 · %2$s</string>
     <string name="idle_never">常駐記憶體</string>
     <string name="idle_minutes">閒置 %1$d 分鐘釋放</string>
@@ -75,7 +75,7 @@
     <string name="sub_color_scheme_desc">為語音輸入面板選擇 Android 動態色彩或經典黑白配色。</string>
     <string name="color_scheme_dynamic">Android 動態色彩</string>
     <string name="color_scheme_dynamic_desc">跟隨系統桌布與 Material You 動態調色盤自動套用。</string>
-    <string name="color_scheme_classic">經典黑白</string>
+    <string name="color_scheme_classic">黑白</string>
     <string name="color_scheme_classic_desc">簡潔純粹的高對比度黑白灰配色。</string>
 
     <!-- Main navigation & Model hub -->

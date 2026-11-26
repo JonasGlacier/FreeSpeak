@@ -85,14 +85,15 @@ internal fun HomeScreen(
 
         ModelPanel(activeModel, engineStatus, onOpenModels, onUnload)
 
-        Panel(contentPadding = PaddingValues(vertical = 4.dp)) {
-            activeModel?.manifest?.let { ModelOptionRows(it, settings, modelOptionHandlers) }
+        val chineseRow: @Composable () -> Unit = {
             ValueRow(
                 title = stringResource(R.string.chinese_output_title),
                 value = stringResource(settings.chineseOutputMode.titleRes()),
                 onClick = { onNavigate(SettingsSubPage.CHINESE_OUTPUT) },
             )
         }
+        val optionRows = activeModel?.manifest?.let { modelOptionRows(it, settings, modelOptionHandlers) }.orEmpty()
+        RowGroup(horizontalPadding = 0.dp, rows = optionRows + chineseRow)
 
         TestField()
         Spacer(Modifier.height(12.dp))

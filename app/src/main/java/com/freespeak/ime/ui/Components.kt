@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -174,7 +176,29 @@ internal fun HairlineDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(modifier = modifier, thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 }
 
-/** Title / value / chevron row used in settings lists. */
+/** Fixed height shared by every list row so value rows and switch rows line up. */
+internal val RowHeight = 56.dp
+
+/** Rounded settings group: rows separated by inset hairlines. */
+@Composable
+internal fun RowGroup(
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp = 16.dp,
+    rows: List<@Composable () -> Unit>,
+) {
+    if (rows.isEmpty()) return
+    Panel(modifier = modifier.padding(horizontal = horizontalPadding), contentPadding = PaddingValues(0.dp)) {
+        rows.forEachIndexed { i, row ->
+            if (i > 0) HairlineDivider(Modifier.padding(start = 20.dp))
+            row()
+        }
+    }
+}
+
+/**
+ * Title / value / chevron row. The title takes the space first; the value is capped and
+ * ellipsized, and value + chevron stay pinned to the end edge.
+ */
 @Composable
 internal fun ValueRow(
     title: String,
@@ -186,8 +210,9 @@ internal fun ValueRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = RowHeight)
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(start = 20.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leading != null) {
@@ -197,7 +222,7 @@ internal fun ValueRow(
         Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (!value.isNullOrEmpty()) {
             Spacer(Modifier.width(12.dp))
-            Readout(value, color = valueColor, modifier = Modifier.weight(1f, fill = false))
+            Readout(value, color = valueColor, modifier = Modifier.widthIn(max = 136.dp))
         }
         Spacer(Modifier.width(4.dp))
         Icon(

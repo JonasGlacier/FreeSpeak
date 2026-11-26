@@ -50,7 +50,7 @@
     <string name="pref_voice_model">音声認識モデル</string>
     <string name="pref_voice_model_none">未インストール</string>
 
-    <string name="pref_preferred_languages">話す言語のヒント</string>
+    <string name="pref_preferred_languages">言語</string>
     <string name="pref_lang_auto_mixed">自動</string>
 
     <string name="pref_recording_mode">録音操作モード</string>
@@ -58,9 +58,9 @@
     <string name="mode_tap_short">タップで録音</string>
     <string name="mode_hold_short">長押しで話す</string>
 
-    <string name="pref_vad_filter">音声検出と無音フィルタ</string>
+    <string name="pref_vad_filter">音声検出</string>
     <string name="pref_download_mirror">ダウンロード元</string>
-    <string name="pref_performance">パフォーマンスとメモリ</string>
+    <string name="pref_performance">パフォーマンス</string>
     <string name="pref_performance_summary">%1$d スレッド · %2$s</string>
     <string name="idle_never">常駐</string>
     <string name="idle_minutes">%1$d 分で解放</string>
@@ -97,7 +97,7 @@
     <string name="sub_color_scheme_desc">音声入力パネルの配色を Android ダイナミックカラーとクラシック白黒から選択します。</string>
     <string name="color_scheme_dynamic">Android ダイナミックカラー</string>
     <string name="color_scheme_dynamic_desc">システムの Material You カラースキームに合わせて自動調整します。</string>
-    <string name="color_scheme_classic">クラシック（白黒）</string>
+    <string name="color_scheme_classic">モノクロ</string>
     <string name="color_scheme_classic_desc">視認性の高いモノクローム配色。</string>
 
     <!-- Main navigation & Model hub -->

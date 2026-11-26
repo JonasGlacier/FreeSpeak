@@ -54,7 +54,7 @@
     <string name="pref_voice_model">Voice Model</string>
     <string name="pref_voice_model_none">None installed</string>
 
-    <string name="pref_preferred_languages">Spoken language hint</string>
+    <string name="pref_preferred_languages">Language</string>
     <string name="pref_lang_auto_mixed">Auto</string>
 
     <string name="pref_recording_mode">Recording Mode</string>
@@ -62,11 +62,11 @@
     <string name="mode_tap_short">Tap to Record</string>
     <string name="mode_hold_short">Hold to Talk</string>
 
-    <string name="pref_vad_filter">Voice Detection &amp; Silence Filter</string>
+    <string name="pref_vad_filter">Voice detection</string>
 
     <string name="pref_download_mirror">Download Source</string>
 
-    <string name="pref_performance">Performance &amp; Memory</string>
+    <string name="pref_performance">Performance</string>
     <string name="pref_performance_summary">%1$d threads · %2$s</string>
     <string name="idle_never">Keep in RAM</string>
     <string name="idle_minutes">%1$d min idle unload</string>
@@ -114,7 +114,7 @@
     <string name="mirror_section_title">Download Mirror</string>
     <string name="mirror_hf_mirror">HF-Mirror</string>
     <string name="mirror_modelscope">ModelScope</string>
-    <string name="mirror_huggingface">HuggingFace Direct</string>
+    <string name="mirror_huggingface">HuggingFace</string>
     <string name="mirror_custom">Custom Mirror</string>
     <string name="mirror_custom_url_label">Custom Mirror Base URL</string>
 
@@ -196,7 +196,7 @@
     <string name="sub_color_scheme_desc">Choose between Android dynamic wallpaper colors and classic black-and-white for the voice panel.</string>
     <string name="color_scheme_dynamic">Android Dynamic Color</string>
     <string name="color_scheme_dynamic_desc">Adapts the keyboard panel to your system Material You palette.</string>
-    <string name="color_scheme_classic">Classic Black &amp; White</string>
+    <string name="color_scheme_classic">Black &amp; White</string>
     <string name="color_scheme_classic_desc">Clean, high-contrast monochrome palette.</string>
 
     <!-- Main navigation & Model hub -->

@@ -133,6 +133,8 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
     var tab by rememberSaveable { mutableStateOf(MainTab.HOME) }
     var subPage by rememberSaveable { mutableStateOf<SettingsSubPage?>(null) }
     var choiceKey by rememberSaveable { mutableStateOf("") }
+    // Page to return to when leaving a model choice page (the model settings page, or none).
+    var choiceReturn by rememberSaveable { mutableStateOf<SettingsSubPage?>(null) }
     var pendingLocalImportUri by remember { mutableStateOf<Uri?>(null) }
     var showDirectUrlDialog by remember { mutableStateOf(false) }
 
@@ -224,6 +226,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                 onSet = viewModel::setModelOption,
                 onOpenChoice = { key ->
                     choiceKey = key
+                    choiceReturn = subPage
                     subPage = SettingsSubPage.MODEL_CHOICE
                 },
             )
@@ -233,6 +236,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
 
         BackHandler(enabled = subPage != null || hubDetail != null || tab != MainTab.HOME) {
             when {
+                subPage == SettingsSubPage.MODEL_CHOICE -> subPage = choiceReturn
                 subPage != null -> subPage = null
                 hubDetail != null -> viewModel.closeHfRepo()
                 else -> tab = MainTab.HOME
@@ -283,7 +287,6 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                             activeModel = activeItem?.manifest,
                             imeStatus = imeStatus,
                             contentPadding = padding,
-                            modelOptionHandlers = modelOptionHandlers,
                             onNavigate = { subPage = it },
                         )
                     }
@@ -334,7 +337,8 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                             imeStatus = imeStatus,
                             engineStatus = engineStatus,
                             choiceKey = choiceKey,
-                            onBack = { subPage = null },
+                            modelOptionHandlers = modelOptionHandlers,
+                            onBack = { subPage = if (page == SettingsSubPage.MODEL_CHOICE) choiceReturn else null },
                             onRequestMic = requestMic,
                             onOpenImeSettings = openImeSettings,
                             onShowImePicker = showImePicker,
@@ -375,12 +379,18 @@ private fun SettingsSubPageContent(
     imeStatus: SystemImeStatus,
     engineStatus: com.freespeak.ime.engine.EngineRuntimeStatus,
     choiceKey: String,
+    modelOptionHandlers: ModelOptionHandlers,
     onBack: () -> Unit,
     onRequestMic: () -> Unit,
     onOpenImeSettings: () -> Unit,
     onShowImePicker: () -> Unit,
 ) {
     when (page) {
+        SettingsSubPage.MODEL_SETTINGS -> if (activeModel != null) {
+            ModelSettingsScreen(activeModel, settings, modelOptionHandlers, onBack)
+        } else {
+            LaunchedEffect(Unit) { onBack() }
+        }
         SettingsSubPage.MODEL_CHOICE -> if (activeModel != null) {
             ModelChoiceScreen(
                 model = activeModel,

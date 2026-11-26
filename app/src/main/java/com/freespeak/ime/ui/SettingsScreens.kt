@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -58,6 +59,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -81,6 +83,7 @@ import com.freespeak.ime.ui.theme.NothingRed
 import kotlin.math.roundToInt
 
 enum class SettingsSubPage {
+    MODEL_SETTINGS,
     MODEL_CHOICE,
     CHINESE_OUTPUT,
     RECORDING_MODE,
@@ -149,31 +152,48 @@ internal fun SwitchRow(title: String, checked: Boolean, enabled: Boolean = true,
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = RowHeight)
             .clickable(enabled = enabled) { onChange(!checked) }
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(start = 20.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             title,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
-            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
         )
-        Spacer(Modifier.width(12.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = onChange,
-            enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedTrackColor = NothingRed,
-                checkedThumbColor = Color.White,
-                checkedBorderColor = NothingRed,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                uncheckedBorderColor = Color.Transparent,
-            ),
-        )
+        Spacer(Modifier.width(8.dp))
+        MonoSwitch(checked, enabled, onChange)
     }
+}
+
+/** Compact black-and-white switch (inverted in dark mode). Red stays reserved for status. */
+@Composable
+internal fun MonoSwitch(checked: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Switch(
+        checked = checked,
+        onCheckedChange = onChange,
+        enabled = enabled,
+        modifier = Modifier.scale(0.8f),
+        colors = SwitchDefaults.colors(
+            checkedTrackColor = cs.onSurface,
+            checkedThumbColor = cs.surfaceContainer,
+            checkedBorderColor = cs.onSurface,
+            uncheckedTrackColor = cs.surfaceContainerHighest,
+            uncheckedThumbColor = cs.outline,
+            uncheckedBorderColor = Color.Transparent,
+            disabledCheckedTrackColor = cs.outline,
+            disabledCheckedThumbColor = cs.surfaceContainer,
+            disabledCheckedBorderColor = Color.Transparent,
+            disabledUncheckedTrackColor = cs.surfaceContainerHigh,
+            disabledUncheckedThumbColor = cs.outlineVariant,
+            disabledUncheckedBorderColor = Color.Transparent,
+        ),
+    )
 }
 
 @Composable
@@ -198,7 +218,6 @@ internal fun SettingsScreen(
     activeModel: ModelManifest?,
     imeStatus: SystemImeStatus,
     contentPadding: PaddingValues,
-    modelOptionHandlers: ModelOptionHandlers,
     onNavigate: (SettingsSubPage) -> Unit,
 ) {
     val ctx = LocalContext.current
@@ -221,56 +240,81 @@ internal fun SettingsScreen(
         PageTitle(stringResource(R.string.settings_title), Modifier.padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 4.dp))
 
         if (activeModel != null && hasModelOptions(activeModel, settings)) {
-            SectionLabel(stringResource(R.string.model_settings_title, activeModel.name))
-            ModelOptionRows(activeModel, settings, modelOptionHandlers)
+            SectionLabel(stringResource(R.string.label_model))
+            val summary = modelOptionSummary(activeModel, settings)
+            RowGroup(rows = listOf {
+                ValueRow(activeModel.name, summary, onClick = { onNavigate(SettingsSubPage.MODEL_SETTINGS) })
+            })
         }
 
         SectionLabel(stringResource(R.string.section_general))
-        ValueRow(
-            title = stringResource(R.string.chinese_output_title),
-            value = stringResource(settings.chineseOutputMode.titleRes()),
-            onClick = { onNavigate(SettingsSubPage.CHINESE_OUTPUT) },
-        )
-        ValueRow(
-            title = stringResource(R.string.pref_recording_mode),
-            value = stringResource(settings.interactionMode.shortTitleRes),
-            onClick = { onNavigate(SettingsSubPage.RECORDING_MODE) },
-        )
-        ValueRow(
-            title = stringResource(R.string.pref_vad_filter),
-            value = stringResource(if (settings.vadFilterEnabled) R.string.state_on else R.string.state_off),
-            onClick = { onNavigate(SettingsSubPage.VAD_FILTER) },
-        )
+        RowGroup(rows = listOf(
+            {
+                ValueRow(
+                    title = stringResource(R.string.chinese_output_title),
+                    value = stringResource(settings.chineseOutputMode.titleRes()),
+                    onClick = { onNavigate(SettingsSubPage.CHINESE_OUTPUT) },
+                )
+            },
+            {
+                ValueRow(
+                    title = stringResource(R.string.pref_recording_mode),
+                    value = stringResource(settings.interactionMode.shortTitleRes),
+                    onClick = { onNavigate(SettingsSubPage.RECORDING_MODE) },
+                )
+            },
+            {
+                ValueRow(
+                    title = stringResource(R.string.pref_vad_filter),
+                    value = stringResource(if (settings.vadFilterEnabled) R.string.state_on else R.string.state_off),
+                    onClick = { onNavigate(SettingsSubPage.VAD_FILTER) },
+                )
+            },
+        ))
 
         SectionLabel(stringResource(R.string.section_keyboard))
-        ValueRow(
-            title = stringResource(R.string.pref_color_scheme),
-            value = stringResource(settings.imeColorScheme.titleRes),
-            onClick = { onNavigate(SettingsSubPage.COLOR_SCHEME) },
-        )
-        ValueRow(
-            title = stringResource(R.string.pref_target_ime),
-            value = targetImeLabel ?: stringResource(R.string.pref_target_ime_none),
-            onClick = { onNavigate(SettingsSubPage.TARGET_IME) },
-        )
-        ValueRow(
-            title = stringResource(R.string.pref_keyboard_setup),
-            value = stringResource(if (imeStatus.isFullyReady) R.string.setup_status_ready else R.string.setup_status_incomplete),
-            valueColor = if (imeStatus.isFullyReady) MaterialTheme.colorScheme.onSurfaceVariant else NothingRed,
-            onClick = { onNavigate(SettingsSubPage.KEYBOARD_SETUP) },
-        )
+        RowGroup(rows = listOf(
+            {
+                ValueRow(
+                    title = stringResource(R.string.pref_color_scheme),
+                    value = stringResource(settings.imeColorScheme.titleRes),
+                    onClick = { onNavigate(SettingsSubPage.COLOR_SCHEME) },
+                )
+            },
+            {
+                ValueRow(
+                    title = stringResource(R.string.pref_target_ime),
+                    value = targetImeLabel ?: stringResource(R.string.pref_target_ime_none),
+                    onClick = { onNavigate(SettingsSubPage.TARGET_IME) },
+                )
+            },
+            {
+                ValueRow(
+                    title = stringResource(R.string.pref_keyboard_setup),
+                    value = stringResource(if (imeStatus.isFullyReady) R.string.setup_status_ready else R.string.setup_status_incomplete),
+                    valueColor = if (imeStatus.isFullyReady) MaterialTheme.colorScheme.onSurfaceVariant else NothingRed,
+                    onClick = { onNavigate(SettingsSubPage.KEYBOARD_SETUP) },
+                )
+            },
+        ))
 
         SectionLabel(stringResource(R.string.section_system))
-        ValueRow(
-            title = stringResource(R.string.pref_download_mirror),
-            value = stringResource(settings.mirrorSource.titleRes),
-            onClick = { onNavigate(SettingsSubPage.DOWNLOAD_MIRROR) },
-        )
-        ValueRow(
-            title = stringResource(R.string.pref_performance),
-            value = stringResource(R.string.pref_performance_summary, settings.cpuThreads, idleLabel),
-            onClick = { onNavigate(SettingsSubPage.PERFORMANCE) },
-        )
+        RowGroup(rows = listOf(
+            {
+                ValueRow(
+                    title = stringResource(R.string.pref_download_mirror),
+                    value = stringResource(settings.mirrorSource.titleRes),
+                    onClick = { onNavigate(SettingsSubPage.DOWNLOAD_MIRROR) },
+                )
+            },
+            {
+                ValueRow(
+                    title = stringResource(R.string.pref_performance),
+                    value = stringResource(R.string.pref_performance_summary, settings.cpuThreads, idleLabel),
+                    onClick = { onNavigate(SettingsSubPage.PERFORMANCE) },
+                )
+            },
+        ))
         Spacer(Modifier.height(24.dp))
     }
 }
