@@ -39,10 +39,14 @@ object ModelOptions {
     const val RUMBLE_DIGITS = "rumble_digits"
     const val RUMBLE_FILLER = "rumble_filler"
     const val RUMBLE_VERBATIM = "rumble_verbatim"
+    const val FLUID_CLEAN_MODE = "fluid_clean_mode"
 
     const val AUTO = "auto"
 
     fun specsFor(model: ModelManifest, settings: UserSettings = UserSettings()): List<ModelOption> = buildList {
+        if (model.engineType == EngineType.FLUID_TDT) {
+            add(ToggleModelOption(FLUID_CLEAN_MODE, R.string.fluid_clean_mode, false))
+        }
         if (model.engineType.isCanary) {
             val sources = CanaryLanguages.sources(model)
             val defaultSource = CanaryLanguages.source(model, settings.spokenLanguageHint)
@@ -107,6 +111,7 @@ data class ResolvedModelOptions(
     val raw: Map<String, String>,
     val targetLanguage: String? = null,
     val rumbleFormatting: RumbleFormatting? = null,
+    val fluidCleanMode: Boolean = false,
 ) {
     fun bool(option: ToggleModelOption): Boolean = raw[option.key]?.toBooleanStrictOrNull() ?: option.default
     fun choice(option: ChoiceModelOption): String = raw[option.key]?.takeIf { it in option.choices } ?: option.default
@@ -126,6 +131,7 @@ fun UserSettings.optionsFor(model: ModelManifest?): ResolvedModelOptions {
         whisperPrompt = toggle(ModelOptions.WHISPER_PROMPT) ?: whisperStylePromptEnabled,
         raw = stored,
         targetLanguage = choice(ModelOptions.TARGET_LANGUAGE),
+        fluidCleanMode = toggle(ModelOptions.FLUID_CLEAN_MODE) ?: false,
         rumbleFormatting = model?.takeIf { it.hasRumbleFormatting }?.let {
             val defaults = RumbleFormatting()
             RumbleFormatting(

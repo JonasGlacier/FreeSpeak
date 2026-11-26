@@ -101,7 +101,7 @@ object HuggingFaceModelResolver {
     }
 
     private fun pinnedVariant(info: HfModelInfo, files: List<HfFile>): HfVariant? {
-        val model = builtinFor(info.id)?.takeIf { it.engineType.isCanary || it.hasRumbleFormatting } ?: return null
+        val model = builtinFor(info.id)?.takeIf { it.engineType.isCanary || it.hasRumbleFormatting || it.engineType == EngineType.FLUID_TDT } ?: return null
         val matched = model.files.associate { entry ->
             val file = files.firstOrNull {
                 it.path == entry.relativePath && (it.size == null || it.size == entry.sizeBytes) &&
@@ -379,7 +379,7 @@ object HuggingFaceModelResolver {
     // ---------------------------------------------------------------- manifest
 
     fun toManifest(info: HfModelInfo, variant: HfVariant, totalVariants: Int): ModelManifest {
-        builtinFor(info.id)?.takeIf { (it.engineType.isCanary || it.hasRumbleFormatting) && it.id == variant.key }?.let { return it }
+        builtinFor(info.id)?.takeIf { it.id == variant.key }?.let { return it }
         val sha = info.sha ?: "main"
         val repoName = info.id.substringAfter('/')
         val entries = variant.files.map { (rel, f) ->

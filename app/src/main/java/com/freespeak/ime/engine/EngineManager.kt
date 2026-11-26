@@ -2,6 +2,7 @@ package com.freespeak.ime.engine
 
 import com.freespeak.ime.engine.canary.CanaryEngine
 import com.freespeak.ime.engine.canary.CanaryGgufEngine
+import com.freespeak.ime.engine.fluid.FluidSpeechEngine
 import com.freespeak.ime.engine.funasr.FunAsrNanoEngine
 import com.freespeak.ime.engine.qwen3asr.Qwen3AsrEngine
 import com.freespeak.ime.engine.whisper.WhisperCppEngine
@@ -169,5 +170,6 @@ class EngineManager(
         EngineType.QWEN3_ASR -> Qwen3AsrEngine()
         EngineType.CANARY_ONNX -> CanaryEngine()
         EngineType.CANARY_GGUF -> CanaryGgufEngine()
+        EngineType.FLUID_TDT -> FluidSpeechEngine()
     }
 }

@@ -503,7 +503,7 @@ private fun LocalModelImportDialog(
                 MonoTextField(name, { name = it }, stringResource(R.string.dialog_model_name_optional))
                 Spacer(Modifier.height(8.dp))
                 DialogChoice(stringResource(R.string.dialog_engine_auto), selectedEngine == null) { selectedEngine = null }
-                EngineType.entries.forEach { eng ->
+                EngineType.entries.filterNot { it == EngineType.FLUID_TDT }.forEach { eng ->
                     DialogChoice(eng.displayName, selectedEngine == eng) { selectedEngine = eng }
                 }
             }
@@ -539,7 +539,7 @@ private fun DirectUrlModelDialog(
                 Spacer(Modifier.height(8.dp))
                 MonoTextField(url, { url = it }, stringResource(R.string.dialog_model_url), keyboardType = KeyboardType.Uri)
                 Spacer(Modifier.height(8.dp))
-                EngineType.entries.forEach { eng ->
+                EngineType.entries.filterNot { it == EngineType.FLUID_TDT }.forEach { eng ->
                     DialogChoice(eng.displayName, engine == eng) { engine = eng }
                 }
             }

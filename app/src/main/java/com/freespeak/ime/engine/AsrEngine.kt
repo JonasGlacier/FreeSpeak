@@ -24,6 +24,7 @@ data class AsrInferenceOptions(
     val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
     val targetLanguage: String? = null,
     val rumbleFormatting: RumbleFormatting? = null,
+    val fluidCleanMode: Boolean = false,
 )
 
 fun AsrInferenceOptions.forModel(model: ModelManifest): AsrInferenceOptions = copy(
@@ -31,6 +32,7 @@ fun AsrInferenceOptions.forModel(model: ModelManifest): AsrInferenceOptions = co
     translateToEnglish = translateToEnglish && model.canTranslateToEnglish,
     targetLanguage = targetLanguage.takeIf { model.engineType.isCanary },
     rumbleFormatting = rumbleFormatting.takeIf { model.hasRumbleFormatting },
+    fluidCleanMode = fluidCleanMode && model.engineType == EngineType.FLUID_TDT,
 )
 
 interface AsrEngine {

@@ -228,6 +228,7 @@ class ModelRepository(private val context: Context) {
         val id = "custom-" + sanitizeId(name.lowercase()) + "-" + (cleanUrl.hashCode().toUInt().toString(16).take(6))
 
         val runtimeCfg = when (engineType) {
+            EngineType.FLUID_TDT -> error("Download Fluid Speech Pro from Optional models")
             EngineType.WHISPER_CPP -> ModelRuntimeConfig(primaryModelFile = if (isArchive) null else fileName)
             EngineType.FUN_ASR_ONNX -> ModelRuntimeConfig(primaryModelFile = if (isArchive) null else fileName, numMels = 80)
             EngineType.QWEN3_ASR -> ModelRuntimeConfig(numMels = 128)

@@ -11,6 +11,7 @@ enum class EngineType(val displayName: String, val shortName: String) {
     QWEN3_ASR("Qwen3-ASR (ONNX Multimodal)", "Qwen3-ASR"),
     CANARY_ONNX("Canary (ONNX)", "Canary"),
     CANARY_GGUF("Canary (GGUF)", "Canary GGUF"),
+    FLUID_TDT("Fluid Speech Pro (ONNX)", "Fluid Speech"),
 }
 
 @Serializable
@@ -79,7 +80,7 @@ val ModelManifest.hasRumbleFormatting: Boolean
     get() = engineType == EngineType.QWEN3_ASR && runtimeConfig.rumbleFormatting
 
 val ModelManifest.canHintLanguage: Boolean
-    get() = supportsLanguageHint ?: (engineType != EngineType.FUN_ASR_ONNX || id == "sense-voice-small-int8")
+    get() = engineType != EngineType.FLUID_TDT && (supportsLanguageHint ?: (engineType != EngineType.FUN_ASR_ONNX || id == "sense-voice-small-int8"))
 
 val ModelManifest.canTranslateToEnglish: Boolean
     get() = engineType == EngineType.WHISPER_CPP && (supportsTranslateToEnglish ?: true) &&
@@ -292,6 +293,7 @@ object ModelManifestCodec {
                 path != null && File(modelDir, path).let { it.isFile && it.length() > 0L }
             }
             EngineType.CANARY_GGUF -> cfg.primaryModelFile?.let { File(modelDir, it).let { f -> f.isFile && f.length() > 0L } } == true
+            EngineType.FLUID_TDT -> FluidSpeechFiles.required.all { File(modelDir, it).let { f -> f.isFile && f.length() > 0L } }
         }
     }
 }

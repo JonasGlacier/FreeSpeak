@@ -10,6 +10,16 @@ class ModelOptionsTest {
     private fun builtin(id: String) = BuiltinModelCatalog.models.first { it.id == id }
 
     @Test
+    fun `Fluid clean mode is opt-in and uses the same model download`() {
+        val model = builtin("fluid-speech-pro-int8")
+        assertEquals(FluidSpeechFiles.required.toSet(), model.files.map { it.relativePath }.toSet())
+        assertFalse(UserSettings().optionsFor(model).fluidCleanMode)
+        val settings = UserSettings(modelOptions = mapOf(model.id to mapOf(ModelOptions.FLUID_CLEAN_MODE to "true")))
+        assertTrue(settings.optionsFor(model).fluidCleanMode)
+        assertEquals(listOf(ModelOptions.FLUID_CLEAN_MODE), ModelOptions.specsFor(model).map { it.key })
+    }
+
+    @Test
     fun `Rumble formatting defaults and saved overrides are scoped to this model`() {
         val rumble = builtin("rumble-2-flash-int8")
         assertEquals(RumbleFormatting(), UserSettings().optionsFor(rumble).rumbleFormatting)

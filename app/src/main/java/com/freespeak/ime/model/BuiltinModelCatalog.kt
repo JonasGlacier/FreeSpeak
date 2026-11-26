@@ -138,6 +138,40 @@ object BuiltinModelCatalog {
         ),
     )
 
+    private const val FLUID_REPO = "FluidVoice-Labs/fluid-speech-pro-onnx"
+    private const val FLUID_REVISION = "fa588e9f87f1b9ad0ca2e2d8f7eaf84dc3803581"
+    private fun fluidFile(name: String, bytes: Long, hash: String) =
+        ModelFileEntry(name, "https://huggingface.co/$FLUID_REPO/resolve/$FLUID_REVISION/$name", sha256 = hash, sizeBytes = bytes)
+
+    private val fluidFiles = listOf(
+        fluidFile("encoder-model.int8.onnx", 955_592, "07ad77459bd3bb165c2c53e978ed1dfd64c6e129b18af2ec5ee38343be1d4451"),
+        fluidFile("encoder-model.clean.int8.onnx", 1_293_960, "cc9ffaba4d01f3ba4ca276aa7d8b38719266522b426ee093d7f60513823f5b2b"),
+        fluidFile("encoder-model.int8.onnx.data", 745_971_712, "d2f8bfbb1fa399f207cde85aa3fabee0d67f6730cb31cbf31832c10de69f9c3c"),
+        fluidFile("decoder.int8.onnx", 4_797, "0bd3e225124a8a90373e500f62516270fd85fdf42237aa569489b232d21cac08"),
+        fluidFile("decoder.clean.int8.onnx", 4_797, "38b69847defd184b0b4924d161b70cf9b454a2ba2cdf776226f74acc519a7d84"),
+        fluidFile("decoder.int8.onnx.data", 47_251_456, "632c3cbf59d3e52d2f7f4dda3bf8e28c045f7a3bb3dbef0f44529ba63926efaa"),
+        fluidFile("joiner.int8.onnx", 2_754, "c0e995b659ed5e15fc0c38408ee56cd9a03e6d3329f304c32b9d5017c8cdd381"),
+        fluidFile("joiner.clean.int8.onnx", 2_760, "397e03c1de42926dc09a82ad0db3c65de92fb3600141bf5f0ab430a4161962f6"),
+        fluidFile("joiner.int8.onnx.data", 6_564_352, "7473427ab99417fae8cf7025ba11507cb5dcc223194bae2f79064dde0936d0af"),
+        fluidFile("vocab.txt", 93_939, "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"),
+    )
+
+    private val fluidSpeech = ModelManifest(
+        id = "fluid-speech-pro-int8",
+        name = "Fluid Speech Pro",
+        description = "Fluid Speech Pro by FluidVoice (CC BY 4.0). Automatic transcription in 25 European languages with optional clean mode.",
+        engineType = EngineType.FLUID_TDT,
+        version = "1.0-int8",
+        sizeBytes = fluidFiles.sumOf { requireNotNull(it.sizeBytes) },
+        languages = CanaryLanguages.v2,
+        quantization = "INT8",
+        recommendedRamMb = 2304,
+        files = fluidFiles,
+        sourceRepo = FLUID_REPO,
+        sourceRevision = FLUID_REVISION,
+        optional = true,
+    )
+
     val models: List<ModelManifest> = listOf(
         ModelManifest(
             id = "fun-asr-nano-int8",
@@ -221,6 +255,7 @@ object BuiltinModelCatalog {
         canaryV2Onnx,
         canaryV2Gguf,
         rumble,
+        fluidSpeech,
         ModelManifest(
             id = "whisper-small-q5_1",
             supportsLanguageHint = true,

@@ -182,6 +182,7 @@
     <string name="hub_search_hint">搜尋 Hugging Face</string>
     <string name="hub_featured">精選</string>
     <string name="hub_optional_models">可選模型</string>
+    <string name="fluid_clean_mode">清理轉寫（去除填充詞和重複詞）</string>
     <string name="rumble_digits">用阿拉伯數字寫數值</string>
     <string name="rumble_filler">保留填充詞（如「嗯」「呃」）</string>
     <string name="rumble_verbatim">保留重複詞</string>

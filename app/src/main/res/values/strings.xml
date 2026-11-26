@@ -208,6 +208,7 @@
     <string name="hub_search_hint">Search Hugging Face</string>
     <string name="hub_featured">Featured</string>
     <string name="hub_optional_models">Optional models</string>
+    <string name="fluid_clean_mode">Clean transcription (remove fillers and repetitions)</string>
     <string name="rumble_digits">Write numbers as digits</string>
     <string name="rumble_filler">Keep filler words (um, uh)</string>
     <string name="rumble_verbatim">Keep repeated words</string>
