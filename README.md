@@ -16,7 +16,7 @@ Most voice keyboards on Android today force an unpleasant compromise:
 - **Made-in-China keyboards** impose content filtering, censorship and collect telemetry.
 - **Other free voice keyboards** rarely update their bundled models and lock users into a single fixed engine.
 
-FreeSpeak IME solves this by combining **modern compact ASR models** (`Fun-ASR-Nano`, `Qwen3-ASR-0.6B`, `Whisper`, `SenseVoice`) with an **open model manifest system**—allowing users to import or subscribe to newer models anytime without waiting for an app update.
+FreeSpeak IME has modern compact ASR models. These models run on your phone, offering fast processing speeds and high recognition accuracy. Some models include advanced features such as translation and "um uh" removal.
 
 ### Key Features
 
@@ -24,16 +24,9 @@ FreeSpeak IME solves this by combining **modern compact ASR models** (`Fun-ASR-N
 - **Zero Censorship, Zero Telemetry**: No app-level word filtering, analytics, or content moderation. Optional Chinese script conversion is applied before insertion.
 - **Natural Punctuation & Code-Switching**: Powered by modern models (`Qwen3-ASR-0.6B`, `Fun-ASR-Nano`, `Whisper Small`), outputting punctuated text and handling mixed-language speech naturally.
 - **Smart VAD Silence Filtering (No Utterance Splitting)**: Built-in Silero VAD v5 filters leading/trailing dead air and compresses long silent pauses to prevent hallucinations and save CPU—without chopping your speech into fragmented segments.
-- **Open & Extensible Models (`model.json`)**:
-  - Download curated quantized models via HuggingFace, HF-Mirror, ModelScope, or a custom mirror.
-  - **Fun-ASR-MLT-Nano** is a featured offline model for 31 languages with automatic detection or an explicit language hint. It uses [luigi000's sherpa-onnx INT8 1024-context export](https://huggingface.co/luigi000/fun-asr-mlt-nano-onnx-int8-1024) (about 997 MB). Since audio and text share the context, use shorter clips for long dictation.
-  - **Search Hugging Face in-app** (Model hub → Discover): enter keywords, `owner/repo`, or paste a repo link. FreeSpeak inspects the repo file tree, lists the variants the bundled engines can run (e.g. every `ggml-*.bin` quantization, Qwen3-ASR / SenseVoice ONNX exports), marks look-alike layouts as *unverified*, and explains why other formats are unsupported (GGUF, CTranslate2, PyTorch/Transformers, Whisper-ONNX, transducers, gated repos). Downloads are pinned to the repo commit, checked against the file sizes and LFS SHA-256 from the Hub, and resumable from *Mine*.
-  - Import `.bin`, `.gguf`, `.onnx`, `.zip`, `.tar.gz`, or `.tar.bz2` packages offline from local storage (SAF).
-  - Add direct model URLs or subscribe to external community JSON catalogs.
 - **Lightweight by Design**:
   - Pure-voice native XML + Canvas IME panel for low UI overhead; model loading and inference costs vary by device.
   - Automatic idle model unloading when the keyboard stays hidden, freeing memory in the background.
-  - System-locale aware UI (English, Simplified/Traditional Chinese, Japanese, Korean).
 
 ### Architecture
 
@@ -52,41 +45,6 @@ FreeSpeakIME/
     ├── whisper-jni/              # C/C++17 whisper.cpp (v1.7.4) + ggml-cpu ARMv8.2-FP16 JNI bridge
     └── qwen3-asr-jni/            # C++17 greedy/CTC logits kernel & Byte-Level BPE / Base64 tokenizer
 ```
-
-### Language, Translation & Chinese Output
-
-- **Spoken language hint** defaults to **Auto** independently of the system UI locale. There is no keyboard language-cycling button. Models without a language input stay automatic. A hint is the **source speech language**, never a translation target.
-- **Canary 180M Flash INT8** is available in Model Hub → Featured. It runs offline on CPU via [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx). Choose the spoken language and output language in the model settings: English, German, Spanish and French can be transcribed; translation works between English and each of the other three. Choose **Same as spoken language** to transcribe. The [Canary model](https://huggingface.co/nvidia/canary-180m-flash) is by NVIDIA, licensed under CC BY 4.0; the app downloads the [sherpa-onnx INT8 export](https://huggingface.co/csukuangfj/sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8).
-- **Translate speech to English** appears only for compatible multilingual Whisper models. It enables Whisper's native translation task. The Whisper preference is preserved when switching models. English-only `.en` Whisper models cannot translate. Accuracy still depends on the model and audio.
-- **Chinese output** offers System / Simplified / Generic Traditional / Taiwan vocabulary / Hong Kong glyphs / Original. System selects Taiwan for TW, Hong Kong for HK/MO, Traditional for Hant, and Simplified otherwise.
-- Conversion uses pinned **OpenCC 1.1.9 official dictionaries**, lazily loaded offline by a Kotlin longest-prefix adapter. This adapter is not the upstream C++ MMSEG implementation; ambiguous segmentation may differ. Taiwan vocabulary is optional; Hong Kong mode is glyph conversion, not Taiwan terminology. English, numbers and punctuation are preserved. Recognized Japanese, text containing Japanese kana, and English-translation results bypass conversion. Auto-detected kanji-only Japanese can still be ambiguous; choose Original to preserve it exactly.
-- OpenCC is dictionary-based and cannot guarantee every ambiguous word or proper noun. It does not filter content or add a generative rewrite step. Select **Original** to disable this post-processing entirely.
-
-### Adding Custom Models (`model.json`)
-
-You can import raw `.gguf`/`.bin`/`.onnx` archives directly (FreeSpeak auto-detects common layouts), or bundle a `model.json` at the root of your model archive:
-
-```json
-{
-  "id": "my-custom-whisper",
-  "name": "Whisper Turbo Q5",
-  "description": "Custom quantized Whisper model",
-  "engineType": "WHISPER_CPP",
-  "supportsLanguageHint": true,
-  "supportsTranslateToEnglish": true,
-  "quantization": "Q5_1",
-  "runtimeConfig": {
-    "primaryModelFile": "ggml-model-q5_1.bin"
-  }
-}
-```
-
-Supported `engineType` values:
-- `WHISPER_CPP`: `whisper.cpp` GGML `.bin` models (`ggml-*.bin`). The bundled whisper.cpp v1.7.4 loader does not read GGUF.
-- `FUN_ASR_ONNX`: Single-graph CTC ONNX (`model.int8.onnx` + `tokens.txt`) or 3-part Encoder/Embedding/LLM ONNX.
-- `QWEN3_ASR`: Multimodal ONNX (`conv_frontend.onnx` + `encoder.int8.onnx` + `decoder.int8.onnx` + `vocab.json`/`tokenizer.json`).
-
-The optional capability fields also work with older manifests. Unknown Fun-ASR/CTC models default to no manual language hint; custom compatible models may explicitly set `supportsLanguageHint`. Translation is always restricted to Whisper even if another engine claims it in its manifest. New weights must match an existing engine's supported graph layout; a new architecture still requires engine code.
 
 ### Building from Source
 
@@ -121,36 +79,25 @@ OpenCC dictionary copyright, source version, license and adapter details are inc
 - **中国产商业输入法**：（如微信输入法）存在内容审查、敏感词过滤以及后台遥测收集，有資安隐患。
 - **其他免费开源输入法**：多语言能力弱，长期不更新，用户无法自行更换最新的识别模型。
 
-FreeSpeak IME 通过原生多引擎架构集成 **`Fun-ASR-Nano`、`Qwen3-ASR-0.6B`、`Whisper Small`、`SenseVoice`** 等最新量化小模型，并提供开放的模型接入规范——即使开发者不更新应用，用户发现更好的新模型也能随时自行导入使用。
+FreeSpeak IME 的多引擎架构集成了 **`Fun-ASR-Nano`、`Qwen3-ASR-0.6B`、`SenseVoice`** 等最新量化小模型。这些模型在你手机上运行，速度快，识别准确率高。部分模型带有自动翻译等高级功能。
 
 ### 核心特点
 
 - **完全离线，保护隐私**：输入法服务（`InputMethodService`）零网络请求，录音数据仅在手机内存中处理并即刻销毁；仅在用户主动下载模型时访问网络。
 - **无言论审查，零遥测**：无敏感词过滤、无内容审查、无日志上传和统计埋点；可选中文简繁转换在上屏前完成。
-- **原生标点与中英混输**：直接发挥 `Qwen3-ASR-0.6B`、`Fun-ASR-Nano` 等现代模型优势，自然输出标点符号，精准识别中文里夹杂的英文单词与多语言混说。
-- **智能 VAD 静音过滤（不切碎句子）**：内置 Silero VAD v5 仅用于检测语音活动、剔除首尾留白与超长停顿以消除静音幻觉并节省算力，**绝不按静音强行切分句子**，整段语音一次性转写以保留上下文与标点语感。
-- **开放模型生态（`model.json`）**：
-  - 内置精选模型下载，支持一键切换 `HF-Mirror`、`ModelScope（魔搭）`、`HuggingFace` 或自定义镜像源，支持断点续传。
-  - **Fun-ASR-MLT-Nano** 可在模型中心的「精选模型」下载，使用 [luigi000 的 sherpa-onnx INT8 1024 转换版](https://huggingface.co/luigi000/fun-asr-mlt-nano-onnx-int8-1024)（约 997 MB）。支持 31 种语言，可自动识别或手动指定。录音和输出共用上下文，长段听写建议分开录制。
-  - **应用内搜索 Hugging Face**（模型中心 → 发现）：输入关键词、`作者/仓库名` 或粘贴仓库链接。应用会分析仓库文件结构，列出内置引擎可运行的版本（如各量化规格的 `ggml-*.bin`、Qwen3-ASR / SenseVoice ONNX 导出），将结构相似但未经验证的标记为「未验证」，并说明其他格式不支持的原因（GGUF、CTranslate2、PyTorch/Transformers、Whisper ONNX、Transducer、受限仓库）。下载锁定仓库 commit，按 Hub 提供的文件大小与 LFS SHA-256 校验，中断后可在「我的」继续下载。
-  - 支持从手机本地存储（SAF）完全离线导入 `.bin` / `.gguf` / `.onnx` / `.zip` / `.tar.gz` / `.tar.bz2` 模型包。
-  - 支持直链下载或订阅外部社区维护的 JSON 模型源。
-- **极致轻量**：
-  - 纯语音输入面板采用原生轻量视图与自定义声波绘制，冷启动极快；支持短按录音与按住说话（上滑取消）。
+- **中文方言与中英混输**：发挥 `Qwen3-ASR-0.6B`等现代模型优势，自然输出标点符号，识别多种中文方言，与多语言混说。
+- **智能 VAD 静音过滤（不切碎句子）**：内置 Silero VAD v5 仅用于检测语音活动、剔除首尾留白与超长停顿以消除静音幻觉并节省算力。
+- **轻量**：
+  - 纯语音输入面板采用原生轻量视图，冷启动快。
   - 键盘收起闲置超时后自动卸载模型释放内存，不拖慢手机日常运行。
-  - 界面语言自动跟随 Android 系统设置（支持英文、简体中文、繁体中文、日文、韩文）。
 
 ### 自动翻译与中文变体
 
-- 「模型中心 → 发现 → 可选模型」提供 [Fluid Speech Pro by FluidVoice（ONNX INT8，CC BY 4.0）](https://huggingface.co/FluidVoice-Labs/fluid-speech-pro-onnx)。它自动识别 25 种欧洲语言，可在模型设置中开启「清理转写」。
+- 提供 [Fluid Speech Pro by FluidVoice（ONNX INT8，CC BY 4.0）](https://huggingface.co/FluidVoice-Labs/fluid-speech-pro-onnx)。它自动识别 25 种欧洲语言，可在模型设置中开启「清理转写」。
 
-- 「模型中心 → 发现 → 可选模型」提供 **Canary 1B v2** 的 [ONNX INT8](https://huggingface.co/Sarphix/canary-1b-v2-sherpa-onnx-int8)（1.42 GB）和 [GGUF Q4_K](https://huggingface.co/cstr/canary-1b-v2-GGUF)（611 MB）社区量化版。两者基于 [NVIDIA Canary 1B v2（CC BY 4.0）](https://huggingface.co/nvidia/canary-1b-v2)，支持 25 种欧洲语言转写以及英语与其他 24 种语言的双向翻译。GGUF 使用独立的 [CrispASR](https://github.com/CrispStrobe/CrispASR) CPU 后端。
+- 提供 **Canary 1B v2** 的 [ONNX INT8](https://huggingface.co/Sarphix/canary-1b-v2-sherpa-onnx-int8)（1.42 GB）和 [GGUF Q4_K](https://huggingface.co/cstr/canary-1b-v2-GGUF)（611 MB）社区量化版。两者基于 [NVIDIA Canary 1B v2（CC BY 4.0）](https://huggingface.co/nvidia/canary-1b-v2)，支持 25 种欧洲语言转写以及英语与其他 24 种语言的双向翻译。GGUF 使用独立的 [CrispASR](https://github.com/CrispStrobe/CrispASR) CPU 后端。
 
-- 可在「模型中心 → 精选」下载 **Canary 180M Flash INT8**。在模型设置里选择说话语言和输出语言：支持英语、德语、西班牙语和法语转写，以及英语与另外三种语言的双向翻译。选择「与说话语言相同」即可转写。
-- Whisper 的「翻译成英语」选项仅在兼容的多语言 Whisper 模型上显示。切换模型时保留该偏好。
-- **中文输出**可自定义简体、繁體。
 - 內置 **OpenCC 1.1.9 官方詞典**，通過 Kotlin 最長前綴匹配適配器離線按需加載。TW 使用台灣模式、HK/MO 使用香港模式。台灣模式包含慣用詞，香港模式調整字形，不套用台灣術語。 英文、數字和標點不變；識別為日文、包含日文假名或英文翻譯時跳過轉換。自動檢測下純漢字日文仍可能存在歧義，需完全保留原字形可選擇「保持模型原文」。
-- 自定义 `model.json` 可声明 `supportsLanguageHint` / `supportsTranslateToEnglish`，英文示例见上文。权重文件仍须符合当前引擎支持的图结构；全新架构需要引擎适配代码。
 
 ### 编译与安装
 
