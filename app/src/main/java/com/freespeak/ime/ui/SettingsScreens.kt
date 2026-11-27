@@ -87,6 +87,7 @@ enum class SettingsSubPage {
     MODEL_SETTINGS,
     MODEL_CHOICE,
     CHINESE_OUTPUT,
+    TEXT_NORMALIZATION,
     RECORDING_MODE,
     COLOR_SCHEME,
     TARGET_IME,
@@ -250,6 +251,13 @@ internal fun SettingsScreen(
 
         SectionLabel(stringResource(R.string.section_general))
         RowGroup(rows = listOf(
+            {
+                ValueRow(
+                    title = stringResource(R.string.itn_title),
+                    value = stringResource(if (settings.itnEnabled) R.string.state_on else R.string.state_off),
+                    onClick = { onNavigate(SettingsSubPage.TEXT_NORMALIZATION) },
+                )
+            },
             {
                 ValueRow(
                     title = stringResource(R.string.chinese_output_title),

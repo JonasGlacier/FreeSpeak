@@ -40,3 +40,5 @@ captures/
 *.onnx
 *.ort
 *.log
+/itn-output/
+__pycache__/

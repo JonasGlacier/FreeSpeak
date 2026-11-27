@@ -46,6 +46,18 @@ FreeSpeakIME/
     └── qwen3-asr-jni/            # C++17 greedy/CTC logits kernel & Byte-Level BPE / Base64 tokenizer
 ```
 
+### Optional NeMo number and text formatting
+
+Settings → **Number & text formatting** provides model-independent, offline
+inverse text normalization (ITN). Download a language pack and enable the toggle
+to format spoken numbers, dates, times, currency and measurements with full
+NVIDIA NeMo grammars. Choose a formatting language explicitly when the model
+does not report its output language. Coverage depends on the language grammar.
+
+Language packs are distributed through a configurable HTTPS catalog. A catalog
+must be generated and published before downloads are available; none is hosted
+by this source tree. See [pack export and publishing instructions](tools/nemo-itn-export/README.md).
+
 ### Building from Source
 
 Requirements:

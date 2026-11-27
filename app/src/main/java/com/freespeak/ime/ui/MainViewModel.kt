@@ -58,6 +58,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val models: StateFlow<List<ManagedModelItem>> = modelRepo.models
 
+    val itnPacks = app.itnPackRepository.state
+    private var itnJob: kotlinx.coroutines.Job? = null
+    fun setItnEnabled(enabled: Boolean) { viewModelScope.launch { prefs.setItnEnabled(enabled) } }
+    fun setItnLanguage(language: String) { viewModelScope.launch { prefs.setItnLanguage(language) } }
+    fun refreshItnCatalog(url: String) {
+        if (itnJob?.isActive == true) return
+        itnJob = viewModelScope.launch {
+            prefs.setItnCatalogUrl(url)
+            app.itnPackRepository.refresh(url.trim(), prefs.settingsFlow.first())
+        }
+    }
+    fun downloadItnPack(pack: com.freespeak.ime.itn.ItnPack) {
+        if (itnJob?.isActive == true) return
+        itnJob = viewModelScope.launch { app.itnPackRepository.install(pack, prefs.settingsFlow.first()) }
+    }
+    fun deleteItnPack(language: String) {
+        if (itnJob?.isActive == true) return
+        itnJob = viewModelScope.launch {
+            engineMgr.unloadNow()
+            app.itnPackRepository.delete(language)
+        }
+    }
+    fun cancelItnDownload() { itnJob?.cancel() }
+
     val engineStatus: StateFlow<EngineRuntimeStatus> = engineMgr.status
 
     private val _imeStatus = MutableStateFlow(SystemImeStatus())

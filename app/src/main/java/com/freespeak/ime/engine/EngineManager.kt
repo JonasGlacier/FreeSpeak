@@ -37,6 +37,7 @@ sealed interface EngineRuntimeStatus {
 class EngineManager(
     private val modelRepository: ModelRepository,
     private val chineseConverter: OpenCcConverter,
+    private val itnProcessor: com.freespeak.ime.itn.NemoItnProcessor? = null,
 ) {
     private val engineDispatcher = Dispatchers.Default.limitedParallelism(1)
     private val managerScope = CoroutineScope(SupervisorJob() + engineDispatcher)
@@ -112,9 +113,19 @@ class EngineManager(
                 _status.value = EngineRuntimeStatus.Transcribing(manifest.name)
                 val effectiveOptions = options.forModel(manifest)
                 val res = eng.transcribe(pcm16k, effectiveOptions).mapCatching { result ->
+                    val outputLanguage = if (manifest.engineType == EngineType.CANARY_ONNX || manifest.engineType == EngineType.CANARY_GGUF) {
+                        val source = com.freespeak.ime.model.CanaryLanguages.source(manifest, effectiveOptions.language)
+                        com.freespeak.ime.model.CanaryLanguages.target(manifest, source, effectiveOptions.targetLanguage)
+                    } else result.detectedLanguage ?: effectiveOptions.language
+                    val itnLanguage = com.freespeak.ime.itn.resolveItnLanguage(
+                        effectiveOptions.itnLanguage, null, outputLanguage, effectiveOptions.language,
+                    )
+                    val text = if (effectiveOptions.itnEnabled) {
+                        itnProcessor?.normalize(result.text, itnLanguage) ?: result.text
+                    } else result.text
                     result.copy(text = chineseConverter.convert(
-                        result.text, effectiveOptions.chineseOutputMode,
-                        result.detectedLanguage ?: effectiveOptions.language,
+                        text, effectiveOptions.chineseOutputMode,
+                        outputLanguage,
                         effectiveOptions.targetLanguage == "en",
                     ))
                 }
@@ -149,6 +160,7 @@ class EngineManager(
 
     suspend fun unloadNow() = mutex.withLock {
         withContext(engineDispatcher) {
+            itnProcessor?.releaseAll()
             currentEngine?.release()
             currentEngine = null
             loadedModelId = null

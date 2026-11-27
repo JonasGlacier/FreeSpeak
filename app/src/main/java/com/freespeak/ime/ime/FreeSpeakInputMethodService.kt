@@ -554,6 +554,8 @@ class FreeSpeakInputMethodService : InputMethodService() {
                     targetLanguage = modelOpts.targetLanguage,
                     rumbleFormatting = modelOpts.rumbleFormatting,
                     fluidCleanMode = modelOpts.fluidCleanMode,
+                    itnEnabled = settingsSnapshot.itnEnabled,
+                    itnLanguage = settingsSnapshot.itnLanguage,
                 )
             )
 

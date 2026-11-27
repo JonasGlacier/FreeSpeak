@@ -89,6 +89,9 @@ data class UserSettings(
     val customCatalogUrls: Set<String> = emptySet(),
     val spokenLanguageHint: String = "auto",
     val chineseOutputMode: ChineseOutputMode = ChineseOutputMode.SYSTEM,
+    val itnEnabled: Boolean = false,
+    val itnLanguage: String = "auto",
+    val itnCatalogUrl: String = "",
     val targetImeId: String = "",
     val imeColorScheme: ImeColorScheme = ImeColorScheme.DYNAMIC,
     /** Per-model option values: modelId -> (option key -> value). See ModelOptions. */
@@ -194,6 +197,9 @@ class AppPreferencesRepository(private val context: Context) {
             imeColorScheme = ImeColorScheme.entries.find { it.name == prefs[KEY_IME_COLOR_SCHEME] }
                 ?: ImeColorScheme.DYNAMIC,
             modelOptions = decodeModelOptions(prefs[KEY_MODEL_OPTIONS]),
+            itnEnabled = prefs[KEY_ITN_ENABLED] ?: false,
+            itnLanguage = prefs[KEY_ITN_LANGUAGE] ?: "auto",
+            itnCatalogUrl = prefs[KEY_ITN_CATALOG] ?: "",
         )
     }
 
@@ -275,6 +281,19 @@ class AppPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[KEY_CHINESE_OUTPUT] = mode.name }
     }
 
+    suspend fun setItnEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_ITN_ENABLED] = enabled }
+    }
+
+    suspend fun setItnLanguage(language: String) {
+        require(language == "auto" || language in com.freespeak.ime.itn.ItnPackCatalog.languages)
+        context.dataStore.edit { it[KEY_ITN_LANGUAGE] = language }
+    }
+
+    suspend fun setItnCatalogUrl(url: String) {
+        context.dataStore.edit { it[KEY_ITN_CATALOG] = url.trim() }
+    }
+
     suspend fun setModelOption(modelId: String, key: String, value: String) {
         if (modelId.isBlank()) return
         context.dataStore.edit { prefs ->
@@ -308,6 +327,9 @@ class AppPreferencesRepository(private val context: Context) {
             else runCatching { modelOptionsJson.decodeFromString(modelOptionsSerializer, raw) }.getOrDefault(emptyMap())
 
         private val KEY_MODEL_OPTIONS = stringPreferencesKey("model_options")
+        private val KEY_ITN_ENABLED = booleanPreferencesKey("itn_enabled")
+        private val KEY_ITN_LANGUAGE = stringPreferencesKey("itn_language")
+        private val KEY_ITN_CATALOG = stringPreferencesKey("itn_catalog_url")
         private val KEY_TARGET_IME_ID = stringPreferencesKey("target_ime_id")
         private val KEY_IME_COLOR_SCHEME = stringPreferencesKey("ime_color_scheme")
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")

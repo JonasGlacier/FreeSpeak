@@ -12,3 +12,4 @@
 
 # sherpa-onnx JNI also looks up Kotlin configuration fields and result constructors.
 -keep class com.k2fsa.sherpa.onnx.** { *; }
+-keep class com.freespeak.engine.itn.** { *; }

@@ -25,6 +25,8 @@ data class AsrInferenceOptions(
     val targetLanguage: String? = null,
     val rumbleFormatting: RumbleFormatting? = null,
     val fluidCleanMode: Boolean = false,
+    val itnEnabled: Boolean = false,
+    val itnLanguage: String = "auto",
 )
 
 fun AsrInferenceOptions.forModel(model: ModelManifest): AsrInferenceOptions = copy(

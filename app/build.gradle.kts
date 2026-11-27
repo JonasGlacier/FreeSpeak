@@ -61,6 +61,7 @@ dependencies {
     implementation(project(":engines:dsp-jni"))
     implementation(project(":engines:qwen3-asr-jni"))
     implementation(project(":engines:canary-gguf-jni"))
+    implementation(project(":engines:nemo-itn-jni"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

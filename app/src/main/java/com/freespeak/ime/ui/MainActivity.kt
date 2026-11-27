@@ -379,6 +379,7 @@ private fun SettingsSubPageContent(
             LaunchedEffect(Unit) { onBack() }
         }
         SettingsSubPage.CHINESE_OUTPUT -> ChineseOutputScreen(settings.chineseOutputMode, onBack, viewModel::setChineseOutputMode)
+        SettingsSubPage.TEXT_NORMALIZATION -> ItnSettingsScreen(settings, viewModel, onBack)
         SettingsSubPage.RECORDING_MODE -> RecordingModeSubScreen(settings, onBack, viewModel::setInteractionMode)
         SettingsSubPage.COLOR_SCHEME -> ColorSchemeSubScreen(settings, onBack, viewModel::setImeColorScheme)
         SettingsSubPage.TARGET_IME -> TargetImeSubScreen(settings, onBack, viewModel::setTargetImeId)
