@@ -13,4 +13,7 @@ RUN pip install --no-cache-dir /opt/nemo \
 # Fail during image construction if native extensions or NeMo imports are broken.
 RUN python -c "import cdifflib, pynini; from nemo_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer"
 COPY export_itn.py /opt/export_itn.py
+COPY test_far_export.py /opt/test_far_export.py
+# Exercise the actual exporter API and archive format before compiling grammars.
+RUN python -m unittest discover -s /opt -p test_far_export.py -v
 ENTRYPOINT ["python", "/opt/export_itn.py"]

@@ -110,6 +110,11 @@ are released when the ASR engine is unloaded.
 
 ## Validation
 
+The Docker build runs real Pynini integration tests against the shared FAR export
+function (archive round-trip, applying the exported graph, and Unicode). These
+checks run before language compilation to catch API/serialization errors early.
+They are skipped by local Python test discovery when Pynini is not installed.
+
 The exporter round-trips each FAR and checks a `123` example against upstream
 NeMo. It emits `smoke.json` for device testing. Build/unit tests:
 

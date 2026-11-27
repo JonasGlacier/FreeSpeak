@@ -25,6 +25,28 @@ SMOKE = {
 }
 
 
+def export_far(grammar, path):
+    """Write the vector FSTs produced by NeMo using Pynini's supported API."""
+    import pynini
+
+    # NeMo's grammars are already mutable vector FSTs. Pynini 2.1.6.post1
+    # exposes copy(), not a module-level convert() function.
+    graph = grammar.copy()
+    if graph.fst_type() != "vector" or graph.arc_type() != "standard":
+        raise RuntimeError("Android runtime requires vector FSTs with tropical/standard arcs")
+    graph.set_input_symbols(None)
+    graph.set_output_symbols(None)
+    graph.arcsort("ilabel")
+    with pynini.Far(str(path), mode="w", arc_type="standard", far_type="sttable") as far:
+        far["grammar"] = graph
+    with pynini.Far(str(path), mode="r") as far:
+        if not pynini.equal(graph, far["grammar"]):
+            raise RuntimeError(f"FAR round trip failed: {path}")
+    with path.open("rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    return {"name": path.name, "bytes": path.stat().st_size, "sha256": digest}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("/output"))
@@ -50,21 +72,10 @@ def main():
         directory.mkdir(parents=True, exist_ok=True)
         files = []
         for name, grammar in (("classify.far", normalizer.tagger.fst), ("verbalize.far", normalizer.verbalizer.fst)):
-            graph = pynini.convert(grammar, "vector")
-            if graph.arc_type() != "standard":
-                raise RuntimeError("Android runtime requires tropical/standard arcs")
-            graph.set_input_symbols(None)
-            graph.set_output_symbols(None)
-            graph.arcsort("ilabel")
             path = directory / name
-            with pynini.Far(str(path), mode="w", arc_type="standard", far_type="sttable") as far:
-                far["grammar"] = graph
-            # Verify serialized compatibility in the build environment.
-            with pynini.Far(str(path), mode="r") as far:
-                if not pynini.equal(graph, far["grammar"]):
-                    raise RuntimeError(f"FAR round trip failed: {path}")
-            files.append({"name": name, "url": f"{args.base_url.rstrip('/')}/{language}/{name}",
-                          "bytes": path.stat().st_size, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+            metadata = export_far(grammar, path)
+            metadata["url"] = f"{args.base_url.rstrip('/')}/{language}/{name}"
+            files.append(metadata)
         spoken = SMOKE[language]
         written = normalizer.inverse_normalize(spoken, verbose=False)
         if "123" not in written:
