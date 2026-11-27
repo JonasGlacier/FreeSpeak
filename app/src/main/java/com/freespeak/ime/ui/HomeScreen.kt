@@ -145,7 +145,7 @@ private fun ModelPanel(
             modifier = Modifier.padding(end = 12.dp),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val tags = item?.manifest?.let { resolveModelTags(it) }.orEmpty()
+            val tags = item?.manifest?.let { modelFeatureTags(it) }.orEmpty()
             val summary = listOfNotNull(
                 item?.let { modelSizeLabel(it) },
                 tags.takeIf { it.isNotEmpty() }?.joinToString(" · "),

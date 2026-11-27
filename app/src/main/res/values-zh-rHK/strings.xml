@@ -82,13 +82,8 @@
     <string name="nav_home">首頁</string>
     <string name="nav_models">模型中心</string>
     <string name="nav_settings">設定</string>
-    <string name="hub_mine">我的</string>
-    <string name="hub_discover">探索</string>
     <string name="hub_featured">精選</string>
     <string name="hub_optional_models">可選模型</string>
-    <string name="hub_no_models">尚無模型</string>
-    <string name="tag_supports_language">支援%1$s</string>
-    <string name="tag_n_languages">%1$d 語種</string>
     <string name="tag_fast">極速</string>
     <string name="tag_high_accuracy">高準確率</string>
     <string name="tag_compact">輕量</string>
@@ -117,4 +112,6 @@
     <string name="dialog_delete_title">刪除 %1$s？</string>
     <string name="section_keyboard">鍵盤</string>
     <string name="model_settings_title">%1$s 設定</string>
+    <string name="hub_installed">已安裝</string>
+    <string name="hub_languages">我的語言</string>
 </resources>

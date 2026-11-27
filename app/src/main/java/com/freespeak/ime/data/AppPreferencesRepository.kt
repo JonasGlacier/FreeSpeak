@@ -70,19 +70,8 @@ object SupportedLanguages {
     fun labelFor(code: String): String =
         all.find { it.code == code }?.nativeLabel ?: code.uppercase()
 
-    fun defaultPreferredForLocale(locale: Locale = Locale.getDefault()): Set<String> {
-        val sysLang = when (locale.language.lowercase()) {
-            "zh" -> if (locale.country.equals("HK", true)) "yue" else "zh"
-            "ja" -> "ja"
-            "ko" -> "ko"
-            "fr" -> "fr"
-            "de" -> "de"
-            "es" -> "es"
-            "ru" -> "ru"
-            else -> "en"
-        }
-        return if (sysLang == "en") setOf("en") else linkedSetOf("en", sysLang)
-    }
+    fun defaultPreferredForLocale(locale: Locale = Locale.getDefault()): Set<String> =
+        com.freespeak.ime.model.LanguageFilter.defaultFor(locale)
 }
 
 data class UserSettings(

@@ -231,6 +231,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun togglePreferredLanguage(code: String) {
+        viewModelScope.launch { prefs.togglePreferredLanguage(code) }
+    }
+
     fun setModelOption(modelId: String, key: String, value: String) {
         viewModelScope.launch { prefs.setModelOption(modelId, key, value) }
     }

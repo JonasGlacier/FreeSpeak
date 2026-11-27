@@ -100,8 +100,6 @@
     <string name="model_extracting">Extracting model files…</string>
 
     <!-- Model Tags -->
-    <string name="tag_supports_language">Supports %1$s</string>
-    <string name="tag_n_languages">%1$d languages</string>
     <string name="tag_fast">Fast</string>
     <string name="tag_high_accuracy">High accuracy</string>
     <string name="status_input_too_long">Recording is too long for this model. Try a shorter clip.</string>
@@ -110,7 +108,7 @@
     <string name="tag_low_ram">Low RAM</string>
     <string name="tag_dialects">Chinese dialects</string>
     <string name="tag_code_switching">Code-switching</string>
-    <string name="tag_speech_translation">Speech translation</string>
+    <string name="tag_speech_translation">Translation</string>
     <string name="tag_no_punctuation">No punctuation</string>
     <string name="tag_digits">Number digits</string>
     <string name="tag_filler_removal">Filler removal</string>
@@ -209,8 +207,6 @@
     <string name="nav_home">Home</string>
     <string name="nav_models">Models</string>
     <string name="nav_settings">Settings</string>
-    <string name="hub_mine">Mine</string>
-    <string name="hub_discover">Discover</string>
     <string name="hub_featured">Featured</string>
     <string name="hub_optional_models">Optional models</string>
     <string name="fluid_clean_mode">Clean transcription (remove fillers and repetitions)</string>
@@ -220,7 +216,6 @@
     <string name="canary_source_language">Spoken language</string>
     <string name="canary_target_language">Output language</string>
     <string name="canary_same_as_source">Same as spoken language (transcribe)</string>
-    <string name="hub_no_models">No models</string>
     <string name="action_pause">Pause</string>
     <string name="action_resume">Resume</string>
     <string name="action_search">Search</string>
@@ -238,4 +233,6 @@
     <string name="dialog_delete_title">Delete %1$s?</string>
     <string name="section_keyboard">Keyboard</string>
     <string name="model_settings_title">%1$s Settings</string>
+    <string name="hub_installed">Installed</string>
+    <string name="hub_languages">My languages</string>
 </resources>

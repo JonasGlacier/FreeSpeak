@@ -2,7 +2,7 @@ package com.freespeak.ime.model
 
 import com.freespeak.ime.data.MirrorSource
 import com.freespeak.ime.data.UserSettings
-import com.freespeak.ime.ui.displayLanguageForTag
+import com.freespeak.ime.ui.nativeLanguageName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -42,8 +42,18 @@ class ModelManifestAndMirrorTest {
         assertFalse(rumble.hasTranslation)
         assertEquals("id", rumble.matchedSystemLanguage(Locale.forLanguageTag("in-ID")))
 
-        assertEquals("中文", displayLanguageForTag("zh", Locale.SIMPLIFIED_CHINESE))
-        assertEquals("German", displayLanguageForTag("de", Locale.GERMAN))
+        assertEquals("中文", nativeLanguageName("zh"))
+        assertEquals("Deutsch", nativeLanguageName("de"))
+
+        // Language filter: a model fits only if it supports every chosen language.
+        assertTrue(funAsr.supportsAll(setOf("zh", "en")))
+        assertFalse(canary180m.supportsAll(setOf("zh", "en")))
+        assertTrue(canary180m.supportsAll(setOf("de")))
+        assertTrue(funAsr.copy(sourceTag = "local").supportsAll(setOf("de")))
+        assertEquals(setOf("zh", "en"), LanguageFilter.defaultFor(Locale.SIMPLIFIED_CHINESE))
+        assertEquals(setOf("yue", "en"), LanguageFilter.defaultFor(Locale.forLanguageTag("zh-HK")))
+        assertEquals(setOf("id", "en"), LanguageFilter.defaultFor(Locale.forLanguageTag("in-ID")))
+        assertEquals(setOf("en"), LanguageFilter.defaultFor(Locale.US))
     }
 
     @Test

@@ -104,13 +104,8 @@
     <string name="nav_home">ホーム</string>
     <string name="nav_models">モデル</string>
     <string name="nav_settings">設定</string>
-    <string name="hub_mine">マイモデル</string>
-    <string name="hub_discover">探す</string>
     <string name="hub_featured">おすすめ</string>
     <string name="hub_optional_models">オプションモデル</string>
-    <string name="hub_no_models">モデルなし</string>
-    <string name="tag_supports_language">%1$s対応</string>
-    <string name="tag_n_languages">%1$d言語</string>
     <string name="tag_fast">高速</string>
     <string name="tag_high_accuracy">高精度</string>
     <string name="tag_compact">軽量</string>
@@ -139,4 +134,6 @@
     <string name="dialog_delete_title">%1$s を削除しますか？</string>
     <string name="section_keyboard">キーボード</string>
     <string name="model_settings_title">%1$s の設定</string>
+    <string name="hub_installed">インストール済み</string>
+    <string name="hub_languages">使用する言語</string>
 </resources>

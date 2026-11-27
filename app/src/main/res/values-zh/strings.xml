@@ -100,8 +100,6 @@
     <string name="model_extracting">正在解压模型文件…</string>
 
     <!-- Model Tags -->
-    <string name="tag_supports_language">支持%1$s</string>
-    <string name="tag_n_languages">%1$d 语种</string>
     <string name="tag_fast">极速</string>
     <string name="tag_high_accuracy">高准确率</string>
     <string name="status_input_too_long">录音超出当前模型的长度限制，请分段录制。</string>
@@ -209,8 +207,6 @@
     <string name="nav_home">首页</string>
     <string name="nav_models">模型中心</string>
     <string name="nav_settings">设置</string>
-    <string name="hub_mine">我的</string>
-    <string name="hub_discover">发现</string>
     <string name="hub_featured">精选</string>
     <string name="hub_optional_models">可选模型</string>
     <string name="fluid_clean_mode">清理转写（去掉填充词和重复词）</string>
@@ -220,7 +216,6 @@
     <string name="canary_source_language">说话语言</string>
     <string name="canary_target_language">输出语言</string>
     <string name="canary_same_as_source">与说话语言相同（转写）</string>
-    <string name="hub_no_models">暂无模型</string>
     <string name="action_pause">暂停</string>
     <string name="action_resume">继续下载</string>
     <string name="action_search">搜索</string>
@@ -238,4 +233,6 @@
     <string name="dialog_delete_title">删除 %1$s？</string>
     <string name="section_keyboard">键盘</string>
     <string name="model_settings_title">%1$s 设置</string>
+    <string name="hub_installed">已安装</string>
+    <string name="hub_languages">我的语言</string>
 </resources>

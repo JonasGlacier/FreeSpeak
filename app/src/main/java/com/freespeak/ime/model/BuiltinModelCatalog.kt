@@ -42,7 +42,7 @@ object BuiltinModelCatalog {
         sourceRevision = CANARY_REVISION,
         supportsLanguageHint = true,
         optional = true,
-        tags = listOf("Speech translation", "Compact"),
+        tags = listOf("Translation", "Compact"),
         files = listOf(
             canaryFile("encoder.int8.onnx", 132_678_643L, "7a75b4e2a5857a6dcc0819503bbe3fad66943db4a3ccf21d3f27c633667d303f"),
             canaryFile("decoder.int8.onnx", 74_437_848L, "e41a2ab9c0c2fe81a1e8ade5a45fb02a74bc4db7d1f91b89a54a25e2cf79cba2"),
@@ -66,7 +66,7 @@ object BuiltinModelCatalog {
         sourceRepo = "Sarphix/canary-1b-v2-sherpa-onnx-int8",
         sourceRevision = "7d513cd4f39f6c7dc75c13a284b5e345b37f6198",
         optional = true,
-        tags = listOf("Speech translation", "High accuracy"),
+        tags = listOf("Translation", "High accuracy"),
     ).let { model ->
         fun file(name: String, bytes: Long, hash: String) = canaryFile(name, bytes, hash, model.sourceRepo!!, model.sourceRevision!!)
         model.copy(files = listOf(
@@ -90,7 +90,7 @@ object BuiltinModelCatalog {
         sourceRepo = CANARY_GGUF_REPO,
         sourceRevision = CANARY_GGUF_REVISION,
         optional = false,
-        tags = listOf("Speech translation", "Low RAM"),
+        tags = listOf("Translation", "Low RAM"),
         files = listOf(canaryFile(CANARY_GGUF_FILE, 610_746_016L,
             "5027f74ba0eb9bb707b14a11c7a68510a704748bb392e5f3af45115329ee501d", CANARY_GGUF_REPO, CANARY_GGUF_REVISION)),
         runtimeConfig = ModelRuntimeConfig(primaryModelFile = CANARY_GGUF_FILE, numMels = 128),

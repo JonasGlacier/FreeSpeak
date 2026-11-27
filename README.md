@@ -111,7 +111,7 @@ OpenCC dictionary copyright, source version, license and adapter details are inc
 
 ## 简体中文
 
-**FreeSpeak IME** 是一款轻量级 Android 原生离线语音输入法。**免费、开源、100% 本地运算、无审查、保护隐私**，专为新一代轻量级多语言语音识别模型打造。对简体和繁体中文有良好的支持。
+**FreeSpeak IME** 是一款轻量级 Android 原生离线语音输入法。**免费、开源、100% 本地运算、无审查、保护隐私**，专为新一代轻量级多语言语音识别模型打造。能够识别各种中文方言，可切换简体/繁体输出，支持台湾国语词汇自动转换。
 
 ### 为什么要做这款语音输入法？
 

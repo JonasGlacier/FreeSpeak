@@ -272,6 +272,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                             onAddDirectUrl = { showDirectUrlDialog = true },
                             onOpenCatalogs = { subPage = SettingsSubPage.CATALOGS },
                             onOpenMirror = { subPage = SettingsSubPage.DOWNLOAD_MIRROR },
+                            onOpenLanguages = { subPage = SettingsSubPage.PREFERRED_LANGUAGES },
                         )
                         MainTab.SETTINGS -> SettingsScreen(
                             settings = settings,
@@ -298,6 +299,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
                     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         SettingsSubPageContent(
                             page = page,
+                            models = models,
                             viewModel = viewModel,
                             settings = settings,
                             activeModel = activeItem?.manifest,
@@ -340,6 +342,7 @@ fun FreeSpeakRoot(viewModel: MainViewModel) {
 @Composable
 private fun SettingsSubPageContent(
     page: SettingsSubPage,
+    models: List<com.freespeak.ime.model.ManagedModelItem>,
     viewModel: MainViewModel,
     settings: com.freespeak.ime.data.UserSettings,
     activeModel: com.freespeak.ime.model.ModelManifest?,
@@ -353,6 +356,12 @@ private fun SettingsSubPageContent(
     onShowImePicker: () -> Unit,
 ) {
     when (page) {
+        SettingsSubPage.PREFERRED_LANGUAGES -> PreferredLanguagesScreen(
+            models = models,
+            preferred = settings.preferredLanguages,
+            onToggle = viewModel::togglePreferredLanguage,
+            onBack = onBack,
+        )
         SettingsSubPage.MODEL_SETTINGS -> if (activeModel != null) {
             ModelSettingsScreen(activeModel, settings, modelOptionHandlers, onBack)
         } else {

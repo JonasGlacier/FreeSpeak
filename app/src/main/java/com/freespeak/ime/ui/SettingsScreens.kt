@@ -83,6 +83,7 @@ import com.freespeak.ime.ui.theme.NothingRed
 import kotlin.math.roundToInt
 
 enum class SettingsSubPage {
+    PREFERRED_LANGUAGES,
     MODEL_SETTINGS,
     MODEL_CHOICE,
     CHINESE_OUTPUT,

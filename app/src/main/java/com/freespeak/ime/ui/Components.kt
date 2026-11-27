@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,27 +36,23 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import android.content.res.Resources
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.freespeak.ime.R
+import com.freespeak.ime.data.SupportedLanguages
 import com.freespeak.ime.model.BuiltinModelCatalog
 import com.freespeak.ime.model.ManagedModelItem
 import com.freespeak.ime.model.ModelInstallState
 import com.freespeak.ime.model.ModelManifest
-import com.freespeak.ime.model.hasTranslation
-import com.freespeak.ime.model.isCanary
-import com.freespeak.ime.model.matchedSystemLanguage
-import com.freespeak.ime.model.supportedLanguageCount
 import com.freespeak.ime.ui.theme.FreeSpeakType
 import com.freespeak.ime.ui.theme.NothingRed
 import java.util.Locale
@@ -153,9 +147,10 @@ internal fun IconAction(
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.onSurface,
     enabled: Boolean = true,
+    iconSize: Dp = 24.dp,
 ) {
     IconButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-        Icon(icon, contentDescription = contentDescription, tint = if (enabled) tint else tint.copy(alpha = 0.3f))
+        Icon(icon, contentDescription = contentDescription, tint = if (enabled) tint else tint.copy(alpha = 0.3f), modifier = Modifier.size(iconSize))
     }
 }
 
@@ -264,11 +259,12 @@ internal fun ConfirmDeleteDialog(name: String, onDismiss: () -> Unit, onConfirm:
 // ---------------------------------------------------------------- model row
 
 /**
- * Compact model row:
- * - Line 1: model name + formatted size
- * - Line 2: feature tags
+ * Two-line model row:
+ * - Line 1: name (+ trailing action)
+ * - Line 2: mono readout "size · tag · tag"
+ * [showSelector] reserves the selection-dot column so every row in a section lines up.
+ * [dimmed] greys the row (model doesn't support the user's languages) but keeps it usable.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ModelRow(
     item: ManagedModelItem,
@@ -280,47 +276,32 @@ internal fun ModelRow(
     title: String = item.manifest.name,
     enabled: Boolean = true,
     startPadding: Dp = 20.dp,
+    showSelector: Boolean = item.state is ModelInstallState.Installed,
+    dimmed: Boolean = false,
 ) {
     val state = item.state
     val installed = state is ModelInstallState.Installed
-    val sizeLabel = modelSizeLabel(item)
-    val tags = resolveModelTags(item.manifest)
+    val readout = listOfNotNull(modelSizeLabel(item)).plus(modelFeatureTags(item.manifest)).joinToString(" · ")
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .let { if (installed && !isActive) it.clickable(onClick = onSelect) else it }
-            .padding(start = startPadding, end = 8.dp, top = 12.dp, bottom = 12.dp)
+            .alpha(if (dimmed) 0.38f else 1f)
+            .padding(start = startPadding, end = 6.dp, top = 12.dp, bottom = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (installed) {
-                SelectDot(selected = isActive)
-                Spacer(Modifier.width(16.dp))
+            if (showSelector) {
+                Box(Modifier.width(34.dp)) { if (installed) SelectDot(selected = isActive) }
             }
             Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (sizeLabel != null) {
-                        Spacer(Modifier.width(8.dp))
-                        Readout(sizeLabel)
-                    }
-                }
-                if (tags.isNotEmpty()) {
-                    Spacer(Modifier.height(6.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        tags.forEach { tag -> ModelTagChip(tag) }
-                    }
+                Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (readout.isNotEmpty()) {
+                    Spacer(Modifier.height(2.dp))
+                    Readout(readout)
                 }
             }
             Spacer(Modifier.width(4.dp))
+            val grey = MaterialTheme.colorScheme.outline
             when (state) {
                 ModelInstallState.NotInstalled ->
                     IconAction(Icons.Outlined.Download, stringResource(R.string.action_download), onDownload, enabled = enabled)
@@ -332,98 +313,67 @@ internal fun ModelRow(
                     }
                 is ModelInstallState.Partial -> {
                     IconAction(Icons.Outlined.Download, stringResource(R.string.action_resume), onDownload, enabled = enabled)
-                    onDelete?.let { IconAction(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), it) }
+                    onDelete?.let { IconAction(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), it, tint = grey, iconSize = 20.dp) }
                 }
                 is ModelInstallState.Error -> {
                     IconAction(Icons.Outlined.Refresh, stringResource(R.string.action_retry), onDownload, tint = NothingRed)
-                    onDelete?.let { IconAction(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), it) }
+                    onDelete?.let { IconAction(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), it, tint = grey, iconSize = 20.dp) }
                 }
                 is ModelInstallState.Installed ->
-                    onDelete?.let {
-                        IconAction(
-                            Icons.Outlined.DeleteOutline,
-                            stringResource(R.string.action_delete),
-                            it,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    onDelete?.let { IconAction(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), it, tint = grey, iconSize = 20.dp) }
             }
         }
+        val progressPad = Modifier.padding(start = if (showSelector) 34.dp else 0.dp, end = 12.dp)
         when (state) {
             is ModelInstallState.Downloading -> {
                 Spacer(Modifier.height(10.dp))
-                ThinProgress(state.progress, Modifier.padding(end = 12.dp))
+                ThinProgress(state.progress, progressPad)
                 Spacer(Modifier.height(6.dp))
                 Readout(
-                    "${formatBytes(state.downloadedBytes)} / ${formatBytes(state.totalBytes)} · ${formatSpeedLabel(state.speedBytesPerSec)}"
+                    "${formatBytes(state.downloadedBytes)} / ${formatBytes(state.totalBytes)} · ${formatSpeedLabel(state.speedBytesPerSec)}",
+                    progressPad,
                 )
             }
             is ModelInstallState.Partial -> {
                 if (state.totalBytes > 0L) {
                     Spacer(Modifier.height(10.dp))
-                    ThinProgress((state.downloadedBytes.toFloat() / state.totalBytes).coerceIn(0f, 1f), Modifier.padding(end = 12.dp))
+                    ThinProgress((state.downloadedBytes.toFloat() / state.totalBytes).coerceIn(0f, 1f), progressPad)
                 }
             }
             ModelInstallState.Extracting -> {
                 Spacer(Modifier.height(10.dp))
-                ThinProgress(null, Modifier.padding(end = 12.dp))
+                ThinProgress(null, progressPad)
             }
             is ModelInstallState.Error -> {
                 Spacer(Modifier.height(4.dp))
-                Readout(state.message, color = NothingRed)
+                Readout(state.message, progressPad, color = NothingRed)
             }
             else -> Unit
         }
     }
 }
 
+/** Up to two feature tags (curated localized tags, else catalog tags). No language tags. */
 @Composable
-private fun ModelTagChip(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(6.dp))
-            .padding(horizontal = 7.dp, vertical = 2.dp),
-    )
+internal fun modelFeatureTags(manifest: ModelManifest): List<String> {
+    val resIds = BuiltinModelCatalog.featureTagResIds(manifest.id)
+    val tags = if (resIds.isNotEmpty()) resIds.map { stringResource(it) } else manifest.tags
+    return tags.take(2)
 }
 
-@Composable
-internal fun resolveModelTags(manifest: ModelManifest): List<String> {
-    val uiLocale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
-    val sysLocale = Resources.getSystem().configuration.locales[0] ?: uiLocale
-    val hasKnownLanguages = manifest.sourceTag == "builtin" || manifest.sourceTag == "catalog" || manifest.engineType.isCanary
-    val matchedLang = if (hasKnownLanguages) manifest.matchedSystemLanguage(sysLocale) else null
-    val featureResIds = BuiltinModelCatalog.featureTagResIds(manifest.id)
-    val features = if (featureResIds.isNotEmpty()) {
-        featureResIds.map { stringResource(it) }
-    } else {
-        manifest.tags
-    }
-    return buildList {
-        if (matchedLang != null) {
-            add(stringResource(R.string.tag_supports_language, displayLanguageForTag(matchedLang, uiLocale)))
-        }
-        if ((manifest.hasTranslation || manifest.id == BuiltinModelCatalog.FUN_ASR_MLT_ID) && manifest.supportedLanguageCount > 0) {
-            add(stringResource(R.string.tag_n_languages, manifest.supportedLanguageCount))
-        }
-        addAll(features)
-    }
+/** Native name of a language code, e.g. "zh" -> "中文", "de" -> "Deutsch". */
+internal fun nativeLanguageName(code: String): String {
+    SupportedLanguages.all.firstOrNull { it.code == code }?.let { return it.nativeLabel }
+    val locale = Locale.forLanguageTag(code)
+    val name = locale.getDisplayLanguage(locale)
+    return if (name.isBlank() || name.equals(code, ignoreCase = true)) code.uppercase(Locale.ROOT)
+    else name.replaceFirstChar { it.titlecase(locale) }
 }
 
-internal fun displayLanguageForTag(matchedCode: String, uiLocale: Locale): String = when (uiLocale.language.lowercase(Locale.ROOT)) {
-    "zh" -> if (matchedCode == "yue") {
-        if (uiLocale.country.uppercase(Locale.ROOT) in setOf("TW", "HK", "MO") || uiLocale.script == "Hant") "粵語" else "粤语"
-    } else {
-        "中文"
-    }
-    "yue" -> if (matchedCode == "yue") "粵語" else "中文"
-    "ja" -> Locale.forLanguageTag(matchedCode).getDisplayLanguage(Locale.JAPANESE)
-    "ko" -> Locale.forLanguageTag(matchedCode).getDisplayLanguage(Locale.KOREAN)
-    else -> Locale.forLanguageTag(matchedCode).getDisplayLanguage(Locale.ENGLISH)
+/** Name of a language code in the UI language, e.g. "de" -> "德语". */
+internal fun localizedLanguageName(code: String, uiLocale: Locale): String {
+    val name = Locale.forLanguageTag(code).getDisplayLanguage(uiLocale)
+    return if (name.isBlank()) code.uppercase(Locale.ROOT) else name.replaceFirstChar { it.titlecase(uiLocale) }
 }
 
 internal fun modelSizeLabel(item: ManagedModelItem): String? {
