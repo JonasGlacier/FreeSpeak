@@ -1,0 +1,140 @@
+name: Build NeMo ITN packs
+
+on:
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: 'Languages: all, or space/comma-separated codes (en zh de fr es ja ru pt)'
+        required: true
+        default: 'en'
+        type: string
+      publish:
+        description: 'Publish a GitHub Release with a catalog URL usable in the app (public repository required)'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      languages: ${{ steps.matrix.outputs.languages }}
+      tag: ${{ steps.matrix.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test release assembly
+        run: python -m unittest discover -s tools/nemo-itn-export -p 'test_*.py' -v
+      - name: Validate inputs and create matrix
+        id: matrix
+        env:
+          REQUESTED_LANGUAGES: ${{ inputs.languages }}
+          PUBLISH: ${{ inputs.publish }}
+          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+        run: |
+          python tools/nemo-itn-export/github_release.py prepare
+
+  export:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        language: ${{ fromJSON(needs.prepare.outputs.languages) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned NeMo exporter
+        run: docker build -t freespeak-nemo-itn tools/nemo-itn-export
+      - name: Export and smoke-test language
+        env:
+          LANGUAGE: ${{ matrix.language }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          mkdir -p itn-output
+          docker run --rm \
+            -v "$PWD/itn-output:/output" \
+            freespeak-nemo-itn \
+            --languages "$LANGUAGE" \
+            --base-url "https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG"
+      - name: Save validated language pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: nemo-itn-${{ matrix.language }}
+          path: itn-output/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  assemble:
+    needs: [prepare, export]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: nemo-itn-*
+          path: artifacts
+      - name: Verify packs and assemble release assets
+        env:
+          LANGUAGES_JSON: ${{ needs.prepare.outputs.languages }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          python tools/nemo-itn-export/github_release.py assemble \
+            --input artifacts --output release \
+            --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" \
+            --languages-json "$LANGUAGES_JSON"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nemo-itn-release
+          path: release/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - name: Summarize build
+        env:
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          {
+            echo '### NeMo ITN packs built'
+            echo 'All requested packs passed FAR round-trip and upstream NeMo smoke checks.'
+            echo 'Download the `nemo-itn-release` artifact for the combined catalog and assets.'
+            echo 'These build checks do not replace Android testing with real grammar packs.'
+            if [ "$PUBLISH" != true ]; then
+              echo '**Publishing was disabled. Catalog URLs are not live until assets are hosted.**'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    if: ${{ inputs.publish }}
+    needs: [prepare, assemble]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nemo-itn-release
+          path: release
+      - name: Publish complete language-pack release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          gh release create "$RELEASE_TAG" release/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "NeMo ITN packs · $RELEASE_TAG" \
+            --notes 'Full NeMo ITN language packs for FreeSpeak IME. Use the catalog.json asset URL in Number & text formatting settings. Build smoke checks passed; see smoke.json for examples. Android language coverage still requires device validation.' \
+            --draft --prerelease --latest=false
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          {
+            echo '### Pack catalog ready'
+            echo "Paste this URL into **Settings → Number & text formatting → HTTPS pack catalog URL**:"
+            echo "https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/catalog.json"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -6,6 +6,50 @@ loads two FAR archives and applies classification and verbalization offline.
 
 ## Build and publish
 
+### GitHub Actions (no local Docker or WSL required)
+
+1. Push `.github/workflows/nemo-itn-packs.yml` and the exporter scripts to GitHub.
+   The workflow must be on the repository's **default branch** for the manual
+   **Run workflow** button to appear.
+2. Open **Actions → Build NeMo ITN packs → Run workflow**.
+3. Set **languages** to `en` for a first build, `en zh de` (commas also work) for
+   a subset, or `all` for all eight languages.
+4. Enable **publish** to create a GitHub Release with downloadable packs. This
+   requires a **public repository**: the app cannot authenticate private release
+   URLs. Publishing uses the built-in `GITHUB_TOKEN`; no additional secret is
+   needed. Repository/organization policy must allow `contents: write` for the
+   publishing job.
+5. When publishing finishes, copy the **catalog URL from the publish job's
+   summary** into **Settings → Number & text formatting → HTTPS pack catalog
+   URL**, load it, download your languages, and enable formatting.
+
+The workflow runs only when manually triggered. Each language builds in its own
+Ubuntu runner, with at most two language jobs running simultaneously and a
+three-hour limit per job. All requested languages must pass the exporter checks
+before the combined catalog can be published. Individual successful language
+artifacts remain available if another language fails. Builds use GitHub-hosted
+runner disk/RAM and Actions minutes; no grammar compilation runs on your PC.
+
+With **publish disabled** (the default), download `nemo-itn-release` from the run's
+**Artifacts** section. Artifacts expire after seven days. Their catalog URLs
+point to the planned release and **are not live**; for immediate app downloads,
+run again with publishing enabled. Individual `nemo-itn-<language>` artifacts are
+intermediate exports, not the final GitHub Release layout.
+
+Published packs use a unique tag `nemo-itn-<run-id>-<attempt>` and are marked as a
+prerelease so they do not replace the app's latest release. Uploads happen to a
+draft first; the release becomes public only after all assets upload. GitHub
+Release assets cannot contain subdirectories, so the assembly script names them
+`en-classify.far`, `en-verbalize.far`, etc., and rewrites the catalog URLs while
+preserving the local file names expected by Android. Sizes and SHA-256 hashes
+are rechecked during assembly, including Android's 512 MiB per-file limit.
+
+An out-of-memory error or timeout means that grammar needs a larger runner or
+further export optimization; the workflow does not bypass failed checks. These
+export checks validate NeMo/FAR generation, not real-device language coverage.
+
+### Local Docker alternative
+
 Run with a Linux Docker daemon (Docker Desktop Linux containers works):
 
 ```sh
