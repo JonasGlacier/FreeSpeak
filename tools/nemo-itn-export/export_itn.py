@@ -39,9 +39,9 @@ ZH_REGRESSION_CASES = (
 )
 
 EN_REGRESSION_CASES = (
-    ("There are two hundred fifty people in the town.", "There are 250 people in the town."),
-    ("There are thirty five students in the classroom.", "There are 35 students in the classroom."),
-    ("There are five students.", "There are five students."),
+    ("There are two hundred fifty people in the town", "There are 250 people in the town"),
+    ("There are thirty five students in the classroom", "There are 35 students in the classroom"),
+    ("There are five students", "There are five students"),
 )
 
 
@@ -53,11 +53,16 @@ def expected_spec_for(language: str) -> tuple[str, str]:
 
 
 def export_far(grammar, path: Path) -> dict:
+    """Write the vector FSTs produced by NeMo/WeText using Pynini's supported API."""
     import pynini
 
-    graph = pynini.convert(grammar.copy(), "vector")
-    if graph.arc_type() != "standard":
-        raise RuntimeError("Android runtime requires tropical/standard arcs")
+    # Both NeMo and WeTextProcessing produce mutable vector FSTs; Pynini 2.1.6.post1
+    # exposes copy(), not a module-level convert() function.
+    graph = grammar.copy()
+    if graph.fst_type() != "vector" or graph.arc_type() != "standard":
+        raise RuntimeError(
+            f"Android runtime requires vector FSTs with standard arcs, got {graph.fst_type()}/{graph.arc_type()}"
+        )
     graph.set_input_symbols(None)
     graph.set_output_symbols(None)
     graph.arcsort("ilabel")
@@ -67,9 +72,12 @@ def export_far(grammar, path: Path) -> dict:
         reloaded = far["grammar"]
         if not pynini.equal(graph, reloaded):
             raise RuntimeError(f"FAR round trip failed: {path}")
+    with path.open("rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
     return {
+        "name": path.name,
         "bytes": path.stat().st_size,
-        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "sha256": digest,
     }
 
 
