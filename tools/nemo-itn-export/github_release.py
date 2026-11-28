@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 import shutil
 
-from export_itn import LANGUAGES, REVISION
+from export_itn import LANGUAGES, expected_spec_for
 
 
 def parse_languages(value):
@@ -42,13 +42,16 @@ def assemble(source, output, repository, tag, languages):
     packs, smoke = [], {}
     base = f"https://github.com/{repository}/releases/download/{tag}"
     for language in languages:
+        expected_engine, expected_revision = expected_spec_for(language)
         directory = source / f"nemo-itn-{language}"
         catalog = json.loads((directory / "catalog.json").read_text(encoding="utf-8"))
         if catalog.get("format") != 1 or len(catalog.get("packs", [])) != 1:
             raise ValueError(f"Invalid catalog for {language}")
         pack = catalog["packs"][0]
-        if pack["language"] != language or pack["revision"] != REVISION:
-            raise ValueError(f"Unexpected language/revision for {language}")
+        actual_engine = pack.get("engine", "nemo")
+        if pack["language"] != language or pack["revision"] != expected_revision or actual_engine != expected_engine:
+            raise ValueError(f"Unexpected language/engine/revision for {language}: {pack}")
+        pack["engine"] = expected_engine
         if sorted(file["name"] for file in pack["files"]) != ["classify.far", "verbalize.far"]:
             raise ValueError(f"Invalid FAR pair for {language}")
         for file in pack["files"]:
@@ -67,11 +70,19 @@ def assemble(source, output, repository, tag, languages):
         if language not in examples or "123" not in examples[language]["expected"]:
             raise ValueError(f"Missing smoke result for {language}")
         smoke[language] = examples[language]
-        for name in ("LICENSE-NeMo.txt", "PROVENANCE.txt", "NOTICE-NeMo.txt"):
+
+        has_license = False
+        for name in ("LICENSE-NeMo.txt", "LICENSE-WeTextProcessing.txt", "PROVENANCE.txt", "NOTICE-NeMo.txt"):
             path = directory / name
-            if name == "NOTICE-NeMo.txt" and not path.exists():
+            if not path.exists():
+                if name == "PROVENANCE.txt":
+                    raise FileNotFoundError(f"Missing {path}")
                 continue
+            if name.startswith("LICENSE-"):
+                has_license = True
             shutil.copyfile(path, output / f"{language}-{name}")
+        if not has_license:
+            raise FileNotFoundError(f"Missing upstream license file for {language}")
         packs.append(pack)
     # Never advertise a partial language set if validation fails partway through.
     (output / "catalog.json").write_text(json.dumps({"format": 1, "packs": packs}, indent=2), encoding="utf-8")

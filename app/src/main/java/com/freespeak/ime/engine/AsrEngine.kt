@@ -27,6 +27,7 @@ data class AsrInferenceOptions(
     val fluidCleanMode: Boolean = false,
     val itnEnabled: Boolean = false,
     val itnLanguage: String = "auto",
+    val preferredLanguages: Set<String> = emptySet(),
 )
 
 fun AsrInferenceOptions.forModel(model: ModelManifest): AsrInferenceOptions = copy(

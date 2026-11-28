@@ -342,12 +342,12 @@ class Qwen3AsrEngine : AsrEngine {
             persistentTensors.forEach { runCatching { it.close() } }
         }
 
-        val decodedText = tok.decode(generatedIds.toIntArray(), skipSpecialTokens = true)
+        val decoded = tok.decodeWithMetadata(generatedIds.toIntArray(), skipSpecialTokens = true)
         val elapsed = System.currentTimeMillis() - startMs
 
         AsrTranscriptionResult(
-            text = decodedText,
-            detectedLanguage = options.language.takeIf { it != "auto" },
+            text = decoded.text,
+            detectedLanguage = decoded.detectedLanguage ?: options.language.takeIf { it != "auto" },
             inferenceTimeMs = elapsed,
         )
     }

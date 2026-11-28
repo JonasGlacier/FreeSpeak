@@ -98,8 +98,9 @@ class Qwen3AsrAndTokenizerTest {
             assertEquals(151704L, prompt.last())
 
             // Simulate Qwen3-ASR output: "language Chinese<asr_text>OK"
-            val outText = tok.decode(intArrayOf(10, 11, 12, 13, 151704, 14, 151645))
-            assertEquals("OK", outText)
+            val decoded = tok.decodeWithMetadata(intArrayOf(10, 11, 12, 13, 151704, 14, 151645))
+            assertEquals("OK", decoded.text)
+            assertEquals("zh", decoded.detectedLanguage)
         } finally {
             dir.deleteRecursively()
         }

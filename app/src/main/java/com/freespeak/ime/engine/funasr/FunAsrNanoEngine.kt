@@ -45,7 +45,11 @@ class FunAsrNanoEngine : AsrEngine {
     private var isLlmTripleGraph: Boolean = false
     private var kvDecoder: FunAsrKvDecoder? = null
 
-    private data class LlmTranscription(val text: String, val limited: Boolean = false)
+    private data class LlmTranscription(
+        val text: String,
+        val limited: Boolean = false,
+        val detectedLanguage: String? = null,
+    )
 
     override val isLoaded: Boolean
         get() = (primarySession != null || (encoderSession != null && llmSession != null)) && tokenizer != null
@@ -125,19 +129,19 @@ class FunAsrNanoEngine : AsrEngine {
         val output = if (isLlmTripleGraph) {
             transcribeTripleLlm(pcm16k, options.language)
         } else {
-            LlmTranscription(transcribeSingleCtc(pcm16k, options.language))
+            transcribeSingleCtc(pcm16k, options.language)
         }
         val elapsed = System.currentTimeMillis() - startMs
 
         AsrTranscriptionResult(
             text = output.text,
-            detectedLanguage = options.language.takeIf { it != "auto" },
+            detectedLanguage = output.detectedLanguage ?: options.language.takeIf { it != "auto" },
             inferenceTimeMs = elapsed,
             outputLimited = output.limited,
         )
     }
 
-    private fun transcribeSingleCtc(pcm16k: FloatArray, language: String): String {
+    private fun transcribeSingleCtc(pcm16k: FloatArray, language: String): LlmTranscription {
         val env = ortEnv ?: error("ORT environment uninitialized")
         val sess = primarySession ?: error("ONNX session uninitialized")
         val tok = tokenizer ?: error("Tokenizer uninitialized")
@@ -153,9 +157,9 @@ class FunAsrNanoEngine : AsrEngine {
             cmvnNegMean = cmvnNegMean,
             cmvnInvStd = cmvnInvStd,
         )
-        if (features.isEmpty()) return ""
+        if (features.isEmpty()) return LlmTranscription("")
         val numFrames = features.size / featDim
-        if (numFrames <= 0) return ""
+        if (numFrames <= 0) return LlmTranscription("")
 
         val createdTensors = ArrayList<OnnxTensor>(4)
         try {
@@ -207,7 +211,8 @@ class FunAsrNanoEngine : AsrEngine {
                 } else {
                     fallbackCtcGreedy(flatLogits, timeSteps, vocabSize, blankId)
                 }
-                return tok.decode(tokenIds, skipSpecialTokens = true)
+                val decoded = tok.decodeWithMetadata(tokenIds, skipSpecialTokens = true)
+                return LlmTranscription(decoded.text, detectedLanguage = decoded.detectedLanguage)
             }
         } finally {
             createdTensors.forEach { runCatching { it.close() } }
@@ -271,7 +276,8 @@ class FunAsrNanoEngine : AsrEngine {
             val result = decoder.decode(env, currentEmbeds, maxNewTokens, setOf(imEndId, eosId)) {
                 lookupEmbeddings(env, embSess, intArrayOf(it), hiddenDim)
             }
-            return LlmTranscription(tok.decode(result.tokens), result.limited)
+            val decoded = tok.decodeWithMetadata(result.tokens)
+            return LlmTranscription(decoded.text, result.limited, decoded.detectedLanguage)
         }
         val generated = ArrayList<Int>(maxNewTokens)
         val decInputName = decSess.inputNames.first()
@@ -317,7 +323,8 @@ class FunAsrNanoEngine : AsrEngine {
             seqLen++
         }
 
-        return LlmTranscription(tok.decode(generated.toIntArray(), skipSpecialTokens = true))
+        val decoded = tok.decodeWithMetadata(generated.toIntArray(), skipSpecialTokens = true)
+        return LlmTranscription(decoded.text, detectedLanguage = decoded.detectedLanguage)
     }
 
     private fun lookupEmbeddings(

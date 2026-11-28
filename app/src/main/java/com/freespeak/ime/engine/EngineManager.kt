@@ -118,9 +118,18 @@ class EngineManager(
                         com.freespeak.ime.model.CanaryLanguages.target(manifest, source, effectiveOptions.targetLanguage)
                     } else result.detectedLanguage ?: effectiveOptions.language
                     val itnLanguage = com.freespeak.ime.itn.resolveItnLanguage(
-                        effectiveOptions.itnLanguage, null, outputLanguage, effectiveOptions.language,
+                        override = effectiveOptions.itnLanguage,
+                        target = effectiveOptions.targetLanguage.takeIf {
+                            manifest.engineType == EngineType.CANARY_ONNX || manifest.engineType == EngineType.CANARY_GGUF
+                        },
+                        detected = outputLanguage,
+                        source = effectiveOptions.language,
+                        text = result.text,
+                        preferredLanguages = effectiveOptions.preferredLanguages,
                     )
-                    val text = if (effectiveOptions.itnEnabled) {
+                    val skipForNativeRumbleDigits = effectiveOptions.rumbleFormatting?.digits == true &&
+                        effectiveOptions.itnLanguage == "auto"
+                    val text = if (effectiveOptions.itnEnabled && !skipForNativeRumbleDigits) {
                         itnProcessor?.normalize(result.text, itnLanguage) ?: result.text
                     } else result.text
                     result.copy(text = chineseConverter.convert(

@@ -1,20 +1,23 @@
-FreeSpeak NeMo ITN integration
+FreeSpeak Offline ITN Integration
 
 OpenFST 1.8.5 (CMake packaging v1.8.5-2026-11-21):
 https://github.com/csukuangfj/openfst/tree/v1.8.5-2026-11-21
 Copyright 2005-2026 Google LLC. Licensed under the Apache License, Version 2.0.
 The Apache-2.0 license text is bundled at assets/opencc/LICENSE.txt.
 
-The Kotlin token parser and field-order handling are adapted from the algorithm
-in NVIDIA NeMo Text Processing text_normalization/token_parser.py and
-text_normalization/normalize.py, commit ddadfb2a38d2bc6b8cc6232c4f915eb60f500688.
+NVIDIA NeMo Text Processing (en, de, fr, es, ja, ru, pt grammars & token parser):
+Adapted from text_normalization/token_parser.py and text_normalization/normalize.py,
+commit ddadfb2a38d2bc6b8cc6232c4f915eb60f500688.
 Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
 Licensed under the Apache License, Version 2.0.
 https://github.com/NVIDIA/NeMo-text-processing
 
-Changes: bounded lazy Kotlin traversal and serialization, direct-order fast
-path, UTF-8 JNI runtime and on-device resource limits. This is not NVIDIA's
-Python runtime or the Sparrowhawk runtime.
+WeTextProcessing (zh Mandarin ITN grammar & deterministic token parser):
+Adapted from tn/token_parser.py, commit 94ab845bc83330a4819a799831462d6f7a7b93ab.
+Copyright (c) 2022 Zhendong Peng, Xingchen Song, WeNet Community.
+Licensed under the Apache License, Version 2.0.
+https://github.com/wenet-e2e/WeTextProcessing
 
-NeMo grammar data is downloaded separately. The export tool includes the
-upstream license and available notice alongside the language packs.
+Changes: 256-bit ilabel-lookahead OpenFST composition, clause segmentation,
+per-token verbalization, English compound-numeral hyphen expansion, and
+script-safe language routing. Grammar FAR files are downloaded on demand.

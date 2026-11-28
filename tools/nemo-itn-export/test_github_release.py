@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from export_itn import LANGUAGES, REVISION
+from export_itn import LANGUAGES, expected_spec_for
 from github_release import assemble, parse_languages
 
 
@@ -17,18 +17,28 @@ class ReleaseTests(unittest.TestCase):
                 parse_languages(invalid)
 
     def fixture(self, root, language):
+        engine, revision = expected_spec_for(language)
         directory = root / f"nemo-itn-{language}"
         (directory / language).mkdir(parents=True)
         files = []
         for name in ("classify.far", "verbalize.far"):
             data = f"fixture-{language}-{name}".encode()
             (directory / language / name).write_bytes(data)
-            files.append({"name": name, "url": "https://example.com/old", "bytes": len(data),
-                          "sha256": hashlib.sha256(data).hexdigest()})
-        (directory / "catalog.json").write_text(json.dumps({"format": 1, "packs": [
-            {"language": language, "revision": REVISION, "files": files}]}))
-        (directory / "smoke.json").write_text(json.dumps({language: {"input": "example", "expected": "123"}}))
-        for name in ("LICENSE-NeMo.txt", "PROVENANCE.txt"):
+            files.append({
+                "name": name,
+                "url": "https://example.com/old",
+                "bytes": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            })
+        (directory / "catalog.json").write_text(json.dumps({
+            "format": 1,
+            "packs": [{"language": language, "revision": revision, "engine": engine, "files": files}],
+        }))
+        (directory / "smoke.json").write_text(json.dumps({
+            language: {"input": "example", "expected": "123", "engine": engine}
+        }))
+        license_name = "LICENSE-WeTextProcessing.txt" if engine == "wetext" else "LICENSE-NeMo.txt"
+        for name in (license_name, "PROVENANCE.txt"):
             (directory / name).write_text("fixture")
         return directory
 
@@ -40,6 +50,9 @@ class ReleaseTests(unittest.TestCase):
             assemble(root, root / "release", "owner/repo", "nemo-itn-123-1", ["en", "zh"])
             catalog = json.loads((root / "release/catalog.json").read_text())
             self.assertEqual(len(catalog["packs"]), 2)
+            by_lang = {p["language"]: p for p in catalog["packs"]}
+            self.assertEqual(by_lang["en"]["engine"], "nemo")
+            self.assertEqual(by_lang["zh"]["engine"], "wetext")
             for pack in catalog["packs"]:
                 for file in pack["files"]:
                     asset = f"{pack['language']}-{file['name']}"

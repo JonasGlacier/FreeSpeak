@@ -20,6 +20,11 @@ enum class TokenDecodeMode {
     SENTENCEPIECE,
 }
 
+data class DecodedAsrOutput(
+    val text: String,
+    val detectedLanguage: String? = null,
+)
+
 /**
  * Memory-efficient offline tokenizer using a flat `Array<String?>` table (avoiding boxed Integer
  * HashMap & JsonObject DOM bloat on 152k-token Qwen vocabularies).
@@ -142,18 +147,28 @@ class QwenBpeTokenizer private constructor(
         }
     }
 
-    fun decode(tokenIds: IntArray, skipSpecialTokens: Boolean = true): String {
-        if (tokenIds.isEmpty()) return ""
+    fun decode(tokenIds: IntArray, skipSpecialTokens: Boolean = true): String =
+        decodeWithMetadata(tokenIds, skipSpecialTokens).text
 
-        return when (mode) {
+    fun decodeWithMetadata(tokenIds: IntArray, skipSpecialTokens: Boolean = true): DecodedAsrOutput {
+        if (tokenIds.isEmpty()) return DecodedAsrOutput("")
+
+        var specialTagLanguage: String? = null
+        fun captureBracketLanguage(piece: String) {
+            if (specialTagLanguage == null && piece.startsWith("<|") && piece.endsWith("|>")) {
+                specialTagLanguage = parseAsrLanguageTag(piece.substring(2, piece.length - 2))
+            }
+        }
+
+        val rawDecoded = when (mode) {
             TokenDecodeMode.BASE64_BYTES -> {
                 val byteBuffer = ByteArrayOutputStream(tokenIds.size * 3)
                 val b64Decoder = Base64.getDecoder()
                 for (id in tokenIds) {
                     if (id < 0 || id >= idToToken.size) continue
-                    if (skipSpecialTokens && id in specialIds) continue
                     val piece = idToToken[id] ?: continue
-                    if (skipSpecialTokens && isBracketSpecial(piece)) continue
+                    captureBracketLanguage(piece)
+                    if (skipSpecialTokens && (id in specialIds || isBracketSpecial(piece))) continue
                     val decodedBytes = runCatching { b64Decoder.decode(piece) }.getOrNull()
                     if (decodedBytes != null) {
                         byteBuffer.write(decodedBytes)
@@ -161,16 +176,16 @@ class QwenBpeTokenizer private constructor(
                         byteBuffer.write(piece.toByteArray(Charsets.UTF_8))
                     }
                 }
-                cleanAsrArtifacts(byteBuffer.toByteArray().toString(Charsets.UTF_8))
+                byteBuffer.toByteArray().toString(Charsets.UTF_8)
             }
 
             TokenDecodeMode.BYTE_LEVEL_BPE -> {
                 val byteBuffer = ByteArrayOutputStream(tokenIds.size * 3)
                 for (id in tokenIds) {
                     if (id < 0 || id >= idToToken.size) continue
-                    if (skipSpecialTokens && id in specialIds) continue
                     val piece = idToToken[id] ?: continue
-                    if (skipSpecialTokens && isBracketSpecial(piece)) continue
+                    captureBracketLanguage(piece)
+                    if (skipSpecialTokens && (id in specialIds || isBracketSpecial(piece))) continue
                     for (ch in piece) {
                         val b = UNICODE_TO_BYTE[ch]
                         if (b != null) {
@@ -180,16 +195,16 @@ class QwenBpeTokenizer private constructor(
                         }
                     }
                 }
-                cleanAsrArtifacts(byteBuffer.toByteArray().toString(Charsets.UTF_8))
+                byteBuffer.toByteArray().toString(Charsets.UTF_8)
             }
 
             TokenDecodeMode.SENTENCEPIECE -> {
                 val sb = StringBuilder()
                 for (id in tokenIds) {
                     if (id < 0 || id >= idToToken.size) continue
-                    if (skipSpecialTokens && id in specialIds) continue
                     val piece = idToToken[id] ?: continue
-                    if (skipSpecialTokens && isBracketSpecial(piece)) continue
+                    captureBracketLanguage(piece)
+                    if (skipSpecialTokens && (id in specialIds || isBracketSpecial(piece))) continue
                     when {
                         piece.startsWith("<0x") && piece.endsWith(">") && piece.length == 6 -> {
                             val hex = piece.substring(3, 5).toIntOrNull(16)
@@ -199,9 +214,10 @@ class QwenBpeTokenizer private constructor(
                         else -> sb.append(piece.replace('\u2581', ' '))
                     }
                 }
-                cleanAsrArtifacts(sb.toString())
+                sb.toString()
             }
         }
+        return extractAsrMetadata(rawDecoded, specialTagLanguage)
     }
 
     private fun isBracketSpecial(piece: String): Boolean {
@@ -209,19 +225,54 @@ class QwenBpeTokenizer private constructor(
             piece == "<s>" || piece == "</s>" || piece == "<unk>" || piece == "<blank>" || piece == "<pad>"
     }
 
-    private fun cleanAsrArtifacts(raw: String): String {
+    private fun extractAsrMetadata(raw: String, fallbackLanguage: String?): DecodedAsrOutput {
         var text = raw.replace(SPECIAL_TAG_REGEX, "")
+        var headerLanguage: String? = null
         val asrTextMarker = "<asr_text>"
         val markerIdx = text.indexOf(asrTextMarker)
         if (markerIdx >= 0) {
+            val header = text.substring(0, markerIdx).trim()
+            if (header.startsWith("language ", ignoreCase = true)) {
+                headerLanguage = parseAsrLanguageTag(header.substring("language ".length))
+            }
             text = text.substring(markerIdx + asrTextMarker.length)
         }
-        return text.replace("\uFFFD", "").trim()
+        return DecodedAsrOutput(
+            text = text.replace("\uFFFD", "").trim(),
+            detectedLanguage = headerLanguage ?: fallbackLanguage,
+        )
     }
 
     companion object {
         private val SPECIAL_TAG_REGEX = Regex("<\\|[^|>]+\\|>")
         private val jsonParser = Json { ignoreUnknownKeys = true }
+
+        private val ENGLISH_LANGUAGE_CODES: Map<String, String> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+            val map = HashMap<String, String>(256)
+            for (iso in java.util.Locale.getISOLanguages()) {
+                val loc = java.util.Locale.forLanguageTag(iso)
+                val eng = loc.getDisplayLanguage(java.util.Locale.ENGLISH).lowercase(java.util.Locale.ROOT)
+                if (eng.isNotBlank()) map.putIfAbsent(eng, iso)
+                map.putIfAbsent(iso.lowercase(java.util.Locale.ROOT), iso.lowercase(java.util.Locale.ROOT))
+            }
+            map["chinese"] = "zh"
+            map["mandarin"] = "zh"
+            map["cantonese"] = "yue"
+            map["yue"] = "yue"
+            map["filipino"] = "fil"
+            map["fil"] = "fil"
+            map["cebuano"] = "ceb"
+            map["ceb"] = "ceb"
+            map
+        }
+
+        internal fun parseAsrLanguageTag(rawTag: String): String? {
+            val normalized = rawTag.trim().lowercase(java.util.Locale.ROOT)
+            if (normalized.isEmpty() || normalized in setOf("none", "auto", "unknown", "nospeech", "speech", "withitn", "woitn")) {
+                return null
+            }
+            return ENGLISH_LANGUAGE_CODES[normalized]
+        }
 
         private val UNICODE_TO_BYTE: Map<Char, Int>
         private val BYTE_TO_UNICODE: Map<Int, Char>
