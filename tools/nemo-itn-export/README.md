@@ -19,9 +19,10 @@ loads two FAR archives and applies classification and verbalization offline.
    URLs. Publishing uses the built-in `GITHUB_TOKEN`; no additional secret is
    needed. Repository/organization policy must allow `contents: write` for the
    publishing job.
-5. When publishing finishes, copy the **catalog URL from the publish job's
-   summary** into **Settings → Number & text formatting → HTTPS pack catalog
-   URL**, load it, download your languages, and enable formatting.
+5. To ship a new pack release, replace `app/src/main/assets/itn/catalog.json`
+   with the release's verified catalog and rebuild the app. Users open
+   **Settings → Number & text formatting**, tap the download icon for a language,
+   and enable formatting. The pack list works without a network request.
 
 The workflow runs only when manually triggered. Each language builds in its own
 Ubuntu runner, with at most two language jobs running simultaneously and a
@@ -68,12 +69,8 @@ failed smoke tests fail the export rather than advertising a broken pack.
 Upload the output directory **with paths preserved**, including `catalog.json`,
 the language directories and license/provenance files. Use immutable URLs (e.g.
 a Hugging Face commit revision). No upload is performed by the export script.
-Enter the resulting HTTPS `catalog.json` URL under **Settings → Number & text
-formatting**, load the catalog, download languages, then enable formatting.
-The app applies the existing Hugging Face mirror preference to HTTPS URLs.
-
-There is deliberately no invented/default hosting URL in the application.
-Until a catalog is published and configured, there are no downloadable packs.
+To distribute the result in the app, verify the published assets and update
+the bundled `app/src/main/assets/itn/catalog.json` before building Android.
 Two individual FAR files are downloaded instead of a tar archive to avoid an
 archive extraction dependency in this path. Both size and SHA-256 are verified
 before the pair becomes visible to the processor. Cancelled downloads restart.

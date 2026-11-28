@@ -62,22 +62,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var itnJob: kotlinx.coroutines.Job? = null
     fun setItnEnabled(enabled: Boolean) { viewModelScope.launch { prefs.setItnEnabled(enabled) } }
     fun setItnLanguage(language: String) { viewModelScope.launch { prefs.setItnLanguage(language) } }
-    fun refreshItnCatalog(url: String) {
+    fun downloadItnPack(language: String) {
         if (itnJob?.isActive == true) return
-        itnJob = viewModelScope.launch {
-            prefs.setItnCatalogUrl(url)
-            app.itnPackRepository.refresh(url.trim(), prefs.settingsFlow.first())
-        }
-    }
-    fun downloadItnPack(pack: com.freespeak.ime.itn.ItnPack) {
-        if (itnJob?.isActive == true) return
-        itnJob = viewModelScope.launch { app.itnPackRepository.install(pack, prefs.settingsFlow.first()) }
+        itnJob = viewModelScope.launch { app.itnPackRepository.install(language) }
     }
     fun deleteItnPack(language: String) {
         if (itnJob?.isActive == true) return
         itnJob = viewModelScope.launch {
-            engineMgr.unloadNow()
             app.itnPackRepository.delete(language)
+            engineMgr.releaseItnPack(language)
         }
     }
     fun cancelItnDownload() { itnJob?.cancel() }

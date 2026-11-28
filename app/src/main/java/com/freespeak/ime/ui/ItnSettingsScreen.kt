@@ -1,60 +1,150 @@
 package com.freespeak.ime.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freespeak.ime.R
 import com.freespeak.ime.data.UserSettings
-import com.freespeak.ime.itn.ItnPackCatalog
-import java.util.Locale
+import com.freespeak.ime.ui.theme.NothingRed
 
 @Composable
 internal fun ItnSettingsScreen(settings: UserSettings, viewModel: MainViewModel, onBack: () -> Unit) {
     val state by viewModel.itnPacks.collectAsStateWithLifecycle()
-    var url by rememberSaveable(settings.itnCatalogUrl) { mutableStateOf(settings.itnCatalogUrl) }
+    var pendingDelete by rememberSaveable { mutableStateOf<String?>(null) }
+    var languageMenuOpen by rememberSaveable { mutableStateOf(false) }
+    val installed = state.packs.filter { it.language in state.installed }
+    val available = state.packs.filterNot { it.language in state.installed }
+        .sortedBy { it.language !in settings.preferredLanguages }
+    val automatic = stringResource(R.string.itn_auto)
+
     SubPageScaffold(stringResource(R.string.itn_title), onBack) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
-            SwitchRow(stringResource(R.string.itn_enable), settings.itnEnabled, onChange = viewModel::setItnEnabled)
-            Text(stringResource(R.string.itn_description), Modifier.padding(20.dp), style = MaterialTheme.typography.bodySmall)
-            SectionLabel(stringResource(R.string.itn_language))
-            ChoiceRow(stringResource(R.string.itn_auto), settings.itnLanguage == "auto", onClick = { viewModel.setItnLanguage("auto") })
-            ItnPackCatalog.languages.forEach { language ->
-                val locale = Locale.forLanguageTag(language)
-                ChoiceRow(locale.getDisplayLanguage(locale), settings.itnLanguage == language,
-                    onClick = { viewModel.setItnLanguage(language) })
+        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(bottom = 24.dp)) {
+            item(key = "settings") {
+                RowGroup(rows = listOf(
+                    { SwitchRow(stringResource(R.string.itn_enable), settings.itnEnabled, onChange = viewModel::setItnEnabled) },
+                    {
+                        Box {
+                            ValueRow(
+                                title = stringResource(R.string.itn_language),
+                                value = if (settings.itnLanguage == "auto") automatic else nativeLanguageName(settings.itnLanguage),
+                                onClick = { languageMenuOpen = true },
+                            )
+                            DropdownMenu(
+                                expanded = languageMenuOpen,
+                                onDismissRequest = { languageMenuOpen = false },
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                shape = RoundedCornerShape(16.dp),
+                            ) {
+                                (listOf("auto") + state.packs.map { it.language }).forEach { language ->
+                                    DropdownMenuItem(
+                                        text = { Text(if (language == "auto") automatic else nativeLanguageName(language)) },
+                                        onClick = {
+                                            languageMenuOpen = false
+                                            viewModel.setItnLanguage(language)
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    },
+                ))
+                Text(
+                    stringResource(R.string.itn_description),
+                    Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-            SectionLabel(stringResource(R.string.itn_packs))
-            OutlinedTextField(url, { url = it }, Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                label = { Text(stringResource(R.string.itn_catalog)) }, singleLine = true, enabled = !state.busy)
-            TextButton(onClick = { viewModel.refreshItnCatalog(url) }, enabled = !state.busy && url.isNotBlank()) {
-                Text(stringResource(R.string.itn_refresh))
-            }
-            if (state.packs.isEmpty()) Text(stringResource(R.string.itn_no_catalog), Modifier.padding(20.dp))
-            if (state.busy) {
-                state.progress?.let { progress -> LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(20.dp)) }
-                    ?: LinearProgressIndicator(Modifier.fillMaxWidth().padding(20.dp))
-                TextButton(onClick = viewModel::cancelItnDownload) { Text(stringResource(R.string.itn_cancel)) }
-            }
-            state.error?.let { Text(it, Modifier.padding(20.dp), color = MaterialTheme.colorScheme.error) }
-            (state.packs.map { it.language } + state.installed).distinct().forEach { language ->
-                val pack = state.packs.find { it.language == language }
-                val installed = language in state.installed
-                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-                    Text(Locale.forLanguageTag(language).getDisplayLanguage(Locale.forLanguageTag(language)), style = MaterialTheme.typography.titleMedium)
-                    Text(if (installed) stringResource(R.string.itn_installed) else stringResource(R.string.itn_pack_size, (pack?.diskBytes ?: 0L) / 1_048_576.0),
-                        style = MaterialTheme.typography.bodySmall)
-                    if (installed) TextButton(onClick = { viewModel.deleteItnPack(language) }, enabled = !state.busy) { Text(stringResource(R.string.itn_delete)) }
-                    else if (pack != null) TextButton(onClick = { viewModel.downloadItnPack(pack) }, enabled = !state.busy) { Text(stringResource(R.string.itn_download)) }
+            listOf(R.string.hub_installed to installed, R.string.itn_packs to available).forEach { (title, packs) ->
+                if (packs.isNotEmpty()) item(key = title) { SectionLabel(stringResource(title)) }
+                items(packs, key = { it.language }) { pack ->
+                    val language = pack.language
+                    val installedBytes = state.installed[language]
+                    val downloadedBytes = state.downloadedBytes.takeIf { state.operationLanguage == language }
+                    ItnPackRow(
+                        title = nativeLanguageName(language),
+                        bytes = installedBytes ?: pack.diskBytes,
+                        installed = installedBytes != null,
+                        downloadedBytes = downloadedBytes,
+                        error = state.errors[language],
+                        enabled = !state.busy,
+                        onDownload = { viewModel.downloadItnPack(language) },
+                        onCancel = viewModel::cancelItnDownload,
+                        onDelete = { pendingDelete = language },
+                    )
+                    HairlineDivider(Modifier.padding(horizontal = 20.dp))
                 }
             }
-            Spacer(Modifier.height(24.dp))
+        }
+    }
+
+    pendingDelete?.let { language ->
+        ConfirmDeleteDialog(
+            name = nativeLanguageName(language),
+            onDismiss = { pendingDelete = null },
+            onConfirm = {
+                pendingDelete = null
+                viewModel.deleteItnPack(language)
+            },
+        )
+    }
+}
+
+@Composable
+private fun ItnPackRow(
+    title: String,
+    bytes: Long,
+    installed: Boolean,
+    downloadedBytes: Long?,
+    error: String?,
+    enabled: Boolean,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    DownloadListRow(title = title, readout = formatBytes(bytes), actions = {
+        when {
+            downloadedBytes != null -> IconAction(Icons.Outlined.Close, stringResource(R.string.action_cancel), onCancel)
+            installed -> IconAction(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), onDelete,
+                tint = MaterialTheme.colorScheme.outline, enabled = enabled, iconSize = 20.dp)
+            error != null -> IconAction(Icons.Outlined.Refresh, stringResource(R.string.action_retry), onDownload,
+                tint = NothingRed, enabled = enabled)
+            else -> IconAction(Icons.Outlined.Download, stringResource(R.string.action_download), onDownload, enabled = enabled)
+        }
+    }) {
+        val inset = Modifier.padding(end = 12.dp)
+        if (downloadedBytes != null) {
+            Spacer(Modifier.height(10.dp))
+            ThinProgress((downloadedBytes.toFloat() / bytes).coerceIn(0f, 1f), inset)
+            Spacer(Modifier.height(6.dp))
+            Readout("${formatBytes(downloadedBytes)} / ${formatBytes(bytes)}", inset)
+        } else if (error != null) {
+            Spacer(Modifier.height(4.dp))
+            Readout(error, inset, color = NothingRed)
         }
     }
 }

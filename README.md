@@ -54,9 +54,9 @@ to format spoken numbers, dates, times, currency and measurements with full
 NVIDIA NeMo grammars. Choose a formatting language explicitly when the model
 does not report its output language. Coverage depends on the language grammar.
 
-Language packs are distributed through a configurable HTTPS catalog. A catalog
-must be generated and published before downloads are available; none is hosted
-by this source tree. See [pack export and publishing instructions](tools/nemo-itn-export/README.md).
+Eight language packs are listed in the app and downloaded on demand from the
+[NeMo pack release](https://github.com/JonasGlacier/FreeSpeak/releases/tag/nemo-itn-46033201756-1).
+See [pack export and publishing instructions](tools/nemo-itn-export/README.md).
 
 ### Building from Source
 

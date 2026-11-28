@@ -282,25 +282,17 @@ internal fun ModelRow(
     val state = item.state
     val installed = state is ModelInstallState.Installed
     val readout = listOfNotNull(modelSizeLabel(item)).plus(modelFeatureTags(item.manifest)).joinToString(" · ")
-    Column(
+    DownloadListRow(
+        title = title,
+        readout = readout,
         modifier = Modifier
-            .fillMaxWidth()
             .let { if (installed && !isActive) it.clickable(onClick = onSelect) else it }
-            .alpha(if (dimmed) 0.38f else 1f)
-            .padding(start = startPadding, end = 6.dp, top = 12.dp, bottom = 12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (showSelector) {
-                Box(Modifier.width(34.dp)) { if (installed) SelectDot(selected = isActive) }
-            }
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (readout.isNotEmpty()) {
-                    Spacer(Modifier.height(2.dp))
-                    Readout(readout)
-                }
-            }
-            Spacer(Modifier.width(4.dp))
+            .alpha(if (dimmed) 0.38f else 1f),
+        startPadding = startPadding,
+        leading = if (showSelector) {
+            { Box(Modifier.width(34.dp)) { if (installed) SelectDot(selected = isActive) } }
+        } else null,
+        actions = {
             val grey = MaterialTheme.colorScheme.outline
             when (state) {
                 ModelInstallState.NotInstalled ->
@@ -322,7 +314,8 @@ internal fun ModelRow(
                 is ModelInstallState.Installed ->
                     onDelete?.let { IconAction(Icons.Outlined.DeleteOutline, stringResource(R.string.action_delete), it, tint = grey, iconSize = 20.dp) }
             }
-        }
+        },
+    ) {
         val progressPad = Modifier.padding(start = if (showSelector) 34.dp else 0.dp, end = 12.dp)
         when (state) {
             is ModelInstallState.Downloading -> {
@@ -350,6 +343,34 @@ internal fun ModelRow(
             }
             else -> Unit
         }
+    }
+}
+
+/** Shared two-line row for downloadable models and formatting packs. */
+@Composable
+internal fun DownloadListRow(
+    title: String,
+    readout: String,
+    modifier: Modifier = Modifier,
+    startPadding: Dp = 20.dp,
+    leading: (@Composable () -> Unit)? = null,
+    actions: @Composable () -> Unit,
+    details: @Composable () -> Unit,
+) {
+    Column(modifier.fillMaxWidth().padding(start = startPadding, end = 6.dp, top = 12.dp, bottom = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            leading?.invoke()
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (readout.isNotEmpty()) {
+                    Spacer(Modifier.height(2.dp))
+                    Readout(readout)
+                }
+            }
+            Spacer(Modifier.width(4.dp))
+            actions()
+        }
+        details()
     }
 }
 

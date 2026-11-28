@@ -158,6 +158,10 @@ class EngineManager(
         }
     }
 
+    internal suspend fun releaseItnPack(language: String) = withContext(engineDispatcher) {
+        itnProcessor?.releaseLanguage(language)
+    }
+
     suspend fun unloadNow() = mutex.withLock {
         withContext(engineDispatcher) {
             itnProcessor?.releaseAll()

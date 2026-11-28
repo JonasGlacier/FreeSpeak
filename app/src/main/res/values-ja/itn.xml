@@ -4,13 +4,5 @@
     <string name="itn_description">ダウンロードした NeMo ルールで、読み上げた数字、日付、時刻、通貨、単位を変換します。すべてのモデルでオフライン動作します。対応範囲は言語によって異なり、モデル自体の書式設定も引き続き適用されます。出力言語が不明な場合は下で選択してください。パックがない場合や変換に失敗した場合は原文を保持します。</string>
     <string name="itn_language">書式変換の言語</string>
     <string name="itn_auto">モデルの出力言語を使用</string>
-    <string name="itn_packs">言語パック</string>
-    <string name="itn_catalog">パックカタログの HTTPS URL</string>
-    <string name="itn_refresh">カタログを読み込む</string>
-    <string name="itn_no_catalog">公開された FreeSpeak NeMo パックカタログの URL を入力して、言語ルールをダウンロードしてください。</string>
-    <string name="itn_cancel">キャンセル</string>
-    <string name="itn_installed">インストール済み · オフラインで使用可能</string>
-    <string name="itn_pack_size">ダウンロード：%1$.1f MB</string>
-    <string name="itn_delete">パックを削除</string>
-    <string name="itn_download">パックをダウンロード</string>
+    <string name="itn_packs">ダウンロード可能な言語パック</string>
 </resources>

@@ -4,13 +4,5 @@
     <string name="itn_description">使用下载的 NeMo 规则转换口述数字、日期、时间、货币和计量单位。支持所有模型，完全离线运行。各语言的覆盖范围不同，模型自身的格式设置仍然生效。如果无法确定输出语言，请在下方选择。未安装语言包或转换失败时保留原文。</string>
     <string name="itn_language">格式转换语言</string>
     <string name="itn_auto">使用模型输出语言</string>
-    <string name="itn_packs">语言包</string>
-    <string name="itn_catalog">语言包目录 HTTPS 地址</string>
-    <string name="itn_refresh">加载目录</string>
-    <string name="itn_no_catalog">输入已发布的 FreeSpeak NeMo 语言包目录地址以下载规则。</string>
-    <string name="itn_cancel">取消</string>
-    <string name="itn_installed">已安装 · 可离线使用</string>
-    <string name="itn_pack_size">下载：%1$.1f MB</string>
-    <string name="itn_delete">删除语言包</string>
-    <string name="itn_download">下载语言包</string>
+    <string name="itn_packs">可下载的语言包</string>
 </resources>

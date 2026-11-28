@@ -43,6 +43,11 @@ class NemoItnProcessor(private val packs: ItnPackRepository) {
         NemoItnNative.rewrite(handle, classify, text.toByteArray(Charsets.UTF_8))?.toString(Charsets.UTF_8)
 
     @Synchronized
+    fun releaseLanguage(language: String) {
+        if (loaded?.language == language) releaseAll()
+    }
+
+    @Synchronized
     fun releaseAll() {
         if (handle != 0L) NemoItnNative.release(handle)
         handle = 0L

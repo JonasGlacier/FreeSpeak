@@ -9,7 +9,7 @@ on:
         default: 'en'
         type: string
       publish:
-        description: 'Publish a GitHub Release with a catalog URL usable in the app (public repository required)'
+        description: 'Publish a GitHub Release with a catalog for bundling in the app (public repository required)'
         required: true
         default: false
         type: boolean
@@ -130,11 +130,11 @@ jobs:
           gh release create "$RELEASE_TAG" release/* \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "NeMo ITN packs · $RELEASE_TAG" \
-            --notes 'Full NeMo ITN language packs for FreeSpeak IME. Use the catalog.json asset URL in Number & text formatting settings. Build smoke checks passed; see smoke.json for examples. Android language coverage still requires device validation.' \
+            --notes 'Full NeMo ITN language packs for FreeSpeak IME. The catalog.json asset can be bundled in an app build. Build smoke checks passed; see smoke.json for examples. Android language coverage still requires device validation.' \
             --draft --prerelease --latest=false
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
           {
             echo '### Pack catalog ready'
-            echo "Paste this URL into **Settings → Number & text formatting → HTTPS pack catalog URL**:"
+            echo 'To ship these packs in a new app build, replace `app/src/main/assets/itn/catalog.json` with this asset:'
             echo "https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/catalog.json"
           } >> "$GITHUB_STEP_SUMMARY"

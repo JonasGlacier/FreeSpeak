@@ -1,7 +1,6 @@
 package com.freespeak.ime.itn
 
 import android.content.Context
-import com.freespeak.ime.data.UserSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -25,11 +24,13 @@ import java.util.concurrent.TimeUnit
 
 data class ItnPackState(
     val packs: List<ItnPack> = emptyList(),
-    val installed: Set<String> = emptySet(),
-    val busy: Boolean = false,
-    val progress: Float? = null,
-    val error: String? = null,
-)
+    val installed: Map<String, Long> = emptyMap(),
+    val operationLanguage: String? = null,
+    val downloadedBytes: Long? = null,
+    val errors: Map<String, String> = emptyMap(),
+) {
+    val busy: Boolean get() = operationLanguage != null
+}
 
 /** Downloads are explicitly initiated by the settings screen, never by the IME. */
 class ItnPackRepository(context: Context) {
@@ -48,13 +49,13 @@ class ItnPackRepository(context: Context) {
             val backup = File(root, "$language.old")
             if (!destination.exists() && backup.exists()) backup.renameTo(destination)
         }
-        val catalog = runCatching { ItnPackCatalog.parse(File(root, "catalog.json").readText()) }.getOrNull()
-        mutableState.value = ItnPackState(packs = catalog?.packs.orEmpty(), installed = installedLanguages())
+        val catalog = context.assets.open("itn/catalog.json").bufferedReader().use { ItnPackCatalog.parse(it.readText()) }
+        mutableState.value = ItnPackState(packs = catalog.packs, installed = installedPacks())
     }
 
-    private fun installedLanguages() = ItnPackCatalog.languages.filter { language ->
-        withInstalled(language) { _, _ -> true } == true
-    }.toSet()
+    private fun installedPacks() = ItnPackCatalog.languages.mapNotNull { language ->
+        withInstalled(language) { pack, _ -> language to pack.diskBytes }
+    }.toMap()
 
     fun <T> withInstalled(language: String, block: (ItnPack, File) -> T): T? = synchronized(diskLock) {
         if (language !in ItnPackCatalog.languages) return@synchronized null
@@ -65,26 +66,14 @@ class ItnPackRepository(context: Context) {
         block(pack, directory)
     }
 
-    suspend fun refresh(url: String, settings: UserSettings) = operation {
-        ItnPackCatalog.requireHttps(url)
-        val text = fetchText(settings.resolveDownloadUrl(url))
-        val catalog = ItnPackCatalog.parse(text)
-        val temp = File(root, "catalog.tmp")
-        temp.writeText(text)
-        java.nio.file.Files.move(temp.toPath(), File(root, "catalog.json").toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-        mutableState.value = mutableState.value.copy(packs = catalog.packs)
-    }
-
-    suspend fun install(pack: ItnPack, settings: UserSettings) = operation {
-        ItnPackCatalog.parse(ItnPackCatalog.json.encodeToString(ItnPackCatalog(packs = listOf(pack))))
+    suspend fun install(language: String) = operation(language, download = true) {
+        val pack = mutableState.value.packs.first { it.language == language }
         val stage = File(root, "${pack.language}.partial")
         stage.deleteRecursively(); check(stage.mkdirs())
         try {
             var done = 0L
             for (file in pack.files) {
-                val url = settings.resolveDownloadUrl(file.url)
-                ItnPackCatalog.requireHttps(url)
-                withResponse(url) { response ->
+                withResponse(file.url) { response ->
                     check(response.isSuccessful) { "ITN download failed: HTTP ${response.code}" }
                     check(response.request.url.isHttps) { "ITN download must use HTTPS" }
                     val digest = MessageDigest.getInstance("SHA-256")
@@ -99,7 +88,7 @@ class ItnPackRepository(context: Context) {
                                 bytes += count
                                 check(bytes <= file.bytes) { "ITN file exceeds declared size" }
                                 output.write(buffer, 0, count); digest.update(buffer, 0, count)
-                                mutableState.value = mutableState.value.copy(progress = (done + bytes).toFloat() / pack.diskBytes)
+                                mutableState.value = mutableState.value.copy(downloadedBytes = done + bytes)
                             }
                         }
                     }
@@ -124,41 +113,30 @@ class ItnPackRepository(context: Context) {
         } finally { stage.deleteRecursively() }
     }
 
-    suspend fun delete(language: String) = operation {
+    suspend fun delete(language: String) = operation(language) {
         require(language in ItnPackCatalog.languages)
-        synchronized(diskLock) { check(File(root, language).deleteRecursively()) }
+        synchronized(diskLock) {
+            check(File(root, "$language.old").deleteRecursively() && File(root, language).deleteRecursively())
+        }
     }
 
-    private suspend fun operation(block: suspend () -> Unit) = withContext(Dispatchers.IO) {
+    private suspend fun operation(language: String, download: Boolean = false, block: suspend () -> Unit) = withContext(Dispatchers.IO) {
         operations.withLock {
-            mutableState.value = mutableState.value.copy(busy = true, error = null, progress = null)
+            mutableState.value = mutableState.value.copy(
+                operationLanguage = language,
+                downloadedBytes = if (download) 0L else null,
+                errors = mutableState.value.errors - language,
+            )
             try { block() }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 currentCoroutineContext().ensureActive()
-                mutableState.value = mutableState.value.copy(error = e.message ?: "ITN operation failed")
+                mutableState.value = mutableState.value.copy(errors = mutableState.value.errors +
+                    (language to (e.message ?: "ITN operation failed")))
             }
-            finally { mutableState.value = mutableState.value.copy(busy = false, progress = null, installed = installedLanguages()) }
-        }
-    }
-
-    private suspend fun fetchText(url: String): String {
-        ItnPackCatalog.requireHttps(url)
-        return withResponse(url) { response ->
-            check(response.isSuccessful) { "ITN catalog failed: HTTP ${response.code}" }
-            check(response.request.url.isHttps)
-            val bytes = checkNotNull(response.body).byteStream().use { input ->
-                val output = java.io.ByteArrayOutputStream()
-                val buffer = ByteArray(8192)
-                while (true) {
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    require(output.size() + count <= 1_048_576) { "ITN catalog is too large" }
-                    output.write(buffer, 0, count)
-                }
-                output.toByteArray()
+            finally {
+                mutableState.value = mutableState.value.copy(operationLanguage = null, downloadedBytes = null, installed = installedPacks())
             }
-            bytes.toString(Charsets.UTF_8)
         }
     }
 

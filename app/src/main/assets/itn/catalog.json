@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "packs": [
+    {"language":"en","revision":"ddadfb2a38d2bc6b8cc6232c4f915eb60f500688","files":[
+      {"name":"classify.far","bytes":2879377,"sha256":"8f1cea7d8f755252d0229d93f579a19d2782d450a83020dd10db5b6744f50fa1","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/en-classify.far"},
+      {"name":"verbalize.far","bytes":717437,"sha256":"464e8c892a21e81d32d1ea61d61b0ba41c76161998d02b5985cb45dc506577e3","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/en-verbalize.far"}
+    ]},
+    {"language":"zh","revision":"ddadfb2a38d2bc6b8cc6232c4f915eb60f500688","files":[
+      {"name":"classify.far","bytes":628281,"sha256":"2838c65cdd823e3f39c413e38c2ac5d6fc2db1a05b1829f9e3c4fd1dae830cc8","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/zh-classify.far"},
+      {"name":"verbalize.far","bytes":377613,"sha256":"16d6401fc495f8cbc04b331f25d64e506c1330a9f5bf9af93b3b8c0d147fe9bb","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/zh-verbalize.far"}
+    ]},
+    {"language":"de","revision":"ddadfb2a38d2bc6b8cc6232c4f915eb60f500688","files":[
+      {"name":"classify.far","bytes":4226445,"sha256":"4eaac3a6734a5ce1dfff714657bac05e58c83f5b03ffc0fc4c3ba048ccc51ec0","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/de-classify.far"},
+      {"name":"verbalize.far","bytes":406229,"sha256":"b5a5bb23a22416a0725e4512c80ead2f45795b2996e3c88e15c52e9f61c62a01","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/de-verbalize.far"}
+    ]},
+    {"language":"fr","revision":"ddadfb2a38d2bc6b8cc6232c4f915eb60f500688","files":[
+      {"name":"classify.far","bytes":4385809,"sha256":"c1aae08377e091c5c166b2c49b6167fa15fe0e9be85d7697d1b41bf268d0984e","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/fr-classify.far"},
+      {"name":"verbalize.far","bytes":606077,"sha256":"ff12df5bbb29bf69d383851bddc5061eed301aa1ddec094400d7efda12ad5f13","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/fr-verbalize.far"}
+    ]},
+    {"language":"es","revision":"ddadfb2a38d2bc6b8cc6232c4f915eb60f500688","files":[
+      {"name":"classify.far","bytes":4242061,"sha256":"67d9701b89e655a465938c6fc44ead76e264a72f42784ccad734000688e24f20","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/es-classify.far"},
+      {"name":"verbalize.far","bytes":864237,"sha256":"adfca65eb436c73d625e13b8724e7c0b08976f030192bbdf9d043f8cd81a98bb","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/es-verbalize.far"}
+    ]},
+    {"language":"ja","revision":"ddadfb2a38d2bc6b8cc6232c4f915eb60f500688","files":[
+      {"name":"classify.far","bytes":1452121,"sha256":"8ea187c0a887b90a97d8c813b2be3424aa3fe0f09e269e28f498a6770e1d7f6a","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/ja-classify.far"},
+      {"name":"verbalize.far","bytes":187917,"sha256":"fde0467267b54afd20520b3343a919a7fab796d28c2594dfb6e92caf2c83b300","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/ja-verbalize.far"}
+    ]},
+    {"language":"ru","revision":"ddadfb2a38d2bc6b8cc6232c4f915eb60f500688","files":[
+      {"name":"classify.far","bytes":18557785,"sha256":"5d5bfee612b46dd58a33d9cab53679210682bdf0a274c3c98e357a00e4216560","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/ru-classify.far"},
+      {"name":"verbalize.far","bytes":375085,"sha256":"18141475fe056275dbaec36e1d44bf324f25000f13c3ce23fb0aea7569f213e6","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/ru-verbalize.far"}
+    ]},
+    {"language":"pt","revision":"ddadfb2a38d2bc6b8cc6232c4f915eb60f500688","files":[
+      {"name":"classify.far","bytes":1105017,"sha256":"a82daaf852e5e896fe6c6573422cb7edfa4349b8f883fb0b5ecb30aaf1ef8125","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/pt-classify.far"},
+      {"name":"verbalize.far","bytes":679885,"sha256":"52c75da6905219f29965e6566d3d1c8ad68dae4d9098500124736e34bd4a0ab7","url":"https://github.com/JonasGlacier/FreeSpeak/releases/download/nemo-itn-46033201756-1/pt-verbalize.far"}
+    ]}
+  ]
+}

@@ -4,13 +4,5 @@
     <string name="itn_description">Formats spoken numbers, dates, times, currency and measurements using downloaded NeMo rules. Runs offline with every model. Coverage varies by language. Existing model formatting still applies. If the output language is unknown, choose it below. Missing packs or unsuccessful conversions leave the original text unchanged.</string>
     <string name="itn_language">Formatting language</string>
     <string name="itn_auto">Use model output language</string>
-    <string name="itn_packs">Language packs</string>
-    <string name="itn_catalog">HTTPS pack catalog URL</string>
-    <string name="itn_refresh">Load catalog</string>
-    <string name="itn_no_catalog">Enter a published FreeSpeak NeMo pack catalog URL to download language rules.</string>
-    <string name="itn_cancel">Cancel</string>
-    <string name="itn_installed">Installed · available offline</string>
-    <string name="itn_pack_size">Download: %1$.1f MB</string>
-    <string name="itn_delete">Delete pack</string>
-    <string name="itn_download">Download pack</string>
+    <string name="itn_packs">Available language packs</string>
 </resources>
